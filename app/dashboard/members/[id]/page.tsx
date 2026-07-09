@@ -83,8 +83,8 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
               <CardTitle>Personal Information</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2 text-sm">
-              <div><span className="font-medium text-slate-500">Father's Name:</span> <br /> {member.fatherName || "N/A"}</div>
-              <div><span className="font-medium text-slate-500">Mother's Name:</span> <br /> {member.motherName || "N/A"}</div>
+              <div><span className="font-medium text-slate-500">Father&apos;s Name:</span> <br /> {member.fatherName || "N/A"}</div>
+              <div><span className="font-medium text-slate-500">Mother&apos;s Name:</span> <br /> {member.motherName || "N/A"}</div>
               <div><span className="font-medium text-slate-500">Phone:</span> <br /> {member.phone}</div>
               <div><span className="font-medium text-slate-500">Email:</span> <br /> {member.email || "N/A"}</div>
               <div><span className="font-medium text-slate-500">NID Number:</span> <br /> {member.nidNumber || "N/A"}</div>
