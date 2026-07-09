@@ -120,7 +120,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                 member.nominees.map((nom) => (
                   <div key={nom.id} className="border-b border-slate-100 dark:border-slate-800 pb-2">
                     <p className="font-medium">{nom.name}</p>
-                    <p className="text-slate-500">Relation: {nom.relation} | Share: {nom.sharePercentage}%</p>
+                    <p className="text-slate-500">Relation: {nom.relation} | Share: {Number(nom.sharePercentage)}%</p>
                     <p className="text-slate-500">Phone: {nom.phone || "N/A"}</p>
                   </div>
                 ))
