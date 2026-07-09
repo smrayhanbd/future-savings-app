@@ -1,65 +1,105 @@
-import Image from "next/image";
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import Link from "next/link"
+import { signIn } from "next-auth/react"
+import { useRouter } from "next/navigation"
 
 export default function Home() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    const res = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    if (res?.error) {
+      setError("Invalid email or password");
+      setLoading(false);
+    } else if (res?.ok) {
+      router.push("/dashboard");
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
+      {/* Left side - Branding & Gradient */}
+      <div className="hidden flex-col justify-center bg-gradient-to-br from-slate-900 to-indigo-900 p-12 text-white lg:flex">
+        <div className="mx-auto max-w-md">
+          <h1 className="text-4xl font-bold tracking-tight">Future Savings Foundation</h1>
+          <p className="mt-4 text-lg text-slate-300">
+            Enterprise-grade management for Savings Societies, Cooperatives, and Microfinance Organizations.
           </p>
+          <div className="mt-8 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-400">✓</div>
+              <p className="text-slate-200">Secure & Automated Double-Entry Accounting</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-400">✓</div>
+              <p className="text-slate-200">Member Management & KYC Verification</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-400">✓</div>
+              <p className="text-slate-200">SMS, Email & Receipt Automation</p>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </div>
+
+      {/* Right side - Login Form */}
+      <div className="flex items-center justify-center p-6 lg:p-12 bg-slate-50 dark:bg-slate-950">
+        <Card className="w-full max-w-sm shadow-xl border-slate-200 dark:border-slate-800">
+          <CardHeader>
+            <CardTitle className="text-2xl">Sign in to your account</CardTitle>
+            <CardDescription>Enter your credentials to access the admin dashboard</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="bg-red-50 text-red-600 text-sm p-3 rounded-md border border-red-200">
+                  {error}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="email">Admin Email</Label>
+                <Input id="email" name="email" type="email" placeholder="admin@foundation.com" required className="bg-white dark:bg-slate-900" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link href="/forgot-password" className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
+                    Forgot password?
+                  </Link>
+                </div>
+                <Input id="password" name="password" type="password" required className="bg-white dark:bg-slate-900" />
+              </div>
+              <Button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                {loading ? "Signing in..." : "Sign In"}
+              </Button>
+            </form>
+            <p className="mt-4 text-center text-xs text-slate-500">
+              Protected by enterprise-grade security. © 2024 Future Savings Foundation.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  );
+  )
 }

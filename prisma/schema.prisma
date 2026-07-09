@@ -1,0 +1,217 @@
+// This is the database schema. It defines how our data is structured.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Organization Model (For Multi-Tenant SaaS)
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  logo      String?
+  createdAt DateTime @default(now())
+  members   Member[]
+}
+
+// Enums
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum BloodGroup {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+}
+
+enum MemberStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DECEASED
+  CLOSED
+}
+
+// Member Model (Society Members)
+model Member {
+  id                     String       @id @default(uuid())
+  
+  // Link to Organization
+  organizationId         String?
+  organization           Organization? @relation(fields: [organizationId], references: [id])
+
+  // Membership Information
+  memberNo               String       @unique
+  membershipDate         DateTime     @default(now())
+  joiningDate            DateTime?
+  memberType             String?
+  status                 MemberStatus @default(PENDING)
+
+  // Personal Information
+  firstName              String
+  lastName               String
+  fullName               String
+
+  gender                 Gender?
+  dateOfBirth            DateTime?
+  maritalStatus          MaritalStatus?
+  marriageDate           DateTime?
+
+  fatherName             String?
+  motherName             String?
+  spouseName             String?
+
+  religion               String?
+  nationality            String?      @default("Bangladeshi")
+  bloodGroup             BloodGroup?
+
+  occupation             String?
+  profession             String?
+  monthlyIncome          Decimal?     @db.Decimal(12,2)
+
+  // Contact
+  phone                  String
+  emergencyPhone         String?
+  email                  String?      @unique
+
+  // Identity
+  nidNumber              String?      @unique
+  passportNumber         String?      @unique
+  birthCertificateNo     String?      @unique
+
+  // Photo
+  photoUrl               String?
+
+  // Membership
+  remarks                String?      @db.Text
+
+  // Relationships
+  addresses              MemberAddress[]
+  nominees               MemberNominee[]
+  documents              MemberDocument[]
+  accounts               MemberAccount[]
+  collections            Collection[]
+  ledgerEntries          LedgerEntry[]
+
+  // Audit
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  deletedAt              DateTime?
+
+  createdBy              String?
+  updatedBy              String?
+
+  @@index([memberNo])
+  @@index([phone])
+  @@index([email])
+  @@index([status])
+  @@index([joiningDate])
+}
+
+model MemberAddress {
+  id              String   @id @default(uuid())
+  memberId        String
+  member          Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  addressType     String   // CURRENT, PERMANENT
+  village         String?
+  postOffice      String?
+  policeStation   String?
+  district        String?
+  division        String?
+  postalCode      String?
+  country         String?  @default("Bangladesh")
+  createdAt       DateTime @default(now())
+  @@index([memberId])
+}
+
+model MemberNominee {
+  id              String   @id @default(uuid())
+  memberId        String
+  member          Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  name            String
+  relation        String
+  phone           String?
+  email           String?
+  dateOfBirth     DateTime?
+  nidNumber       String?
+  sharePercentage Decimal  @db.Decimal(5,2)
+  photoUrl        String?
+  documentUrl     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([memberId])
+}
+
+model MemberDocument {
+  id              String   @id @default(uuid())
+  memberId        String
+  member          Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  documentType    String
+  fileName        String?
+  fileUrl         String
+  issueDate       DateTime?
+  expiryDate      DateTime?
+  uploadedAt      DateTime @default(now())
+  @@index([memberId])
+}
+
+model MemberAccount {
+  id              String   @id @default(uuid())
+  memberId        String
+  member          Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  username        String   @unique
+  email           String?  @unique
+  passwordHash    String
+  emailVerified   Boolean  @default(false)
+  lastLogin       DateTime?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([memberId])
+}
+
+// Placeholder models so Prisma validation passes
+model Collection {
+  id        String  @id @default(uuid())
+  memberId  String
+  member    Member  @relation(fields: [memberId], references: [id])
+  amount    Decimal @db.Decimal(12,2)
+  createdAt DateTime @default(now())
+}
+
+model LedgerEntry {
+  id        String  @id @default(uuid())
+  memberId  String
+  member    Member  @relation(fields: [memberId], references: [id])
+  debit     Decimal? @db.Decimal(12,2) @default(0)
+  credit    Decimal? @db.Decimal(12,2) @default(0)
+  createdAt DateTime @default(now())
+}
+
+// User Model (Admins & Staff)
+model User {
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+  role     String @default("ADMIN") // ADMIN, MANAGER, MEMBER
+}
