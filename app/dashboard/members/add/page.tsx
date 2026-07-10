@@ -144,6 +144,19 @@ const sectionColors = {
     nominees: { bg: "bg-green-50", border: "border-green-200", header: "bg-green-500", text: "text-white", topBorder: "border-t-green-500" },
 };
 
+// Section wrapper to apply consistent colors
+function SectionCard({ color, children, title, icon }: { color: typeof sectionColors.personal, children: React.ReactNode, title: string, icon: React.ReactNode }) {
+    return (
+        <div className={`rounded-xl shadow-md border ${color.bg} ${color.border} border-t-4 ${color.topBorder}`}>
+            <div className={`${color.header} ${color.text} px-6 py-3 rounded-t-xl flex items-center gap-2`}>
+                {icon}
+                <h2 className="text-lg font-semibold">{title}</h2>
+            </div>
+            <div className="p-6">{children}</div>
+        </div>
+    );
+}
+
 export default function MemberAddPage() {
     const [formData, setFormData] = useState<FormData>(initialFormData);
     const [nomineeIdCounter, setNomineeIdCounter] = useState(1);
@@ -488,11 +501,10 @@ export default function MemberAddPage() {
         file: File | null,
         onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
         onRemove: () => void,
-        label: string,
-        key?: string
+        label: string
     ) => {
         return (
-            <div key={key} className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-primary transition-colors">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-primary transition-colors">
                 {file ? (
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -528,17 +540,6 @@ export default function MemberAddPage() {
             </div>
         );
     };
-
-    // Section wrapper to apply consistent colors
-    const SectionCard = ({ color, children, title, icon }: { color: typeof sectionColors.personal, children: React.ReactNode, title: string, icon: React.ReactNode }) => (
-        <div className={`rounded-xl shadow-md border ${color.bg} ${color.border} border-t-4 ${color.topBorder}`}>
-            <div className={`${color.header} ${color.text} px-6 py-3 rounded-t-xl flex items-center gap-2`}>
-                {icon}
-                <h2 className="text-lg font-semibold">{title}</h2>
-            </div>
-            <div className="p-6">{children}</div>
-        </div>
-    );
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
@@ -587,7 +588,6 @@ export default function MemberAddPage() {
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                                     <span className="w-20">Status</span>
                                     <select
-                                        key="memberStatus"
                                         name="memberStatus"
                                         value={formData.memberStatus}
                                         onChange={handleInputChange}
@@ -602,14 +602,12 @@ export default function MemberAddPage() {
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                                     <span className="w-24">Member No</span>
                                     <input
-                                        key="memberNo"
                                         type="text"
                                         name="memberNo"
                                         value={formData.memberNo}
                                         onChange={handleInputChange}
                                         placeholder="Auto-generated"
                                         className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-40 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                        autoComplete="off"
                                     />
                                 </label>
                             </div>
@@ -618,7 +616,6 @@ export default function MemberAddPage() {
                                     <Calendar className="w-4 h-4 text-gray-400" />
                                     <span className="w-16">Joined</span>
                                     <input
-                                        key="joinedDate"
                                         type="date"
                                         name="joinedDate"
                                         value={formData.joinedDate}
@@ -630,7 +627,6 @@ export default function MemberAddPage() {
                             <div className="flex items-center gap-4">
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                                     <input
-                                        key="kycVerified"
                                         type="checkbox"
                                         name="kycVerified"
                                         checked={formData.kycVerified}
@@ -654,14 +650,12 @@ export default function MemberAddPage() {
                                             First Name <span className="text-red-500">*</span>
                                         </label>
                                         <input
-                                            key="firstName"
                                             type="text"
                                             name="firstName"
                                             value={formData.firstName}
                                             onChange={handleInputChange}
                                             placeholder="i.e Md Rayhan"
                                             className={`w-full border ${errors.firstName && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none`}
-                                            autoComplete="off"
                                         />
                                         {errors.firstName && submitAttempted && (
                                             <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
@@ -674,14 +668,12 @@ export default function MemberAddPage() {
                                             Last Name <span className="text-red-500">*</span>
                                         </label>
                                         <input
-                                            key="lastName"
                                             type="text"
                                             name="lastName"
                                             value={formData.lastName}
                                             onChange={handleInputChange}
                                             placeholder="i.e. Sarder"
                                             className={`w-full border ${errors.lastName && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none`}
-                                            autoComplete="off"
                                         />
                                         {errors.lastName && submitAttempted && (
                                             <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
@@ -695,14 +687,12 @@ export default function MemberAddPage() {
                                         Father's Name
                                     </label>
                                     <input
-                                        key="fatherName"
                                         type="text"
                                         name="fatherName"
                                         value={formData.fatherName}
                                         onChange={handleInputChange}
                                         placeholder="Father's full name"
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                        autoComplete="off"
                                     />
                                 </div>
                                 <div>
@@ -710,14 +700,12 @@ export default function MemberAddPage() {
                                         Mother's Name
                                     </label>
                                     <input
-                                        key="motherName"
                                         type="text"
                                         name="motherName"
                                         value={formData.motherName}
                                         onChange={handleInputChange}
                                         placeholder="Mother's full name"
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                        autoComplete="off"
                                     />
                                 </div>
                                 <div>
@@ -725,14 +713,12 @@ export default function MemberAddPage() {
                                         Spouse Name
                                     </label>
                                     <input
-                                        key="spouseName"
                                         type="text"
                                         name="spouseName"
                                         value={formData.spouseName}
                                         onChange={handleInputChange}
                                         placeholder="Spouse's full name"
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                        autoComplete="off"
                                     />
                                 </div>
                                 <div>
@@ -740,7 +726,6 @@ export default function MemberAddPage() {
                                         Date of Birth <span className="text-red-500">*</span>
                                     </label>
                                     <input
-                                        key="dateOfBirth"
                                         type="date"
                                         name="dateOfBirth"
                                         value={formData.dateOfBirth}
@@ -759,7 +744,6 @@ export default function MemberAddPage() {
                                             Gender <span className="text-red-500">*</span>
                                         </label>
                                         <select
-                                            key="gender"
                                             name="gender"
                                             value={formData.gender}
                                             onChange={handleInputChange}
@@ -780,7 +764,6 @@ export default function MemberAddPage() {
                                             Religion
                                         </label>
                                         <select
-                                            key="religion"
                                             name="religion"
                                             value={formData.religion}
                                             onChange={handleInputChange}
@@ -799,13 +782,11 @@ export default function MemberAddPage() {
                                             Nationality
                                         </label>
                                         <input
-                                            key="nationality"
                                             type="text"
                                             name="nationality"
                                             value={formData.nationality}
                                             onChange={handleInputChange}
                                             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                            autoComplete="off"
                                         />
                                     </div>
                                     <div>
@@ -813,7 +794,6 @@ export default function MemberAddPage() {
                                             Blood Group
                                         </label>
                                         <select
-                                            key="bloodGroup"
                                             name="bloodGroup"
                                             value={formData.bloodGroup}
                                             onChange={handleInputChange}
@@ -831,14 +811,12 @@ export default function MemberAddPage() {
                                         Profession
                                     </label>
                                     <input
-                                        key="profession"
                                         type="text"
                                         name="profession"
                                         value={formData.profession}
                                         onChange={handleInputChange}
                                         placeholder="e.g. Business, Engineer"
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                        autoComplete="off"
                                     />
                                 </div>
                             </div>
@@ -852,14 +830,12 @@ export default function MemberAddPage() {
                                         Phone Number <span className="text-red-500">*</span>
                                     </label>
                                     <input
-                                        key="phoneNumber"
                                         type="tel"
                                         name="phoneNumber"
                                         value={formData.phoneNumber}
                                         onChange={handleInputChange}
                                         placeholder="01712345678"
                                         className={`w-full border ${errors.phoneNumber && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none`}
-                                        autoComplete="off"
                                     />
                                     {errors.phoneNumber && submitAttempted && (
                                         <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
@@ -872,14 +848,12 @@ export default function MemberAddPage() {
                                         Email Address <span className="text-red-500">*</span>
                                     </label>
                                     <input
-                                        key="emailAddress"
                                         type="email"
                                         name="emailAddress"
                                         value={formData.emailAddress}
                                         onChange={handleInputChange}
                                         placeholder="member@example.com"
                                         className={`w-full border ${errors.emailAddress && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none`}
-                                        autoComplete="off"
                                     />
                                     {errors.emailAddress && submitAttempted && (
                                         <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
@@ -892,14 +866,12 @@ export default function MemberAddPage() {
                                         Emergency Contact
                                     </label>
                                     <input
-                                        key="emergencyContact"
                                         type="tel"
                                         name="emergencyContact"
                                         value={formData.emergencyContact}
                                         onChange={handleInputChange}
                                         placeholder="01812345678"
                                         className={`w-full border ${errors.emergencyContact && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none`}
-                                        autoComplete="off"
                                     />
                                     {errors.emergencyContact && submitAttempted && (
                                         <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
@@ -913,7 +885,6 @@ export default function MemberAddPage() {
                                             ID Type <span className="text-red-500">*</span>
                                         </label>
                                         <select
-                                            key="idType"
                                             name="idType"
                                             value={formData.idType}
                                             onChange={handleInputChange}
@@ -935,14 +906,12 @@ export default function MemberAddPage() {
                                             ID Number <span className="text-red-500">*</span>
                                         </label>
                                         <input
-                                            key="idNumber"
                                             type="text"
                                             name="idNumber"
                                             value={formData.idNumber}
                                             onChange={handleInputChange}
                                             placeholder="Enter ID"
                                             className={`w-full border ${errors.idNumber && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none`}
-                                            autoComplete="off"
                                         />
                                         {errors.idNumber && submitAttempted && (
                                             <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
@@ -959,8 +928,7 @@ export default function MemberAddPage() {
                                         formData.idDocumentFile,
                                         (e) => handleFileChange(e, "idDocumentFile"),
                                         () => setFormData((prev) => ({ ...prev, idDocumentFile: null })),
-                                        "Upload ID Document",
-                                        "idDocumentFile"
+                                        "Upload ID Document"
                                     )}
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
@@ -969,7 +937,6 @@ export default function MemberAddPage() {
                                             Marital Status <span className="text-red-500">*</span>
                                         </label>
                                         <select
-                                            key="maritalStatus"
                                             name="maritalStatus"
                                             value={formData.maritalStatus}
                                             onChange={handleInputChange}
@@ -990,7 +957,6 @@ export default function MemberAddPage() {
                                             Marriage Date
                                         </label>
                                         <input
-                                            key="marriageDate"
                                             type="date"
                                             name="marriageDate"
                                             value={formData.marriageDate}
@@ -1010,14 +976,12 @@ export default function MemberAddPage() {
                                         Account Name <span className="text-red-500">*</span>
                                     </label>
                                     <input
-                                        key="accountName"
                                         type="text"
                                         name="accountName"
                                         value={formData.accountName}
                                         onChange={handleInputChange}
                                         placeholder="Full name as per bank"
                                         className={`w-full border ${errors.accountName && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none`}
-                                        autoComplete="off"
                                     />
                                     {errors.accountName && submitAttempted && (
                                         <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
@@ -1030,14 +994,12 @@ export default function MemberAddPage() {
                                         Account Number <span className="text-red-500">*</span>
                                     </label>
                                     <input
-                                        key="accountNumber"
                                         type="text"
                                         name="accountNumber"
                                         value={formData.accountNumber}
                                         onChange={handleInputChange}
                                         placeholder="Enter account number"
                                         className={`w-full border ${errors.accountNumber && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none`}
-                                        autoComplete="off"
                                     />
                                     {errors.accountNumber && submitAttempted && (
                                         <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
@@ -1051,7 +1013,6 @@ export default function MemberAddPage() {
                                             Bank Name <span className="text-red-500">*</span>
                                         </label>
                                         <select
-                                            key="bankName"
                                             name="bankName"
                                             value={formData.bankName}
                                             onChange={handleInputChange}
@@ -1073,14 +1034,12 @@ export default function MemberAddPage() {
                                             Branch
                                         </label>
                                         <input
-                                            key="branch"
                                             type="text"
                                             name="branch"
                                             value={formData.branch}
                                             onChange={handleInputChange}
                                             placeholder="Branch name"
                                             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                            autoComplete="off"
                                         />
                                     </div>
                                 </div>
@@ -1089,14 +1048,12 @@ export default function MemberAddPage() {
                                         Routing Number
                                     </label>
                                     <input
-                                        key="routingNumber"
                                         type="text"
                                         name="routingNumber"
                                         value={formData.routingNumber}
                                         onChange={handleInputChange}
                                         placeholder="Routing number"
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                        autoComplete="off"
                                     />
                                 </div>
                             </div>
@@ -1112,14 +1069,12 @@ export default function MemberAddPage() {
                                     </h3>
                                     <div className="space-y-2">
                                         <input
-                                            key="currentAddress"
                                             type="text"
                                             name="currentAddress"
                                             value={formData.currentAddress}
                                             onChange={handleInputChange}
                                             placeholder="Address"
                                             className={`w-full border ${errors.currentAddress && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none`}
-                                            autoComplete="off"
                                         />
                                         {errors.currentAddress && submitAttempted && (
                                             <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
@@ -1128,17 +1083,14 @@ export default function MemberAddPage() {
                                         )}
                                         <div className="grid grid-cols-3 gap-2">
                                             <input
-                                                key="currentPostOffice"
                                                 type="text"
                                                 name="currentPostOffice"
                                                 value={formData.currentPostOffice}
                                                 onChange={handleInputChange}
                                                 placeholder="Post Office"
                                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                                autoComplete="off"
                                             />
                                             <select
-                                                key="currentDistrict"
                                                 name="currentDistrict"
                                                 value={formData.currentDistrict}
                                                 onChange={handleInputChange}
@@ -1155,14 +1107,12 @@ export default function MemberAddPage() {
                                                 </p>
                                             )}
                                             <input
-                                                key="currentPostCode"
                                                 type="text"
                                                 name="currentPostCode"
                                                 value={formData.currentPostCode}
                                                 onChange={handleInputChange}
                                                 placeholder="Post Code"
                                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                                autoComplete="off"
                                             />
                                         </div>
                                     </div>
@@ -1174,14 +1124,12 @@ export default function MemberAddPage() {
                                     </h3>
                                     <div className="space-y-2">
                                         <input
-                                            key="permanentAddress"
                                             type="text"
                                             name="permanentAddress"
                                             value={formData.permanentAddress}
                                             onChange={handleInputChange}
                                             placeholder="Address"
                                             className={`w-full border ${errors.permanentAddress && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none`}
-                                            autoComplete="off"
                                         />
                                         {errors.permanentAddress && submitAttempted && (
                                             <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
@@ -1190,17 +1138,14 @@ export default function MemberAddPage() {
                                         )}
                                         <div className="grid grid-cols-3 gap-2">
                                             <input
-                                                key="permanentPostOffice"
                                                 type="text"
                                                 name="permanentPostOffice"
                                                 value={formData.permanentPostOffice}
                                                 onChange={handleInputChange}
                                                 placeholder="Post Office"
                                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                                autoComplete="off"
                                             />
                                             <select
-                                                key="permanentDistrict"
                                                 name="permanentDistrict"
                                                 value={formData.permanentDistrict}
                                                 onChange={handleInputChange}
@@ -1217,14 +1162,12 @@ export default function MemberAddPage() {
                                                 </p>
                                             )}
                                             <input
-                                                key="permanentPostCode"
                                                 type="text"
                                                 name="permanentPostCode"
                                                 value={formData.permanentPostCode}
                                                 onChange={handleInputChange}
                                                 placeholder="Post Code"
                                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                                autoComplete="off"
                                             />
                                         </div>
                                     </div>
@@ -1261,7 +1204,6 @@ export default function MemberAddPage() {
                                                         Document Name
                                                     </label>
                                                     <input
-                                                        key={`doc-name-${doc.id}`}
                                                         type="text"
                                                         value={doc.name}
                                                         onChange={(e) =>
@@ -1269,7 +1211,6 @@ export default function MemberAddPage() {
                                                         }
                                                         placeholder="e.g. TIN Certificate"
                                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                                        autoComplete="off"
                                                     />
                                                 </div>
                                                 <div className="flex-1 min-w-[200px]">
@@ -1285,8 +1226,7 @@ export default function MemberAddPage() {
                                                                 e.target.files?.[0] || null
                                                             ),
                                                         () => updateAdditionalDocument(doc.id, "file", null),
-                                                        "Upload File",
-                                                        `doc-file-${doc.id}`
+                                                        "Upload File"
                                                     )}
                                                 </div>
                                                 <button
@@ -1444,14 +1384,12 @@ export default function MemberAddPage() {
                                     Full Name *
                                 </label>
                                 <input
-                                    key="nominee-name"
                                     type="text"
                                     name="name"
                                     value={nomineeForm.name}
                                     onChange={handleNomineeInputChange}
                                     placeholder="Nominee full name"
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                    autoComplete="off"
                                 />
                             </div>
                             <div>
@@ -1459,14 +1397,12 @@ export default function MemberAddPage() {
                                     Relation *
                                 </label>
                                 <input
-                                    key="nominee-relation"
                                     type="text"
                                     name="relation"
                                     value={nomineeForm.relation}
                                     onChange={handleNomineeInputChange}
                                     placeholder="e.g. Spouse, Son, Daughter"
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                    autoComplete="off"
                                 />
                             </div>
                             <div>
@@ -1474,14 +1410,12 @@ export default function MemberAddPage() {
                                     Share Percentage *
                                 </label>
                                 <input
-                                    key="nominee-share"
                                     type="text"
                                     name="share"
                                     value={nomineeForm.share}
                                     onChange={handleNomineeInputChange}
                                     placeholder="e.g. 50"
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                    autoComplete="off"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
@@ -1490,7 +1424,6 @@ export default function MemberAddPage() {
                                         ID Type
                                     </label>
                                     <select
-                                        key="nominee-idType"
                                         name="idType"
                                         value={nomineeForm.idType}
                                         onChange={handleNomineeInputChange}
@@ -1506,14 +1439,12 @@ export default function MemberAddPage() {
                                         ID Number
                                     </label>
                                     <input
-                                        key="nominee-idNumber"
                                         type="text"
                                         name="idNumber"
                                         value={nomineeForm.idNumber}
                                         onChange={handleNomineeInputChange}
                                         placeholder="Enter ID"
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                                        autoComplete="off"
                                     />
                                 </div>
                             </div>
@@ -1525,8 +1456,7 @@ export default function MemberAddPage() {
                                     nomineeForm.idDocumentFile,
                                     handleNomineeFileChange,
                                     () => setNomineeForm((prev) => ({ ...prev, idDocumentFile: null })),
-                                    "Upload Nominee ID Document",
-                                    "nominee-idDoc"
+                                    "Upload Nominee ID Document"
                                 )}
                             </div>
                         </div>
