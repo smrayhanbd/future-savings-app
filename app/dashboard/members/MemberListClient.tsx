@@ -165,9 +165,9 @@ function ActionDropdown({ member }: { member: Member }) {
         <MoreHorizontal className="w-4 h-4 text-slate-500" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 z-50">
-        <p className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Member Actions</p>
-        <DropdownMenuItem asChild>
-          <Link href={`/dashboard/members/${member.id}`} className="flex items-center gap-2.5 cursor-pointer">
+                <p className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Member Actions</p>
+        <DropdownMenuItem className="p-0">
+          <Link href={`/dashboard/members/${member.id}`} className="flex items-center gap-2.5 w-full cursor-pointer p-2">
             <Eye className="w-4 h-4" /> View Profile
           </Link>
         </DropdownMenuItem>
