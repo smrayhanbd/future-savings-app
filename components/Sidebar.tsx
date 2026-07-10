@@ -2,12 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, Wallet, FileText, Settings } from "lucide-react"
+import { LayoutDashboard, Users, Wallet, FileText, Settings, CheckCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const menuItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
+  { name: "Approvals", href: "/dashboard/approvals", icon: CheckCircle },
   { name: "Accounting", href: "/dashboard/accounting", icon: Wallet },
   { name: "Reports", href: "/dashboard/reports", icon: FileText },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },

@@ -99,6 +99,13 @@ model Member {
   passportNumber         String?      @unique
   birthCertificateNo     String?      @unique
 
+  // Bank Information
+  accountName       String?
+  accountNumber     String?
+  bankName          String?
+  branch            String?
+  routingNumber     String?
+
   // Photo
   photoUrl               String?
 
@@ -110,7 +117,7 @@ model Member {
   nominees               MemberNominee[]
   documents              MemberDocument[]
   accounts               MemberAccount[]
-  collections            Collection[]
+  savings 		 Savings[]
   ledgerEntries          LedgerEntry[]
 
   // Audit
@@ -154,6 +161,8 @@ model MemberNominee {
   email           String?
   dateOfBirth     DateTime?
   nidNumber       String?
+  idType          String?  // <-- ADD THIS LINE
+  idDocumentUrl   String?  // <-- ADD THIS LINE
   sharePercentage Decimal  @db.Decimal(5,2)
   photoUrl        String?
   documentUrl     String?
@@ -167,6 +176,7 @@ model MemberDocument {
   memberId        String
   member          Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
   documentType    String
+  name		  String?
   fileName        String?
   fileUrl         String
   issueDate       DateTime?
@@ -191,12 +201,17 @@ model MemberAccount {
 }
 
 // Placeholder models so Prisma validation passes
-model Collection {
-  id        String  @id @default(uuid())
-  memberId  String
-  member    Member  @relation(fields: [memberId], references: [id])
-  amount    Decimal @db.Decimal(12,2)
-  createdAt DateTime @default(now())
+model Savings {
+  id          String   @id @default(uuid())
+  memberId    String
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  amount      Decimal  @db.Decimal(12,2)
+  type        String   // MONTHLY, DAILY, DONATION, FINE
+  method      String   // CASH, BKASH, BANK
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([memberId])
 }
 
 model LedgerEntry {
