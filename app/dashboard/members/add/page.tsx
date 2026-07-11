@@ -3,9 +3,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { addMember } from "@/app/actions/member";
 import Link from "next/link";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import {
     User,
-    Calendar,
+    Calendar as CalendarIcon,
     Phone,
     Mail,
     MapPin,
@@ -160,6 +162,18 @@ function SectionCard({ color, children, title, icon }: { color: typeof sectionCo
     );
 }
 
+// Enterprise Date Picker Component with Year/Month Dropdowns
+// Fast Native Date Picker
+function EnterpriseDatePicker({ value, onChange, hasError }: { value: string, onChange: (val: string) => void, hasError?: boolean }) {
+    return (
+        <input 
+            type="date" 
+            value={value} 
+            onChange={(e) => onChange(e.target.value)}
+            className={`w-full border ${hasError ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none bg-white`}
+        />
+    );
+}
 export default function MemberAddPage() {
     const [formData, setFormData] = useState<FormData>(initialFormData);
     const [nomineeIdCounter, setNomineeIdCounter] = useState(1);
@@ -487,9 +501,11 @@ export default function MemberAddPage() {
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                                        <Calendar className="w-4 h-4 text-gray-400" />
+                                        <CalendarIcon className="w-4 h-4 text-gray-400" />
                                         <span className="w-16">Joined</span>
-                                        <input type="date" name="joinedDate" value={formData.joinedDate} onChange={handleInputChange} className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
+                                        <div className="w-40">
+                                            <EnterpriseDatePicker value={formData.joinedDate} onChange={(val) => setFormData(prev => ({ ...prev, joinedDate: val }))} />
+                                        </div>
                                     </label>
                                 </div>
                                 <div className="flex items-center gap-4">
@@ -530,9 +546,9 @@ export default function MemberAddPage() {
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Spouse Name</label>
                                         <input type="text" name="spouseName" value={formData.spouseName} onChange={handleInputChange} placeholder="Spouse's full name" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
                                     </div>
-                                    <div>
+                                                                        <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth <span className="text-red-500">*</span></label>
-                                        <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleInputChange} className={`w-full border ${errors.dateOfBirth && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`} />
+                                        <EnterpriseDatePicker value={formData.dateOfBirth} onChange={(val) => setFormData(prev => ({ ...prev, dateOfBirth: val }))} hasError={!!errors.dateOfBirth && submitAttempted} />
                                         {errors.dateOfBirth && submitAttempted && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.dateOfBirth}</p>}
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
@@ -618,163 +634,169 @@ export default function MemberAddPage() {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Marriage Date</label>
-                                            <input type="date" name="marriageDate" value={formData.marriageDate} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
+                                            <EnterpriseDatePicker value={formData.marriageDate} onChange={(val) => setFormData(prev => ({ ...prev, marriageDate: val }))} />
                                         </div>
                                     </div>
                                 </div>
                             </SectionCard>
                         </div>
 
-                        {/* Bank Information */}
-                        <SectionCard color={sectionColors.bank} title="Bank Information" icon={<CreditCard className="w-5 h-5" />}>
-                            <div className="space-y-3">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Account Name <span className="text-red-500">*</span></label>
-                                    <input type="text" name="accountName" value={formData.accountName} onChange={handleInputChange} placeholder="Full name as per bank" className={`w-full border ${errors.accountName && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`} />
-                                    {errors.accountName && submitAttempted && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.accountName}</p>}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Account Number <span className="text-red-500">*</span></label>
-                                    <input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleInputChange} placeholder="Enter account number" className={`w-full border ${errors.accountNumber && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`} />
-                                    {errors.accountNumber && submitAttempted && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.accountNumber}</p>}
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name <span className="text-red-500">*</span></label>
-                                        <select name="bankName" value={formData.bankName} onChange={handleInputChange} className={`w-full border ${errors.bankName && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`}>
-                                            <option value="">Select Bank</option>
-                                            {banks.map((b) => <option key={b} value={b}>{b}</option>)}
-                                        </select>
-                                        {errors.bankName && submitAttempted && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.bankName}</p>}
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Branch</label>
-                                        <input type="text" name="branch" value={formData.branch} onChange={handleInputChange} placeholder="Branch name" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Routing Number</label>
-                                    <input type="text" name="routingNumber" value={formData.routingNumber} onChange={handleInputChange} placeholder="Routing number" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
-                                </div>
-                            </div>
-                        </SectionCard>
-
-                        {/* Residence Information */}
-                        <SectionCard color={sectionColors.residence} title="Residence Information" icon={<Home className="w-5 h-5" />}>
-                            <div className="space-y-3">
-                                <div className="border-b border-gray-200 pb-3">
-                                    <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1"><MapPin className="w-4 h-4 text-gray-500" /> Current Residence</h3>
-                                    <div className="space-y-2">
-                                        <input type="text" name="currentAddress" value={formData.currentAddress} onChange={handleInputChange} placeholder="Address" className={`w-full border ${errors.currentAddress && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`} />
-                                        {errors.currentAddress && submitAttempted && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.currentAddress}</p>}
-                                        <div className="grid grid-cols-3 gap-2">
-                                            <input type="text" name="currentPostOffice" value={formData.currentPostOffice} onChange={handleInputChange} placeholder="Post Office" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
-                                            <select name="currentDistrict" value={formData.currentDistrict} onChange={handleInputChange} className={`w-full border ${errors.currentDistrict && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`}>
-                                                <option value="">District</option>
-                                                {districts.map((d) => <option key={d} value={d}>{d}</option>)}
-                                            </select>
-                                            {errors.currentDistrict && submitAttempted && <p className="text-red-500 text-xs col-span-3 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.currentDistrict}</p>}
-                                            <input type="text" name="currentPostCode" value={formData.currentPostCode} onChange={handleInputChange} placeholder="Post Code" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1"><Building className="w-4 h-4 text-gray-500" /> Permanent Residence</h3>
-                                    <div className="space-y-2">
-                                        <input type="text" name="permanentAddress" value={formData.permanentAddress} onChange={handleInputChange} placeholder="Address" className={`w-full border ${errors.permanentAddress && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`} />
-                                        {errors.permanentAddress && submitAttempted && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.permanentAddress}</p>}
-                                        <div className="grid grid-cols-3 gap-2">
-                                            <input type="text" name="permanentPostOffice" value={formData.permanentPostOffice} onChange={handleInputChange} placeholder="Post Office" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
-                                            <select name="permanentDistrict" value={formData.permanentDistrict} onChange={handleInputChange} className={`w-full border ${errors.permanentDistrict && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`}>
-                                                <option value="">District</option>
-                                                {districts.map((d) => <option key={d} value={d}>{d}</option>)}
-                                            </select>
-                                            {errors.permanentDistrict && submitAttempted && <p className="text-red-500 text-xs col-span-3 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.permanentDistrict}</p>}
-                                            <input type="text" name="permanentPostCode" value={formData.permanentPostCode} onChange={handleInputChange} placeholder="Post Code" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </SectionCard>
-
-                        {/* Additional Documents */}
-                        <SectionCard color={sectionColors.docs} title="Additional Documents" icon={<FileText className="w-5 h-5" />}>
-                            <div className="flex items-center justify-between mb-4">
-                                <span className="text-sm text-gray-500">Upload supporting documents</span>
-                                <button type="button" onClick={addAdditionalDocument} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"><Plus className="w-4 h-4" /> Add Document</button>
-                            </div>
-                            {formData.additionalDocuments.length === 0 ? (
-                                <div className="text-center py-8 text-gray-400">
-                                    <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                    <p>No additional documents added</p>
-                                    <p className="text-sm">Click "Add Document" to upload a file (e.g., TIN Certificate)</p>
-                                </div>
-                            ) : (
+                        {/* Bank & Residence Side-by-Side */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Bank Information */}
+                            <SectionCard color={sectionColors.bank} title="Bank Information" icon={<CreditCard className="w-5 h-5" />}>
                                 <div className="space-y-3">
-                                    {formData.additionalDocuments.map((doc) => (
-                                        <div key={doc.id} className="flex flex-wrap items-end gap-3 border-b border-gray-200 pb-3">
-                                            <div className="flex-1 min-w-[150px]">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Document Name</label>
-                                                <input type="text" value={doc.name} onChange={(e) => updateAdditionalDocument(doc.id, "name", e.target.value)} placeholder="e.g. TIN Certificate" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
-                                            </div>
-                                            <div className="flex-1 min-w-[200px]">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">File</label>
-                                                {renderFileUpload(doc.file, (e) => updateAdditionalDocument(doc.id, "file", e.target.files?.[0] || null), () => updateAdditionalDocument(doc.id, "file", null), "Upload File")}
-                                            </div>
-                                            <button type="button" onClick={() => removeAdditionalDocument(doc.id)} className="text-red-500 hover:text-red-700 transition-colors p-1 mt-1"><Trash2 className="w-5 h-5" /></button>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Account Name <span className="text-red-500">*</span></label>
+                                        <input type="text" name="accountName" value={formData.accountName} onChange={handleInputChange} placeholder="Full name as per bank" className={`w-full border ${errors.accountName && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`} />
+                                        {errors.accountName && submitAttempted && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.accountName}</p>}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Account Number <span className="text-red-500">*</span></label>
+                                        <input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleInputChange} placeholder="Enter account number" className={`w-full border ${errors.accountNumber && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`} />
+                                        {errors.accountNumber && submitAttempted && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.accountNumber}</p>}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name <span className="text-red-500">*</span></label>
+                                            <select name="bankName" value={formData.bankName} onChange={handleInputChange} className={`w-full border ${errors.bankName && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`}>
+                                                <option value="">Select Bank</option>
+                                                {banks.map((b) => <option key={b} value={b}>{b}</option>)}
+                                            </select>
+                                            {errors.bankName && submitAttempted && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.bankName}</p>}
                                         </div>
-                                    ))}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Branch</label>
+                                            <input type="text" name="branch" value={formData.branch} onChange={handleInputChange} placeholder="Branch name" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Routing Number</label>
+                                        <input type="text" name="routingNumber" value={formData.routingNumber} onChange={handleInputChange} placeholder="Routing number" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
+                                    </div>
                                 </div>
-                            )}
-                        </SectionCard>
+                            </SectionCard>
 
-                        {/* Nominees */}
-                        <SectionCard color={sectionColors.nominees} title="Registered Nominees" icon={<Users className="w-5 h-5" />}>
-                            <div className="flex items-center justify-between mb-4">
-                                <div>
-                                    <span className="text-sm text-gray-500">Nominee share validation is enforced</span>
-                                    {nomineeError && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {nomineeError}</p>}
+                            {/* Residence Information */}
+                            <SectionCard color={sectionColors.residence} title="Residence Information" icon={<Home className="w-5 h-5" />}>
+                                <div className="space-y-3">
+                                    <div className="border-b border-gray-200 pb-3">
+                                        <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1"><MapPin className="w-4 h-4 text-gray-500" /> Current Residence</h3>
+                                        <div className="space-y-2">
+                                            <input type="text" name="currentAddress" value={formData.currentAddress} onChange={handleInputChange} placeholder="Address" className={`w-full border ${errors.currentAddress && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`} />
+                                            {errors.currentAddress && submitAttempted && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.currentAddress}</p>}
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <input type="text" name="currentPostOffice" value={formData.currentPostOffice} onChange={handleInputChange} placeholder="Post Office" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
+                                                <select name="currentDistrict" value={formData.currentDistrict} onChange={handleInputChange} className={`w-full border ${errors.currentDistrict && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`}>
+                                                    <option value="">District</option>
+                                                    {districts.map((d) => <option key={d} value={d}>{d}</option>)}
+                                                </select>
+                                                {errors.currentDistrict && submitAttempted && <p className="text-red-500 text-xs col-span-3 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.currentDistrict}</p>}
+                                                <input type="text" name="currentPostCode" value={formData.currentPostCode} onChange={handleInputChange} placeholder="Post Code" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1"><Building className="w-4 h-4 text-gray-500" /> Permanent Residence</h3>
+                                        <div className="space-y-2">
+                                            <input type="text" name="permanentAddress" value={formData.permanentAddress} onChange={handleInputChange} placeholder="Address" className={`w-full border ${errors.permanentAddress && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`} />
+                                            {errors.permanentAddress && submitAttempted && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.permanentAddress}</p>}
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <input type="text" name="permanentPostOffice" value={formData.permanentPostOffice} onChange={handleInputChange} placeholder="Post Office" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
+                                                <select name="permanentDistrict" value={formData.permanentDistrict} onChange={handleInputChange} className={`w-full border ${errors.permanentDistrict && submitAttempted ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none`}>
+                                                    <option value="">District</option>
+                                                    {districts.map((d) => <option key={d} value={d}>{d}</option>)}
+                                                </select>
+                                                {errors.permanentDistrict && submitAttempted && <p className="text-red-500 text-xs col-span-3 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.permanentDistrict}</p>}
+                                                <input type="text" name="permanentPostCode" value={formData.permanentPostCode} onChange={handleInputChange} placeholder="Post Code" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <button type="button" onClick={() => { resetNomineeForm(); setShowNomineeModal(true); setEditingNomineeId(null); }} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"><Plus className="w-4 h-4" /> Add Nominee</button>
-                            </div>
-                            {formData.nominees.length === 0 ? (
-                                <div className="text-center py-8 text-gray-400">
-                                    <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                    <p>No nominees registered yet</p>
-                                    <p className="text-sm">Click "Add Nominee" to register one</p>
+                            </SectionCard>
+                        </div>
+
+                        {/* Additional Docs & Nominees Side-by-Side */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Additional Documents */}
+                            <SectionCard color={sectionColors.docs} title="Additional Documents" icon={<FileText className="w-5 h-5" />}>
+                                <div className="flex items-center justify-between mb-4">
+                                    <span className="text-sm text-gray-500">Upload supporting documents</span>
+                                    <button type="button" onClick={addAdditionalDocument} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"><Plus className="w-4 h-4" /> Add Document</button>
                                 </div>
-                            ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {formData.nominees.map((nominee) => (
-                                        <div key={nominee.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
-                                            <div className="flex items-start justify-between">
-                                                <div>
-                                                    <h4 className="font-medium text-gray-900">{nominee.name}</h4>
-                                                    <p className="text-sm text-gray-500">{nominee.relation}</p>
-                                                    <div className="flex flex-wrap items-center gap-2 mt-1 text-sm">
-                                                        <span className="text-indigo-600 font-medium">{nominee.share}% Share</span>
-                                                        <span className="text-gray-300">|</span>
-                                                        <span className="text-gray-400 text-xs">{nominee.idType === "nid" ? "NID" : nominee.idType === "birthCert" ? "Birth Cert" : "Passport"}: {nominee.idNumber}</span>
-                                                        {nominee.idDocumentFile && (
-                                                            <>
-                                                                <span className="text-gray-300">|</span>
-                                                                <span className="text-xs text-green-600 flex items-center gap-1"><FileText className="w-3 h-3" /> Document uploaded</span>
-                                                            </>
-                                                        )}
+                                {formData.additionalDocuments.length === 0 ? (
+                                    <div className="text-center py-8 text-gray-400">
+                                        <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                        <p>No additional documents added</p>
+                                        <p className="text-sm">Click "Add Document" to upload a file (e.g., TIN Certificate)</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {formData.additionalDocuments.map((doc) => (
+                                            <div key={doc.id} className="flex flex-wrap items-end gap-3 border-b border-gray-200 pb-3">
+                                                <div className="flex-1 min-w-[150px]">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Document Name</label>
+                                                    <input type="text" value={doc.name} onChange={(e) => updateAdditionalDocument(doc.id, "name", e.target.value)} placeholder="e.g. TIN Certificate" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
+                                                </div>
+                                                <div className="flex-1 min-w-[200px]">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">File</label>
+                                                    {renderFileUpload(doc.file, (e) => updateAdditionalDocument(doc.id, "file", e.target.files?.[0] || null), () => updateAdditionalDocument(doc.id, "file", null), "Upload File")}
+                                                </div>
+                                                <button type="button" onClick={() => removeAdditionalDocument(doc.id)} className="text-red-500 hover:text-red-700 transition-colors p-1 mt-1"><Trash2 className="w-5 h-5" /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </SectionCard>
+
+                            {/* Nominees */}
+                            <SectionCard color={sectionColors.nominees} title="Registered Nominees" icon={<Users className="w-5 h-5" />}>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <span className="text-sm text-gray-500">Nominee share validation is enforced</span>
+                                        {nomineeError && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {nomineeError}</p>}
+                                    </div>
+                                    <button type="button" onClick={() => { resetNomineeForm(); setShowNomineeModal(true); setEditingNomineeId(null); }} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"><Plus className="w-4 h-4" /> Add Nominee</button>
+                                </div>
+                                {formData.nominees.length === 0 ? (
+                                    <div className="text-center py-8 text-gray-400">
+                                        <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                        <p>No nominees registered yet</p>
+                                        <p className="text-sm">Click "Add Nominee" to register one</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {formData.nominees.map((nominee) => (
+                                            <div key={nominee.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
+                                                <div className="flex items-start justify-between">
+                                                    <div>
+                                                        <h4 className="font-medium text-gray-900">{nominee.name}</h4>
+                                                        <p className="text-sm text-gray-500">{nominee.relation}</p>
+                                                        <div className="flex flex-wrap items-center gap-2 mt-1 text-sm">
+                                                            <span className="text-indigo-600 font-medium">{nominee.share}% Share</span>
+                                                            <span className="text-gray-300">|</span>
+                                                            <span className="text-gray-400 text-xs">{nominee.idType === "nid" ? "NID" : nominee.idType === "birthCert" ? "Birth Cert" : "Passport"}: {nominee.idNumber}</span>
+                                                            {nominee.idDocumentFile && (
+                                                                <>
+                                                                    <span className="text-gray-300">|</span>
+                                                                    <span className="text-xs text-green-600 flex items-center gap-1"><FileText className="w-3 h-3" /> Document uploaded</span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <button type="button" onClick={() => editNominee(nominee.id)} className="text-gray-400 hover:text-indigo-600 transition-colors p-1">
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                                        </button>
+                                                        <button type="button" onClick={() => deleteNominee(nominee.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1"><Trash2 className="w-4 h-4" /></button>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-1">
-                                                    <button type="button" onClick={() => editNominee(nominee.id)} className="text-gray-400 hover:text-indigo-600 transition-colors p-1">
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                                    </button>
-                                                    <button type="button" onClick={() => deleteNominee(nominee.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1"><Trash2 className="w-4 h-4" /></button>
-                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </SectionCard>
+                                        ))}
+                                    </div>
+                                )}
+                            </SectionCard>
+                        </div>
                     </form>
                 </div>
 
