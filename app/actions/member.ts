@@ -7,6 +7,7 @@ import { uploadImage } from "@/lib/cloudinary"
 import { z } from "zod"
 
 // Enterprise Backend Validation Schema
+// Enterprise Backend Validation Schema
 const MemberSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
@@ -21,6 +22,20 @@ const MemberSchema = z.object({
   c_district: z.string().min(2, "Current district is required"),
   p_village: z.string().min(2, "Permanent address is required"),
   p_district: z.string().min(2, "Permanent district is required"),
+  
+  // Added missing fields to schema
+  dob: z.string().optional(),
+  gender: z.string().optional(),
+  religion: z.string().optional(),
+  nationality: z.string().optional(),
+  bloodGroup: z.string().optional(),
+  profession: z.string().optional(),
+  maritalStatus: z.string().optional(),
+  marriageDate: z.string().optional(),
+  c_postOffice: z.string().optional(),
+  c_postalCode: z.string().optional(),
+  p_postOffice: z.string().optional(),
+  p_postalCode: z.string().optional(),
 })
 
 export async function addMember(formData: FormData) {
