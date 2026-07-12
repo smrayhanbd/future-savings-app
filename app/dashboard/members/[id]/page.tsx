@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ArrowLeft, ExternalLink, User, Phone, Home, FileText, Users as UsersIcon, Wallet, CalendarDays, CreditCard } from "lucide-react"
+import { ArrowLeft, ExternalLink, User, Phone, Home, FileText, Users as UsersIcon, Wallet, CreditCard, Heart, Globe, CalendarDays, Mail } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
 
@@ -76,8 +76,40 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                 <p className="text-sm text-slate-700 dark:text-slate-200">{member.gender || "N/A"}</p>
               </div>
               <div className="space-y-1">
+                <p className="text-xs uppercase font-bold text-slate-400 flex items-center gap-1.5"><Heart className="h-3 w-3" /> Marital Status</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200">{member.maritalStatus || "N/A"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase font-bold text-slate-400 flex items-center gap-1.5"><CalendarDays className="h-3 w-3" /> Marriage Date</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200">{member.marriageDate ? new Date(member.marriageDate).toLocaleDateString() : "N/A"}</p>
+              </div>
+              <div className="space-y-1">
                 <p className="text-xs uppercase font-bold text-slate-400 flex items-center gap-1.5"><User className="h-3 w-3" /> Religion</p>
                 <p className="text-sm text-slate-700 dark:text-slate-200">{member.religion || "N/A"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase font-bold text-slate-400 flex items-center gap-1.5"><Globe className="h-3 w-3" /> Nationality</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200">{member.nationality || "N/A"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase font-bold text-slate-400 flex items-center gap-1.5"><User className="h-3 w-3" /> Father's Name</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200">{member.fatherName || "N/A"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase font-bold text-slate-400 flex items-center gap-1.5"><User className="h-3 w-3" /> Mother's Name</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200">{member.motherName || "N/A"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase font-bold text-slate-400 flex items-center gap-1.5"><User className="h-3 w-3" /> Spouse Name</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200">{member.spouseName || "N/A"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase font-bold text-slate-400 flex items-center gap-1.5"><User className="h-3 w-3" /> Blood Group</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200">{member.bloodGroup || "N/A"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase font-bold text-slate-400 flex items-center gap-1.5"><User className="h-3 w-3" /> Profession</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200">{member.profession || "N/A"}</p>
               </div>
             </CardContent>
           </Card>
@@ -93,12 +125,16 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                 <p className="text-sm text-slate-700 dark:text-slate-200">{member.phone}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs uppercase font-bold text-slate-400 flex items-center gap-1.5"><User className="h-3 w-3" /> Spouse Name</p>
-                <p className="text-sm text-slate-700 dark:text-slate-200">{member.spouseName || "N/A"}</p>
+                <p className="text-xs uppercase font-bold text-slate-400 flex items-center gap-1.5"><Mail className="h-3 w-3" /> Email</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200">{member.email || "N/A"}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs uppercase font-bold text-slate-400 flex items-center gap-1.5"><User className="h-3 w-3" /> Father's Name</p>
-                <p className="text-sm text-slate-700 dark:text-slate-200">{member.fatherName || "N/A"}</p>
+                <p className="text-xs uppercase font-bold text-slate-400 flex items-center gap-1.5"><Phone className="h-3 w-3" /> Emergency Contact</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200">{member.emergencyPhone || "N/A"}</p>
+              </div>
+              <div className="space-y-1 sm:col-span-3">
+                <p className="text-xs uppercase font-bold text-slate-400 flex items-center gap-1.5"><User className="h-3 w-3" /> Emergency Contact Person Name</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200">{member.emergencyContactName || "N/A"}</p>
               </div>
             </CardContent>
           </Card>

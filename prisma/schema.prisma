@@ -92,6 +92,7 @@ model Member {
   // Contact
   phone                  String
   emergencyPhone         String?
+  emergencyContactName   String?
   email                  String?      @unique
 
   // Identity
