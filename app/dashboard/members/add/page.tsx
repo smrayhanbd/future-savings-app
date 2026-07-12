@@ -9,7 +9,7 @@ import {
     CheckCircle, AlertCircle, ChevronRight, Circle,
 } from "lucide-react";
 
-type Nominee = { id: string; name: string; relation: string; share: string; idType: "nid" | "birthCert" | "passport"; idNumber: string; idDocumentFile: File | null; photo: File | null; };
+type Nominee = { id: string; name: string; relation: string; share: string; phone: string; idType: "nid" | "birthCert" | "passport"; idNumber: string; idDocumentFile: File | null; photo: File | null; };
 type AdditionalDocument = { id: string; name: string; file: File | null; };
 
 type FormData = {
@@ -90,7 +90,7 @@ export default function MemberAddPage() {
     const [nomineeIdCounter, setNomineeIdCounter] = useState(1);
     const [showNomineeModal, setShowNomineeModal] = useState(false);
     const [editingNomineeId, setEditingNomineeId] = useState<string | null>(null);
-    const [nomineeForm, setNomineeForm] = useState<Omit<Nominee, "id">>({ name: "", relation: "", share: "", idType: "nid", idNumber: "", idDocumentFile: null, photo: null });
+    const [nomineeForm, setNomineeForm] = useState<Omit<Nominee, "id">>({ name: "", relation: "", share: "", phone: "", idType: "nid", idNumber: "", idDocumentFile: null, photo: null });
     const [additionalDocCounter, setAdditionalDocCounter] = useState(1);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitAttempted, setSubmitAttempted] = useState(false);
@@ -160,7 +160,7 @@ export default function MemberAddPage() {
 
     const editNominee = (id: string) => {
         const nominee = formData.nominees.find((n) => n.id === id);
-        if (nominee) { setNomineeForm({ name: nominee.name, relation: nominee.relation, share: nominee.share, idType: nominee.idType, idNumber: nominee.idNumber, idDocumentFile: nominee.idDocumentFile, photo: nominee.photo }); setEditingNomineeId(id); setShowNomineeModal(true); }
+        if (nominee) { setNomineeForm({ name: nominee.name, relation: nominee.relation, share: nominee.share, phone: nominee.phone, idType: nominee.idType, idNumber: nominee.idNumber, idDocumentFile: nominee.idDocumentFile, photo: nominee.photo }); setEditingNomineeId(id); setShowNomineeModal(true); }
     };
 
     const updateNominee = () => {
@@ -179,7 +179,7 @@ export default function MemberAddPage() {
         }
     };
 
-    const resetNomineeForm = () => { setNomineeForm({ name: "", relation: "", share: "", idType: "nid", idNumber: "", idDocumentFile: null, photo: null }); setEditingNomineeId(null); };
+    const resetNomineeForm = () => { setNomineeForm({ name: "", relation: "", share: "", phone: "", idType: "nid", idNumber: "", idDocumentFile: null, photo: null }); setEditingNomineeId(null); };
 
     const validateForm = () => {
         const newErrors: Record<string, string> = {};
@@ -452,6 +452,7 @@ export default function MemberAddPage() {
                                                             <span className="text-gray-400 text-xs">{nominee.idType === "nid" ? "NID" : nominee.idType === "birthCert" ? "Birth Cert" : "Passport"}: {nominee.idNumber}</span>
                                                             {nominee.idDocumentFile && (<><span className="text-gray-300">|</span><span className="text-xs text-green-600 flex items-center gap-1"><FileText className="w-3 h-3" /> ID Doc uploaded</span></>)}
                                                             {nominee.photo && (<><span className="text-gray-300">|</span><span className="text-xs text-green-600 flex items-center gap-1"><FileText className="w-3 h-3" /> Photo uploaded</span></>)}
+                                                            {nominee.phone && (<><span className="text-gray-300">|</span><span className="text-xs text-gray-400">Ph: {nominee.phone}</span></>)}
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-1">
@@ -509,6 +510,9 @@ export default function MemberAddPage() {
                                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Share % *</label><input type="text" name="share" value={nomineeForm.share} onChange={handleNomineeInputChange} placeholder="e.g. 50" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" /></div>
                             </div>
                             
+                                                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Nominee Phone</label><input type="tel" name="phone" value={nomineeForm.phone} onChange={handleNomineeInputChange} placeholder="01712345678" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" /></div>
+
+
                             {/* Nominee Photo Upload */}
                             <div><label className="block text-sm font-medium text-gray-700 mb-1">Nominee Photo</label>{renderFileUpload(nomineeForm.photo, (e) => handleNomineeFileChange(e, "photo"), () => setNomineeForm((prev) => ({ ...prev, photo: null })), "Upload Photo")}</div>
 
