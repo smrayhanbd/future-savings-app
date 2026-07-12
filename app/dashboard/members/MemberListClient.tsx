@@ -220,7 +220,7 @@ export default function MemberListClient({ members }: { members: Member[] }) {
   const [sortField, setSortField] = useState<keyof Member>("createdAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+    const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const itemsPerPage = 8;
 
@@ -285,7 +285,7 @@ export default function MemberListClient({ members }: { members: Member[] }) {
     ];
   }, []);
 
-  const toggleRow = (id: number) => {
+  const toggleRow = (id: string) => {
     const next = new Set(selectedRows);
     if (next.has(id)) next.delete(id);
     else next.add(id);
