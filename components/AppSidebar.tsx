@@ -154,7 +154,7 @@ function SidebarContent({ isExpanded, setExpanded, onNavigate }: SidebarContentP
 
       {/* Navigation - Using native overflow-y-auto to guarantee scrolling works perfectly */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-2.5">
-        <TooltipProvider delayDuration={100}>
+        <TooltipProvider>
           {SIDEBAR_MENU_GROUPS.map((group) => (
             <div key={group.title} className="mb-4">
               
