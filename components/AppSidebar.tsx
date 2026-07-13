@@ -51,7 +51,7 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
     title: "Member Management",
     items: [
       { label: "Member Panel", icon: Users, href: "/dashboard/members" },
-      { label: "Pending Approvals", icon: Clock, href: "/dashboard/approvals", badge: 3 }
+      { label: "Pending Approvals", icon: Clock, href: "/dashboard/approvals" }
       // "Old Member DB" removed here
     ]
   },

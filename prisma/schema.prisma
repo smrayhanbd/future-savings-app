@@ -204,6 +204,7 @@ model MemberAccount {
 // Placeholder models so Prisma validation passes
 model Savings {
   id          String   @id @default(uuid())
+  receiptNo String? @unique
   memberId    String
   member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
   amount      Decimal  @db.Decimal(12,2)
@@ -230,4 +231,49 @@ model User {
   email    String @unique
   password String
   role     String @default("ADMIN") // ADMIN, MANAGER, MEMBER
+}
+
+// Enums for Accounting
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+enum AccountNature {
+  DEBIT
+  CREDIT
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Account {
+  id             String   @id @default(uuid())
+  accountCode    String   @unique
+  accountName    String
+  parentAccountId String?
+  parentAccount  Account? @relation("AccountTree", fields: [parentAccountId], references: [id], onDelete: SetNull)
+  childAccounts  Account[] @relation("AccountTree")
+  
+  accountType    AccountType
+  category       String?
+  nature         AccountNature
+  openingBalance Decimal  @default(0) @db.Decimal(12,2)
+  currentBalance Decimal  @default(0) @db.Decimal(12,2)
+  currency       String   @default("BDT")
+  description    String?  @db.Text
+  
+  isBank         Boolean  @default(false)
+  isCash         Boolean  @default(false)
+  allowPosting   Boolean  @default(true)
+  allowJournal   Boolean  @default(true)
+  status         AccountStatus @default(ACTIVE)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
