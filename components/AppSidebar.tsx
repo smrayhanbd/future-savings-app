@@ -225,7 +225,7 @@ function SidebarContent({ isExpanded, setExpanded, onNavigate }: SidebarContentP
 
                   if (hasSubs) {
                     return (
-                      <Accordion key={item.label} type="single" className="w-full">
+                      <Accordion key={item.label} className="w-full">
                         <AccordionItem value={item.label} className="border-none">
                           <AccordionTrigger className="p-0 hover:!no-underline !no-underline rounded-lg [&>svg]:hidden [&[data-state=open]>div]:bg-slate-50 dark:[&[data-state=open]>div]:bg-slate-800/40">
                             {linkContent}
