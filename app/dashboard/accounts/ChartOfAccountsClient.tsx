@@ -54,7 +54,7 @@ export default function ChartOfAccountsClient({ accounts }: { accounts: Account[
   ]
 
   // Recursive Tree Row Renderer
-  const renderRow = (account: Account, level: number = 0) => {
+  const renderRow = (account: Account, level: number = 0): React.ReactNode => {
     const hasChildren = account.childAccounts && account.childAccounts.length > 0
     const isExpanded = expanded.has(account.id)
     
