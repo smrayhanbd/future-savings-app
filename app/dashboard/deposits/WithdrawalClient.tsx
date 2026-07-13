@@ -173,7 +173,7 @@ export default function WithdrawalClient({ members, history }: { members: Member
 
             <div className="space-y-2">
               <Label>Withdrawal Type</Label>
-              <Select value={formData.withdrawalType} onValueChange={(v) => handleChange("withdrawalType", v)}>
+              <Select value={formData.withdrawalType} onValueChange={(v) => handleChange("withdrawalType", String(v))}>
                 <SelectTrigger className="bg-white dark:bg-slate-950"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="SAVINGS">Savings Withdrawal</SelectItem>
