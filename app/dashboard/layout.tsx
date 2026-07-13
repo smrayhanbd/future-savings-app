@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Sidebar from "@/components/Sidebar"
+import AppSidebar from "@/components/AppSidebar"
 import Topbar from "@/components/Topbar"
 
 export default function DashboardLayout({
@@ -9,14 +9,15 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isMobileOpen, setIsMobileOpen] = useState(false)
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      {/* lg:pl-64 pushes the content to the right of the fixed sidebar on desktop */}
+      <AppSidebar isOpen={isMobileOpen} onClose={() => setIsMobileOpen(false)} />
+      {/* lg:pl-64 pushes content right on desktop to clear the fixed sidebar */}
       <div className="lg:pl-64 flex flex-col min-h-screen">
-        <Topbar onMenuClick={() => setIsSidebarOpen(true)} />
+        {/* Topbar is restored here */}
+        <Topbar onMenuClick={() => setIsMobileOpen(true)} />
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           {children}
         </main>

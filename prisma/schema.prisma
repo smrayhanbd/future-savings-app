@@ -26,7 +26,7 @@ enum Gender {
 }
 
 enum MaritalStatus {
-  SINGLE
+  UNMARRIED
   MARRIED
   DIVORCED
   WIDOWED
@@ -92,7 +92,7 @@ model Member {
   // Contact
   phone                  String
   emergencyPhone         String?
-  emergencyContactName   String?
+  emergencyContactName String?
   email                  String?      @unique
 
   // Identity

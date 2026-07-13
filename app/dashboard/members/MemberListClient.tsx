@@ -172,7 +172,11 @@ function ActionDropdown({ member }: { member: Member }) {
             <Eye className="w-4 h-4" /> View Profile
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem><Edit className="mr-2.5 h-4 w-4" /> Edit Profile</DropdownMenuItem>
+        <DropdownMenuItem className="p-0">
+                            <Link href={`/dashboard/members/${member.id}/edit`} className="flex items-center gap-2.5 w-full cursor-pointer p-2">
+                              <Edit className="h-4 w-4" /> Edit Profile
+                            </Link>
+                          </DropdownMenuItem>
         <DropdownMenuItem><Printer className="mr-2.5 h-4 w-4" /> Print Form</DropdownMenuItem>
         
         <DropdownMenuSeparator />
