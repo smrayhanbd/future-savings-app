@@ -209,7 +209,7 @@ export default function CollectionForm({ members }: { members: Member[] }) {
 
             <div className="space-y-2">
               <Label>Collection Type</Label>
-              <Select value={formData.collectionType} onValueChange={(v) => handleChange("collectionType", v)}>
+              <Select value={formData.collectionType} onValueChange={(v) => handleChange("collectionType", String(v))}>
                 <SelectTrigger className="bg-white dark:bg-slate-950"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="MONTHLY">Monthly Savings</SelectItem>
