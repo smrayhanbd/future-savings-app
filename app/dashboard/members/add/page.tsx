@@ -450,7 +450,7 @@ export default function MemberAddPage() {
                                                             <span className="text-indigo-600 font-medium">{nominee.share}% Share</span>
                                                             <span className="text-gray-300">|</span>
                                                             <span className="text-gray-400 text-xs">{nominee.idType === "nid" ? "NID" : nominee.idType === "birthCert" ? "Birth Cert" : "Passport"}: {nominee.idNumber}</span>
-                                                            {nominee.idDocumentFile && (<><span className="text-gray-300">|</span><span className="text-xs text-green-600 flex items-center gap-1"><FileText className="w-3 h-3" /> ID Doc uploaded</span></>)}
+                                                                                                                        {nominee.idDocumentFile && (<><span className="text-gray-300">|</span><span className="text-xs text-green-600 flex items-center gap-1"><FileText className="w-3 h-3" /> ID Doc uploaded</span></>)}
                                                             {nominee.photo && (<><span className="text-gray-300">|</span><span className="text-xs text-green-600 flex items-center gap-1"><FileText className="w-3 h-3" /> Photo uploaded</span></>)}
                                                             {nominee.phone && (<><span className="text-gray-300">|</span><span className="text-xs text-gray-400">Ph: {nominee.phone}</span></>)}
                                                         </div>

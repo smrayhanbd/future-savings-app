@@ -12,13 +12,17 @@ export default function DashboardLayout({
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    // h-screen and overflow-hidden on the root prevents the whole window from scrolling
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-900">
       <AppSidebar isOpen={isMobileOpen} onClose={() => setIsMobileOpen(false)} />
-      {/* lg:pl-64 pushes content right on desktop to clear the fixed sidebar */}
-      <div className="lg:pl-64 flex flex-col min-h-screen">
-        {/* Topbar is restored here */}
+      
+      {/* Main Content Column */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Topbar is shrink-0 so it never collapses */}
         <Topbar onMenuClick={() => setIsMobileOpen(true)} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        
+        {/* Only the main content area scrolls */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>
