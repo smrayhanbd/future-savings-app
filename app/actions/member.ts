@@ -40,158 +40,150 @@ const MemberSchema = z.object({
 
 export async function addMember(formData: FormData) {
   // 1. Extract Data
-  const rawData = {
-    firstName: formData.get("firstName") as string,
-    lastName: formData.get("lastName") as string,
-    fatherName: (formData.get("fatherName") as string) || null,
-    motherName: (formData.get("motherName") as string) || null,
-    spouseName: (formData.get("spouseName") as string) || null,
-    dob: formData.get("dob") as string,
-    gender: (formData.get("gender") as string) || undefined,
-    religion: (formData.get("religion") as string) || null,
-    nationality: (formData.get("nationality") as string) || "Bangladeshi",
-    bloodGroup: formData.get("bloodGroup") as string || undefined,
-    profession: (formData.get("profession") as string) || null,
-    phone: formData.get("phone") as string,
-    email: (formData.get("email") as string) || null,
-    emergencyPhone: (formData.get("emergencyPhone") as string) || null,
-    emergencyContactName: (formData.get("emergencyContactName") as string) || null,
-    idType: formData.get("idType") as string,
-    idNumber: (formData.get("idNumber") as string) || null,
-    maritalStatus: formData.get("maritalStatus") as string || undefined,
-    marriageDate: formData.get("marriageDate") as string,
-    accountName: formData.get("accountName") as string,
-    accountNumber: formData.get("accountNumber") as string,
-    bankName: formData.get("bankName") as string,
-    branch: (formData.get("branch") as string) || null,
-    routingNumber: (formData.get("routingNumber") as string) || null,
-    c_village: formData.get("c_village") as string,
-    c_postOffice: (formData.get("c_postOffice") as string) || null,
-    c_district: formData.get("c_district") as string,
-    c_postalCode: (formData.get("c_postalCode") as string) || null,
-    p_village: formData.get("p_village") as string,
-    p_postOffice: (formData.get("p_postOffice") as string) || null,
-    p_district: formData.get("p_district") as string,
-    p_postalCode: (formData.get("p_postalCode") as string) || null,
-  }
+  const firstName = formData.get("firstName") as string
+  const lastName = formData.get("lastName") as string
+  const fullName = `${firstName} ${lastName}`
+  const fatherName = (formData.get("fatherName") as string) || null
+  const motherName = (formData.get("motherName") as string) || null
+  const spouseName = (formData.get("spouseName") as string) || null
+  const dob = formData.get("dob") as string
+  const gender = (formData.get("gender") as string) || undefined
+  const religion = (formData.get("religion") as string) || null
+  const nationality = (formData.get("nationality") as string) || "Bangladeshi"
+  const bloodGroup = formData.get("bloodGroup") as string || undefined
+  const profession = (formData.get("profession") as string) || null
+  const phone = formData.get("phone") as string
+  const email = (formData.get("email") as string) || null
+  const emergencyPhone = (formData.get("emergencyPhone") as string) || null
+  const emergencyContactName = (formData.get("emergencyContactName") as string) || null
+  const idType = formData.get("idType") as string
+  const idNumber = (formData.get("idNumber") as string) || null
+  const maritalStatus = formData.get("maritalStatus") as string || undefined
+  const marriageDate = formData.get("marriageDate") as string
+  const accountName = (formData.get("accountName") as string) || null
+  const accountNumber = (formData.get("accountNumber") as string) || null
+  const bankName = (formData.get("bankName") as string) || null
+  const branch = (formData.get("branch") as string) || null
+  const routingNumber = (formData.get("routingNumber") as string) || null
+  const c_village = (formData.get("c_village") as string) || null
+  const c_postOffice = (formData.get("c_postOffice") as string) || null
+  const c_district = (formData.get("c_district") as string) || null
+  const c_postalCode = (formData.get("c_postalCode") as string) || null
+  const p_village = (formData.get("p_village") as string) || null
+  const p_postOffice = (formData.get("p_postOffice") as string) || null
+  const p_district = (formData.get("p_district") as string) || null
+  const p_postalCode = (formData.get("p_postalCode") as string) || null
 
-  // 2. Validate Data
-  const validatedData = MemberSchema.parse(rawData)
+  // Map IDs
+  const nidNumber = idType === "National ID" ? idNumber : null
+  const passportNumber = idType === "Passport" ? idNumber : null
+  const birthCertificateNo = idType === "Birth Certificate" ? idNumber : null
 
-  // 3. Map to Database Fields
-  const nidNumber = validatedData.idType === "National ID" ? validatedData.idNumber : null
-  const passportNumber = validatedData.idType === "Passport" ? validatedData.idNumber : null
-  const birthCertificateNo = validatedData.idType === "Birth Certificate" ? validatedData.idNumber : null
-
-  // 4. Handle File Uploads (Member Photo & ID Document)
+  // 2. Handle File Uploads OUTSIDE the transaction to prevent timeout
   const memberPhotoFile = formData.get("memberPhoto") as File
   const memberPhotoUrl = memberPhotoFile?.size > 0 ? await uploadImage(memberPhotoFile) : null
 
   const idDocFile = formData.get("idDocument") as File
   const idDocUrl = idDocFile?.size > 0 ? await uploadImage(idDocFile) : null
 
-  // 5. Generate Member No
+  // Upload Additional Docs
+  const additionalDocsData: { name: string; fileName: string; fileUrl: string }[] = [];
+  let docIndex = 0;
+  while (true) {
+    const docName = formData.get(`doc_${docIndex}_name`) as string;
+    const docFile = formData.get(`doc_${docIndex}_file`) as File;
+    if (!docName && !docFile) break;
+
+    if (docFile?.size > 0) {
+      const docUrl = await uploadImage(docFile);
+      if (docUrl) {
+        additionalDocsData.push({ name: docName || "Additional Document", fileName: docFile.name, fileUrl: docUrl });
+      }
+    }
+    docIndex++;
+  }
+
+  // Upload Nominees Data
+  const nomineesData: any[] = [];
+  let i = 0;
+  while (true) {
+    const nomName = formData.get(`nom_${i}_name`) as string;
+    if (!nomName) break;
+
+    const nomRelation = formData.get(`nom_${i}_relation`) as string;
+    const nomShare = formData.get(`nom_${i}_share`) as string;
+    const nomPhone = formData.get(`nom_${i}_phone`) as string;
+    const nomIdType = formData.get(`nom_${i}_idType`) as string;
+    const nomIdNumber = formData.get(`nom_${i}_idNumber`) as string;
+    
+    const nomPhotoFile = formData.get(`nom_${i}_photo`) as File;
+    const nomPhotoUrl = nomPhotoFile?.size > 0 ? await uploadImage(nomPhotoFile) : null;
+    
+    const nomIdDocFile = formData.get(`nom_${i}_idDoc`) as File;
+    const nomIdDocUrl = nomIdDocFile?.size > 0 ? await uploadImage(nomIdDocFile) : null;
+
+    nomineesData.push({
+      name: nomName, relation: nomRelation || "Unknown",
+      phone: nomPhone, sharePercentage: nomShare ? parseFloat(nomShare) : 0,
+      idType: nomIdType, nidNumber: nomIdNumber, idDocumentUrl: nomIdDocUrl, photoUrl: nomPhotoUrl,
+    });
+    i++;
+  }
+
+  // 3. Generate Member No
   const memberCount = await prisma.member.count()
   const memberNo = `M${String(memberCount + 1).padStart(4, "0")}`
 
-  // 6. Save to Database
+  // 4. Save to Database (Fast transaction with no network uploads inside)
   try {
     await prisma.$transaction(async (tx) => {
       const member = await tx.member.create({
         data: {
-          memberNo, 
-          firstName: validatedData.firstName, 
-          lastName: validatedData.lastName, 
-          fullName: `${validatedData.firstName} ${validatedData.lastName}`,
-          fatherName: rawData.fatherName, 
-          motherName: rawData.motherName, 
-          spouseName: rawData.spouseName,
-          dateOfBirth: validatedData.dob ? new Date(validatedData.dob) : null,
-          gender: validatedData.gender as any, 
-          religion: validatedData.religion, 
-          nationality: validatedData.nationality,
-          bloodGroup: validatedData.bloodGroup as any, 
-          profession: validatedData.profession,
-          phone: validatedData.phone, 
-          emergencyPhone: rawData.emergencyPhone,
-          emergencyContactName: rawData.emergencyContactName, 
-          email: validatedData.email,
-          maritalStatus: validatedData.maritalStatus as any, 
-          marriageDate: validatedData.marriageDate ? new Date(validatedData.marriageDate) : null,
+          memberNo, firstName, lastName, fullName, fatherName, motherName, spouseName,
+          dateOfBirth: dob ? new Date(dob) : null,
+          gender: gender as any, religion, nationality,
+          bloodGroup: bloodGroup as any, profession,
+          phone, emergencyPhone, emergencyContactName, email,
+          maritalStatus: maritalStatus as any, marriageDate: marriageDate ? new Date(marriageDate) : null,
           nidNumber, passportNumber, birthCertificateNo,
-          accountName: validatedData.accountName, 
-          accountNumber: validatedData.accountNumber, 
-          bankName: validatedData.bankName, 
-          branch: rawData.branch, 
-          routingNumber: rawData.routingNumber,
-          photoUrl: memberPhotoUrl, // Save Member Photo URL
+          accountName, accountNumber, bankName, branch, routingNumber,
+          photoUrl: memberPhotoUrl,
           status: "PENDING",
         },
       })
 
-      if (validatedData.c_village || validatedData.c_district) {
+      if (c_village || c_district) {
         await tx.memberAddress.create({
-          data: { memberId: member.id, addressType: "CURRENT", village: validatedData.c_village, postOffice: validatedData.c_postOffice, district: validatedData.c_district, postalCode: validatedData.c_postalCode }
+          data: { memberId: member.id, addressType: "CURRENT", village: c_village, postOffice: c_postOffice, district: c_district, postalCode: c_postalCode }
         })
       }
-      if (validatedData.p_village || validatedData.p_district) {
+      if (p_village || p_district) {
         await tx.memberAddress.create({
-          data: { memberId: member.id, addressType: "PERMANENT", village: validatedData.p_village, postOffice: validatedData.p_postOffice, district: validatedData.p_district, postalCode: validatedData.p_postalCode }
+          data: { memberId: member.id, addressType: "PERMANENT", village: p_village, postOffice: p_postOffice, district: p_district, postalCode: p_postalCode }
         })
       }
 
       if (idDocUrl) {
         await tx.memberDocument.create({
-          data: { memberId: member.id, documentType: validatedData.idType || "ID", name: "Member ID Document", fileName: idDocFile.name, fileUrl: idDocUrl }
+          data: { memberId: member.id, documentType: idType || "ID", name: "Member ID Document", fileName: idDocFile.name, fileUrl: idDocUrl }
         })
       }
 
-      // Save Additional Documents
-      let docIndex = 0;
-      while (true) {
-        const docName = formData.get(`doc_${docIndex}_name`) as string;
-        const docFile = formData.get(`doc_${docIndex}_file`) as File;
-        if (!docName && !docFile) break;
-
-        if (docFile?.size > 0) {
-          const docUrl = await uploadImage(docFile);
-          if (docUrl) {
-            await tx.memberDocument.create({
-              data: { memberId: member.id, documentType: "ADDITIONAL", name: docName || "Additional Document", fileName: docFile.name, fileUrl: docUrl }
-            });
-          }
-        }
-        docIndex++;
+      // Save Additional Docs
+      for (const doc of additionalDocsData) {
+        await tx.memberDocument.create({
+          data: { memberId: member.id, documentType: "ADDITIONAL", name: doc.name, fileName: doc.fileName, fileUrl: doc.fileUrl }
+        });
       }
 
       // Save Nominees
-      let i = 0;
-      while (true) {
-        const nomName = formData.get(`nom_${i}_name`) as string;
-        if (!nomName) break;
-
-        const nomRelation = formData.get(`nom_${i}_relation`) as string;
-        const nomShare = formData.get(`nom_${i}_share`) as string;
-        const nomPhone = formData.get(`nom_${i}_phone`) as string;
-        const nomIdType = formData.get(`nom_${i}_idType`) as string;
-        const nomIdNumber = formData.get(`nom_${i}_idNumber`) as string;
-        
-        // Handle Nominee Photo & ID Doc
-        const nomPhotoFile = formData.get(`nom_${i}_photo`) as File;
-        const nomPhotoUrl = nomPhotoFile?.size > 0 ? await uploadImage(nomPhotoFile) : null;
-        
-        const nomIdDocFile = formData.get(`nom_${i}_idDoc`) as File;
-        const nomIdDocUrl = nomIdDocFile?.size > 0 ? await uploadImage(nomIdDocFile) : null;
-
+      for (const nom of nomineesData) {
         await tx.memberNominee.create({
           data: {
-            memberId: member.id, name: nomName, relation: nomRelation || "Unknown",
-            phone: nomPhone, sharePercentage: nomShare ? parseFloat(nomShare) : 0,
-            idType: nomIdType, nidNumber: nomIdNumber, idDocumentUrl: nomIdDocUrl,
-            photoUrl: nomPhotoUrl, // Save Nominee Photo URL
+            memberId: member.id,
+            ...nom
           }
         })
-        i++;
       }
     })
   } catch (error) {

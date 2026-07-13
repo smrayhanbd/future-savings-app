@@ -69,17 +69,17 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
   ]
 
   return (
-    <div className="space-y-6">
-      {/* Floating Transparent Action Bar */}
-      <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-transparent backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50">
+    <div className="space-y-4">
+      {/* Solid Sticky Action Bar */}
+      <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-white dark:bg-slate-950 border-b border-slate-200/60 dark:border-slate-800/60">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <Link href="/dashboard/members">
-            <Button variant="outline" size="sm" className="rounded-xl shadow-sm hover:shadow-md transition-all bg-white/80 dark:bg-slate-900/80">
+            <Button variant="outline" size="sm" className="rounded-xl shadow-sm hover:shadow-md transition-all bg-slate-50 dark:bg-slate-900">
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Members
             </Button>
           </Link>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="rounded-xl shadow-sm hover:shadow-md transition-all bg-white/80 dark:bg-slate-900/80"><Printer className="mr-2 h-4 w-4" /> Print</Button>
+            <Button variant="outline" size="sm" className="rounded-xl shadow-sm hover:shadow-md transition-all bg-slate-50 dark:bg-slate-900"><Printer className="mr-2 h-4 w-4" /> Print</Button>
             <Link href={`/dashboard/members/${member.id}/edit`}>
               <Button size="sm" className="rounded-xl shadow-md hover:shadow-lg hover:bg-indigo-500 transition-all bg-indigo-600"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Button>
             </Link>
@@ -87,35 +87,36 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      {/* Financial Summary Cards (Reduced padding) */}
+      {/* Financial Summary Cards (Horizontal layout for reduced height) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
           <Card key={index} className={`bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border ${stat.border} ${stat.bg} shadow-sm hover:shadow-lg hover:-translate-y-1 rounded-2xl overflow-hidden transition-all duration-300`}>
-            <CardContent className="p-4 flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase tracking-widest font-bold text-slate-500 dark:text-slate-400">
+            <CardContent className="p-3 flex flex-row items-center justify-between gap-2">
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500 dark:text-slate-400">
                   {stat.label}
                 </span>
-                <div className={`p-1.5 rounded-lg bg-white/50 dark:bg-slate-900/50 border ${stat.border}`}>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                </div>
+                <h3 className={`text-lg font-extrabold tracking-tight ${stat.color}`}>
+                  {stat.value}
+                </h3>
               </div>
-              <h3 className={`text-xl font-bold tracking-tight ${stat.color}`}>
-                {stat.value}
-              </h3>
+              <div className={`p-2 rounded-lg bg-white/50 dark:bg-slate-900/50 border ${stat.border}`}>
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Main Layout Grid (Reduced gap to make cards shorter) */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 items-start">
+      {/* Main Layout Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
         
         {/* LEFT COLUMN: Profile & Nominees */}
-        <div className="lg:col-span-1 space-y-5">
-          {/* Removed sticky so it scrolls with the page */}
+        <div className="lg:col-span-1 space-y-4">
+          {/* Profile Card with Color Banner */}
           <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden">
-            <CardContent className="flex flex-col items-center text-center pt-6 pb-4 px-4">
+            <div className="h-24 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500"></div>
+            <CardContent className="flex flex-col items-center text-center -mt-12 pb-4 px-4">
               {member.photoUrl ? (
                 <img src={member.photoUrl} alt="Member" className="w-24 h-24 rounded-full object-cover ring-4 ring-white dark:ring-slate-900 shadow-xl" />
               ) : (
@@ -123,10 +124,10 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                   {member.fullName.charAt(0)}
                 </div>
               )}
-              <h2 className="mt-3 text-lg font-bold text-slate-900 dark:text-white tracking-tight">{member.fullName}</h2>
-              <p className="text-xs font-mono text-slate-500 dark:text-slate-400">{member.memberNo}</p>
+              <h2 className="mt-3 text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">{member.fullName}</h2>
+              <p className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">{member.memberNo}</p>
               <div className="mt-2">
-                <Badge variant={member.status === "ACTIVE" ? "default" : "secondary"} className={`uppercase text-[10px] px-2.5 py-1 rounded-full ${member.status === "ACTIVE" ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-amber-500/10 text-amber-600 border border-amber-500/20"}`}>
+                <Badge variant={member.status === "ACTIVE" ? "default" : "secondary"} className={`uppercase text-[10px] px-2.5 py-1 rounded-full font-bold ${member.status === "ACTIVE" ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-amber-500/10 text-amber-600 border border-amber-500/20"}`}>
                   {member.status}
                 </Badge>
               </div>
@@ -138,7 +139,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Joined</p>
-                  <p className="text-slate-700 dark:text-slate-200 font-medium text-xs">{new Date(member.membershipDate).toLocaleDateString()}</p>
+                  <p className="text-slate-700 dark:text-slate-200 font-bold text-xs">{new Date(member.membershipDate).toLocaleDateString()}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 text-sm">
@@ -147,7 +148,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{idType}</p>
-                  <p className="text-slate-700 dark:text-slate-200 font-medium text-xs">{idNumber}</p>
+                  <p className="text-slate-700 dark:text-slate-200 font-bold text-xs">{idNumber}</p>
                 </div>
               </div>
             </div>
@@ -155,15 +156,15 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
 
           {/* Nominees Section */}
           <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden flex flex-col">
-            <CardHeader className="bg-green-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 pb-3 px-5 py-3">
-              <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight">
+            <CardHeader className="bg-green-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 px-5 py-2.5">
+              <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
                 <Users className="h-4 w-4" /> Nominees
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 pt-4 px-5 flex-grow">
+            <CardContent className="space-y-2.5 pt-3 px-5 flex-grow">
               {member.nominees.length > 0 ? (
                 member.nominees.map((nom) => (
-                  <div key={nom.id} className="flex items-start gap-3 pb-3 border-b border-slate-100 dark:border-slate-800 last:border-0 last:pb-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 -mx-2 p-2 rounded-xl transition-colors">
+                  <div key={nom.id} className="flex items-start gap-3 pb-2.5 border-b border-slate-100 dark:border-slate-800 last:border-0 last:pb-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 -mx-2 p-2 rounded-xl transition-colors">
                     {nom.photoUrl ? (
                       <img src={nom.photoUrl} alt="Nominee" className="w-9 h-9 rounded-full object-cover ring-2 ring-white dark:ring-slate-800 shadow-sm" />
                     ) : (
@@ -172,13 +173,13 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                       </div>
                     )}
                     <div className="flex-1">
-                      <p className="text-xs font-semibold text-slate-900 dark:text-white">{nom.name}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">{nom.relation} | {nom.phone || "No Phone"}</p>
+                      <p className="text-xs font-bold text-slate-900 dark:text-white">{nom.name}</p>
+                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{nom.relation} | {nom.phone || "No Phone"}</p>
                       <div className="flex items-center gap-2 mt-1.5">
-                        <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900 text-[10px] px-2 py-0.5 rounded-full">
+                        <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900 text-[10px] px-2 py-0.5 rounded-full font-bold">
                           <Scale className="h-3 w-3 mr-1" /> {Number(nom.sharePercentage)}%
                         </Badge>
-                        <span className="text-[10px] text-slate-400 uppercase font-medium tracking-wider">{nom.idType || "NID"}: {nom.nidNumber || "N/A"}</span>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{nom.idType || "NID"}: {nom.nidNumber || "N/A"}</span>
                       </div>
                     </div>
                   </div>
@@ -191,19 +192,19 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
         </div>
 
         {/* RIGHT SIDE: Middle & Right Columns (3/4 width) */}
-        <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
           
           {/* MIDDLE COLUMN: Personal & Residence (Wider - 7/12) */}
-          <div className="lg:col-span-7 flex flex-col gap-5">
+          <div className="lg:col-span-7 flex flex-col gap-4">
             
             {/* Personal Information */}
             <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden flex-grow flex flex-col">
-              <CardHeader className="bg-blue-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 pb-3 px-5 py-3">
-                <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight">
+              <CardHeader className="bg-blue-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 px-5 py-2.5">
+                <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
                   <User className="h-4 w-4" /> Personal Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-x-5 gap-y-4 pt-4 px-5 flex-grow">
+              <CardContent className="grid grid-cols-2 gap-x-5 gap-y-3.5 pt-3.5 px-5 flex-grow">
                 <InfoItem icon={User} label="First Name" value={member.firstName} />
                 <InfoItem icon={User} label="Last Name" value={member.lastName} />
                 <InfoItem icon={User} label="Father's Name" value={member.fatherName} />
@@ -222,12 +223,12 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
 
             {/* Residence Information */}
             <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden flex-grow flex flex-col">
-              <CardHeader className="bg-gray-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 pb-3 px-5 py-3">
-                <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight">
+              <CardHeader className="bg-gray-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 px-5 py-2.5">
+                <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
                   <Home className="h-4 w-4" /> Residence Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 px-5 flex-grow">
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3.5 px-5 flex-grow">
                 <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/50">
                   <h4 className="text-[11px] font-bold uppercase text-slate-500 flex items-center gap-1.5 tracking-wider"><MapPin className="h-3 w-3" /> Current Address</h4>
                   <AddressDisplay address={currentAddress} />
@@ -241,18 +242,18 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
           </div>
 
           {/* RIGHT COLUMN: Contact, Documents, Bank (Smaller - 5/12) */}
-          <div className="lg:col-span-5 flex flex-col gap-5">
+          <div className="lg:col-span-5 flex flex-col gap-4">
             
             {/* Group: Contact + Documents (to match Personal Info height) */}
-            <div className="flex flex-col gap-5 flex-grow">
+            <div className="flex flex-col gap-4 flex-grow">
               {/* Contact Information */}
               <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden flex-grow flex flex-col">
-                <CardHeader className="bg-green-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 pb-3 px-5 py-3">
-                  <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight">
+                <CardHeader className="bg-green-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 px-5 py-2.5">
+                  <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
                     <Phone className="h-4 w-4" /> Contact Information
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-x-5 gap-y-4 pt-4 px-5 flex-grow">
+                <CardContent className="grid grid-cols-2 gap-x-5 gap-y-3.5 pt-3.5 px-5 flex-grow">
                   <InfoItem icon={Phone} label="Phone Number" value={member.phone} />
                   <InfoItem icon={Mail} label="Email Address" value={member.email} />
                   <InfoItem icon={Phone} label="Emergency Contact" value={member.emergencyPhone} />
@@ -262,12 +263,12 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
 
               {/* Documents */}
               <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden flex-grow flex flex-col">
-                <CardHeader className="bg-blue-500 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 pb-3 px-5 py-3">
-                  <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight">
+                <CardHeader className="bg-blue-500 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 px-5 py-2.5">
+                  <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
                     <FileText className="h-4 w-4" /> Documents
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 pt-4 px-5 flex-grow">
+                <CardContent className="space-y-2 pt-3 px-5 flex-grow">
                   {member.documents.length > 0 ? (
                     member.documents.map((doc) => (
                       <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" key={doc.id} className="flex items-center justify-between p-2.5 border border-slate-200/50 dark:border-slate-800/50 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:shadow-sm transition-all duration-200 group">
@@ -275,7 +276,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                           <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/30 transition-colors">
                             <FileText className="h-3.5 w-3.5 text-slate-500 group-hover:text-blue-500 transition-colors" />
                           </div>
-                          <span className="text-xs font-medium text-slate-700 dark:text-slate-200">{doc.name || doc.documentType}</span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{doc.name || doc.documentType}</span>
                         </div>
                         <ExternalLink className="h-3.5 w-3.5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                       </a>
@@ -289,12 +290,12 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
 
             {/* Bank Details (to match Residence Info height) */}
             <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden flex-grow flex flex-col">
-              <CardHeader className="bg-yellow-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 pb-3 px-5 py-3">
-                <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight">
+              <CardHeader className="bg-yellow-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 px-5 py-2.5">
+                <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
                   <Banknote className="h-4 w-4" /> Bank Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 pt-4 px-5 flex-grow">
+              <CardContent className="space-y-3.5 pt-3.5 px-5 flex-grow">
                 <InfoItem vertical icon={User} label="Account Name" value={member.accountName} />
                 <InfoItem vertical icon={CreditCard} label="Account Number" value={member.accountNumber} />
                 <InfoItem vertical icon={Building} label="Bank Name" value={member.bankName} />
@@ -308,12 +309,12 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
         {/* Full Width Financial Activity */}
         <div className="lg:col-span-4">
           <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden">
-            <CardHeader className="bg-emerald-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 pb-3 px-5 py-3">
-              <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight">
+            <CardHeader className="bg-emerald-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 px-5 py-2.5">
+              <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
                 <Wallet className="h-4 w-4" /> Recent Financial Activity
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-4 px-5">
+            <CardContent className="pt-3 px-5">
               {member.savings.length > 0 ? (
                 <div className="space-y-2">
                   {member.savings.slice(0, 5).map((sav) => (
@@ -323,8 +324,8 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                           <Wallet className="h-4 w-4 text-emerald-600" />
                         </div>
                         <div>
-                          <p className="font-semibold text-xs text-slate-900 dark:text-white">{sav.type}</p>
-                          <p className="text-[11px] text-slate-500">{new Date(sav.date).toLocaleDateString()} via {sav.method}</p>
+                          <p className="font-bold text-xs text-slate-900 dark:text-white">{sav.type}</p>
+                          <p className="text-[11px] font-medium text-slate-500">{new Date(sav.date).toLocaleDateString()} via {sav.method}</p>
                         </div>
                       </div>
                       <span className="font-bold text-emerald-600 text-xs">+ ৳ {Number(sav.amount).toLocaleString()}</span>
@@ -342,7 +343,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
   )
 }
 
-// Premium Reusable Info Item Component (Reduced sizes)
+// Premium Reusable Info Item Component
 function InfoItem({ icon: Icon, label, value, vertical }: { icon: any, label: string, value: string | null | undefined, vertical?: boolean }) {
   return (
     <div className={`flex ${vertical ? 'flex-col gap-1' : 'items-start gap-2.5'}`}>
@@ -352,36 +353,34 @@ function InfoItem({ icon: Icon, label, value, vertical }: { icon: any, label: st
         </div>
       )}
       <div>
-        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{label}</p>
-        <p className="text-xs text-slate-800 dark:text-slate-100 font-medium mt-0.5">{value || "N/A"}</p>
+        <p className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">{label}</p>
+        <p className="text-[13px] text-slate-800 dark:text-slate-100 font-bold mt-0.5">{value || "N/A"}</p>
       </div>
     </div>
   )
 }
 
-// Premium Reusable Address Display Component (Updated Layout)
+// Premium Reusable Address Display Component
 function AddressDisplay({ address }: { address: any }) {
   if (!address) return <p className="text-xs text-slate-500 italic">Not provided</p>;
   return (
     <div className="space-y-2 text-xs">
-      {/* Address field full width */}
       <div>
-        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Address</p>
-        <p className="text-slate-700 dark:text-slate-200 mt-0.5">{address.village || "N/A"}</p>
+        <p className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Address</p>
+        <p className="text-slate-700 dark:text-slate-200 mt-0.5 font-bold">{address.village || "N/A"}</p>
       </div>
-      {/* Post Office, District, Post Code side-by-side */}
       <div className="grid grid-cols-3 gap-2">
         <div>
-          <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Post Office</p>
-          <p className="text-slate-700 dark:text-slate-200 mt-0.5">{address.postOffice || "N/A"}</p>
+          <p className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Post Office</p>
+          <p className="text-slate-700 dark:text-slate-200 mt-0.5 font-bold">{address.postOffice || "N/A"}</p>
         </div>
         <div>
-          <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">District</p>
-          <p className="text-slate-700 dark:text-slate-200 mt-0.5">{address.district || "N/A"}</p>
+          <p className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">District</p>
+          <p className="text-slate-700 dark:text-slate-200 mt-0.5 font-bold">{address.district || "N/A"}</p>
         </div>
         <div>
-          <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Post Code</p>
-          <p className="text-slate-700 dark:text-slate-200 mt-0.5">{address.postalCode || "N/A"}</p>
+          <p className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Post Code</p>
+          <p className="text-slate-700 dark:text-slate-200 mt-0.5 font-bold">{address.postalCode || "N/A"}</p>
         </div>
       </div>
     </div>
