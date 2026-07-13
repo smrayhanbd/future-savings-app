@@ -81,8 +81,8 @@ export default function CollectionForm({ members }: { members: Member[] }) {
     }
   }
 
-  const handleChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }))
+  const handleChange = (name: string, value: string | null | undefined) => {
+    setFormData(prev => ({ ...prev, [name]: value ?? "" }))
   }
 
   const handleSave = () => {

@@ -23,10 +23,6 @@ export default function ChartOfAccountsClient({ accounts }: { accounts: Account[
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState("")
 
-  const handleChange = (name: string, value: string | null | undefined) => {
-    setFormData(prev => ({ ...prev, [name]: value ?? "" }))
-  }
-
   const toggleExpand = (id: string) => {
     const newExpanded = new Set(expanded)
     if (newExpanded.has(id)) newExpanded.delete(id)
