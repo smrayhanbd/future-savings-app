@@ -24,7 +24,7 @@ import {
   ArrowDownUp, Receipt, Printer, CalendarCheck, Briefcase, Gem, 
   CheckSquare, Heart, UserCog, Settings, Cloud, LogOut, 
   ChevronLeft, ChevronRight, ChevronDown, Building2, 
-  Banknote, SlidersHorizontal, FilePlus2, type LucideIcon
+  Banknote, SlidersHorizontal, FilePlus2, HandCoins, type LucideIcon
 } from "lucide-react"
 
 // --- Types ---
@@ -55,14 +55,15 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
       // "Old Member DB" removed here
     ]
   },
-  {
+   {
     title: "Finance & Accounting",
     items: [
       { label: "Collection Entry", icon: Banknote, href: "/dashboard/collection-entry" },
-      { label: "Withdrawal Entry", icon: Landmark, href: "/dashboard/deposits" }, // Moved up
-      { label: "Income Distribution", icon: ArrowDownUp, href: "/dashboard/income-distribution" }, // Moved up
-      { label: "Apply Fees / Charges", icon: Receipt, href: "/dashboard/fees" }, // Moved up
-      { label: "Fees & Charge Setup", icon: SlidersHorizontal, href: "/dashboard/collection-setup" }, // Renamed
+      { label: "Withdrawal Entry", icon: Landmark, href: "/dashboard/deposits" },
+      { label: "Income Distribution", icon: ArrowDownUp, href: "/dashboard/income-distribution" },
+      { label: "Loan Management", icon: HandCoins, href: "/dashboard/loans" }, // <-- NEW MENU ADDED HERE
+      { label: "Apply Fees / Charges", icon: Receipt, href: "/dashboard/fees" },
+      { label: "Fees & Charge Setup", icon: SlidersHorizontal, href: "/dashboard/collection-setup" },
       { label: "Chart of Accounts", icon: PieChart, href: "/dashboard/accounts" },
       { label: "Voucher Entry", icon: FilePlus2, href: "/dashboard/voucher-entry" },
       { 
