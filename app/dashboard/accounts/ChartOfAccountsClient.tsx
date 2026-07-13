@@ -23,6 +23,10 @@ export default function ChartOfAccountsClient({ accounts }: { accounts: Account[
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState("")
 
+  const handleChange = (name: string, value: string | null | undefined) => {
+    setFormData(prev => ({ ...prev, [name]: value ?? "" }))
+  }
+
   const toggleExpand = (id: string) => {
     const newExpanded = new Set(expanded)
     if (newExpanded.has(id)) newExpanded.delete(id)
@@ -90,7 +94,9 @@ export default function ChartOfAccountsClient({ accounts }: { accounts: Account[
               {account.status}
             </Badge>
           </td>
-          <td className="px-6 py-3 text-right">
+          <td className="px-6 
+
+py-3 text-right">
             <div className="flex items-center justify-end gap-1">
               <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600"><Edit className="h-4 w-4" /></Button>
               <form action={() => deleteAccount(account.id)}>
