@@ -20,10 +20,11 @@ import { Separator } from "@/components/ui/separator"
 
 // Lucide Icons
 import {
-  LayoutDashboard, Users, Clock, Archive, PieChart, Landmark, 
+  LayoutDashboard, Users, Clock, PieChart, Landmark, 
   ArrowDownUp, Receipt, Printer, CalendarCheck, Briefcase, Gem, 
   CheckSquare, Heart, UserCog, Settings, Cloud, LogOut, 
-  ChevronLeft, ChevronRight, ChevronDown, Building2, type LucideIcon
+  ChevronLeft, ChevronRight, ChevronDown, Building2, 
+  Banknote, SlidersHorizontal, FilePlus2, type LucideIcon
 } from "lucide-react"
 
 // --- Types ---
@@ -50,24 +51,29 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
     title: "Member Management",
     items: [
       { label: "Member Panel", icon: Users, href: "/dashboard/members" },
-      { label: "Pending Approvals", icon: Clock, href: "/dashboard/approvals", badge: 3 },
-      { label: "Old Member DB", icon: Archive, href: "/dashboard/old-members" }
+      { label: "Pending Approvals", icon: Clock, href: "/dashboard/approvals", badge: 3 }
+      // "Old Member DB" removed here
     ]
   },
   {
     title: "Finance & Accounting",
     items: [
+      { label: "Collection Entry", icon: Banknote, href: "/dashboard/collection-entry" },
+      { label: "Withdrawal Entry", icon: Landmark, href: "/dashboard/deposits" }, // Moved up
+      { label: "Income Distribution", icon: ArrowDownUp, href: "/dashboard/income-distribution" }, // Moved up
+      { label: "Apply Fees / Charges", icon: Receipt, href: "/dashboard/fees" }, // Moved up
+      { label: "Fees & Charge Setup", icon: SlidersHorizontal, href: "/dashboard/collection-setup" }, // Renamed
       { label: "Chart of Accounts", icon: PieChart, href: "/dashboard/accounts" },
-      { label: "Deposits / Charges", icon: Landmark, href: "/dashboard/deposits" },
-      { label: "Income Distribution", icon: ArrowDownUp, href: "/dashboard/income-distribution" },
-      { label: "Apply Fees / Charges", icon: Receipt, href: "/dashboard/fees" },
+      { label: "Voucher Entry", icon: FilePlus2, href: "/dashboard/voucher-entry" },
       { 
-        label: "Reports", icon: Printer, href: "#",
+        label: "Reports", 
+        icon: Printer, 
+        href: "#",
         subItems: [
           { label: "Account Ledger", href: "/dashboard/account-ledger" },
           { label: "Member Ledger", href: "/dashboard/member-ledger" },
-          { label: "Money Receipts / Vouchers", href: "/dashboard/receipts" },
-          { label: "Voucher Entry", href: "/dashboard/vouchers" }
+          { label: "Money Receipts", href: "/dashboard/receipts" },
+          { label: "View Vouchers", href: "/dashboard/vouchers" }
         ]
       }
     ]
@@ -87,7 +93,9 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
     items: [
       { label: "User Control", icon: UserCog, href: "/dashboard/users" },
       { 
-        label: "Somiti Settings", icon: Settings, href: "#",
+        label: "Somiti Settings", 
+        icon: Settings, 
+        href: "#",
         subItems: [
           { label: "Organization Info", href: "/dashboard/settings/organization" },
           { label: "Active Bank Accounts", href: "/dashboard/settings/bank" },

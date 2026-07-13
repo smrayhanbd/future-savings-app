@@ -4,6 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { approveMember } from "@/app/actions/approval"
+import Link from "next/link"
+import { Eye } from "lucide-react"
 import { CheckCircle, Clock, Phone, Mail, Hash, ShieldCheck, Users } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
@@ -77,15 +79,15 @@ export default async function ApprovalsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="px-6 py-4 text-right">
-                        <form action={approveMember.bind(null, member.id)}>
+                        <Link href={`/dashboard/approvals/${member.id}`}>
                           <Button 
-                            type="submit" 
+                            type="button" 
                             size="sm" 
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm hover:shadow-md rounded-xl transition-all duration-200 group-hover:scale-105"
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm hover:shadow-md rounded-xl transition-all duration-200 group-hover:scale-105"
                           >
-                            <ShieldCheck className="mr-2 h-4 w-4" /> Approve & Notify
+                            <Eye className="mr-2 h-4 w-4" /> View Application
                           </Button>
-                        </form>
+                        </Link>
                       </TableCell>
                     </TableRow>
                   ))}
