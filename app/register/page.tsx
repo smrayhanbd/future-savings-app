@@ -72,7 +72,7 @@ export default function RegisterPage() {
               <h2 className="text-2xl font-bold text-slate-900">Member Application Form</h2>
               <p className="text-slate-500 mt-1 text-sm">Please fill out all sections accurately. Your application will be reviewed by management.</p>
             </div>
-            <Link href="/" className="text-sm font-medium text-indigo-600 hover:underline hidden sm:block">Back to Login</Link>
+            <Link href="/login" className="text-sm font-medium text-indigo-600 hover:underline hidden sm:block">Back to Login</Link>
           </div>
           
           <RegisterForm />

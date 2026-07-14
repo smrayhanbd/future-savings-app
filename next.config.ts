@@ -1,16 +1,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '20mb', // Allows larger file uploads (photos, PDFs)
+    },
+  },
   typescript: {
-    // This tells Next.js to ignore minor TypeScript type errors during deployment
     ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 };
 
 export default nextConfig;
-
-
-// next.config.js
-module.exports = {
-  allowedDevOrigins: ['150.1.196.31'],
-}

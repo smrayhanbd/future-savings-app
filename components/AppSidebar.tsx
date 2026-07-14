@@ -99,6 +99,7 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
         href: "#",
         subItems: [
           { label: "Organization Info", href: "/dashboard/settings/organization" },
+          { label: "Landing Page Content", href: "/dashboard/settings/site-content" }, // <-- ADD THIS
           { label: "Active Bank Accounts", href: "/dashboard/settings/bank" },
           { label: "Mail Server Setup", href: "/dashboard/settings/mail" },
           { label: "SMS Service API", href: "/dashboard/settings/sms" }

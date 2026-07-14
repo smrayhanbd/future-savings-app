@@ -277,3 +277,29 @@ model Account {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+model SiteContent {
+  id             String   @id @default("singleton")
+  heroTitle      String   @default("The Modern Way to Manage Your Somiti")
+  heroSubtitle   String   @default("Digitize your cooperative society. Automate collections, track ledgers, and build financial trust with complete transparency.")
+  aboutTitle     String   @default("About Our Somiti")
+  aboutContent   String   @default("We are a community-driven cooperative society dedicated to empowering our members financially. Founded on principles of trust and mutual support, we provide a secure platform for savings, loans, and investments.")
+  visionTitle    String   @default("Our Vision & Mission")
+  visionContent  String   @default("To build a financially resilient community where every member has access to transparent, secure, and modern financial services, fostering growth and prosperity for all.")
+  whyJoinUs      Json     @default("[]") // Array of {icon, title, description}
+  howWeRun       Json     @default("[]") // Array of {step, title, description}
+  transparency   String   @default("100% Transparency in Somiti Management. All transactions are recorded in real-time ledgers. Members have 24/7 access to their balances, and automated receipts ensure accountability for every Taka.")
+  facilities     Json     @default("[]") // Array of {icon, title, description}
+  management     Json     @default("[]") // Array of {name, role, photoUrl, bio}
+  activities     Json     @default("[]") // Array of {title, date, description}
+  projects       Json     @default("[]") // Array of {title, status, description}
+  updatedAt      DateTime @updatedAt
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
