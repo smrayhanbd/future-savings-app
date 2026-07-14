@@ -13,7 +13,7 @@ export default async function PortalDashboardPage() {
   const session = await getServerSession(authOptions)
 
   // Security: Ensure only members can access this page
-  if (!session || session.user.role !== "MEMBER") {
+  if (!session?.user || session.user.role !== "MEMBER") {
     redirect("/")
   }
 
