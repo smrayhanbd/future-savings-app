@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { requestPasswordReset } from "@/app/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -10,7 +10,7 @@ import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Mail, CheckCircle2, ArrowLeft } from "lucide-react"
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordContent() {
   const searchParams = useSearchParams()
   const isSent = searchParams.get("status") === "sent"
 
@@ -55,5 +55,13 @@ export default function ForgotPasswordPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <ForgotPasswordContent />
+    </Suspense>
   )
 }

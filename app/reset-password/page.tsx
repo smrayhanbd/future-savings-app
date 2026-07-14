@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react"
 import { resetPassword } from "@/app/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -9,7 +10,7 @@ import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Lock, ArrowLeft } from "lucide-react"
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
 
@@ -43,7 +44,6 @@ export default function ResetPasswordPage() {
           </CardHeader>
           <CardContent>
             <form action={resetPassword} className="space-y-4">
-              {/* Hidden input for token */}
               <input type="hidden" name="token" value={token} />
               
               <div className="space-y-2">
@@ -61,5 +61,13 @@ export default function ResetPasswordPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <ResetPasswordContent />
+    </Suspense>
   )
 }
