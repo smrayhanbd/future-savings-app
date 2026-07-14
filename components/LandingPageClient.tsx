@@ -92,7 +92,7 @@ export default function LandingPageClient({ content }: { content: any }) {
             variants={fadeDown}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
+            viewport={{ once: false, amount: 0.3 }}
           >
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-6">
               {content.heroTitle}
@@ -121,7 +121,7 @@ export default function LandingPageClient({ content }: { content: any }) {
             variants={slideRight}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
+            viewport={{ once: false, amount: 0.2 }}
           >
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">{content.aboutTitle}</h2>
             <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8">{content.aboutContent}</p>
@@ -139,7 +139,7 @@ export default function LandingPageClient({ content }: { content: any }) {
             variants={slideLeft}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
+            viewport={{ once: false, amount: 0.2 }}
           >
             {(content.facilities as any[]).map((fac, i) => (
               <Card key={i} className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow rounded-2xl overflow-hidden h-full">
@@ -163,7 +163,7 @@ export default function LandingPageClient({ content }: { content: any }) {
           variants={zoomIn}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.3 }}
+          viewport={{ once: false, amount: 0.3 }}
         >
           <Lock className="h-10 w-10 mx-auto mb-4 text-indigo-200" />
           <h2 className="text-3xl font-bold mb-4">Transparency & Reporting</h2>
@@ -179,7 +179,7 @@ export default function LandingPageClient({ content }: { content: any }) {
             variants={fadeUp}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
+            viewport={{ once: false, amount: 0.3 }}
           >
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">Our Management Committee</h2>
             <p className="text-lg text-slate-600 dark:text-slate-400">Dedicated leaders working for the betterment of our community.</p>
@@ -192,7 +192,7 @@ export default function LandingPageClient({ content }: { content: any }) {
                 variants={fadeUp}
                 initial="hidden"
                 whileInView="visible"
-                viewport={{ once: true, amount: 0.2 }}
+                viewport={{ once: false, amount: 0.2 }}
                 transition={{ delay: i * 0.1 }}
                 className="w-full sm:w-72 max-w-sm"
               >
@@ -220,7 +220,7 @@ export default function LandingPageClient({ content }: { content: any }) {
             variants={fadeDown}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
+            viewport={{ once: false, amount: 0.3 }}
           >
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">Our Activities & Projects</h2>
             <p className="text-lg text-slate-600 dark:text-slate-400">See what we are doing to grow our community's wealth and well-being.</p>
@@ -232,7 +232,7 @@ export default function LandingPageClient({ content }: { content: any }) {
               variants={slideRight}
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, amount: 0.2 }}
+              viewport={{ once: false, amount: 0.2 }}
             >
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2"><TrendingUp className="h-6 w-6 text-indigo-600 dark:text-indigo-400" /> Ongoing Projects</h3>
               <div className="space-y-6">
@@ -258,7 +258,7 @@ export default function LandingPageClient({ content }: { content: any }) {
               variants={slideLeft}
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, amount: 0.2 }}
+              viewport={{ once: false, amount: 0.2 }}
             >
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2"><Receipt className="h-6 w-6 text-emerald-600 dark:text-emerald-400" /> Recent Activities</h3>
               <div className="space-y-6">
@@ -290,7 +290,7 @@ export default function LandingPageClient({ content }: { content: any }) {
             variants={zoomIn}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
+            viewport={{ once: false, amount: 0.3 }}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Ready to join our community?</h2>
             <p className="text-indigo-100 text-lg mb-8">Register your account today and become part of a growing, transparent, and secure financial family.</p>
