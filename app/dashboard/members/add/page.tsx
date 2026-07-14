@@ -235,7 +235,19 @@ export default function MemberAddPage() {
                 if (nom.idDocumentFile) fd.append(`nom_${i}_idDoc`, nom.idDocumentFile);
                 if (nom.photo) fd.append(`nom_${i}_photo`, nom.photo);
             });
-            await addMember(fd);
+        if (Object.keys(formErrors).length === 0) {
+            // ... (your existing formData append logic) ...
+            
+            try {
+                await addMember(fd);
+            } catch (err: any) {
+                toast.error("Registration Failed", {
+                    description: err.message || "Could not save member. Please try again."
+                });
+            }
+        } else {
+            // ... (your existing error alert logic) ...
+        }
         } else {
             if (formErrors.nominees) alert(formErrors.nominees);
             else alert("Please fill all required fields correctly before submitting.");

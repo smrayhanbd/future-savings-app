@@ -6,6 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
+            <div className="mt-6 text-center text-sm">
+              <p className="text-slate-500">Are you a new member?</p>
+              <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500 mt-1 inline-block">
+                Register for an account
+              </Link>
+            </div>
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 
@@ -78,8 +84,8 @@ export default function Home() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="email">Admin Email</Label>
-                <Input id="email" name="email" type="email" placeholder="admin@foundation.com" required className="bg-white dark:bg-slate-900" />
+                <Label htmlFor="email">Email or Member ID</Label>
+                <Input id="email" name="email" type="text" placeholder="admin@foundation.com or M0001" required className="bg-white dark:bg-slate-900" />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

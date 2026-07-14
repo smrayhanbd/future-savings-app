@@ -8,7 +8,7 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        email: { label: "Email or Member ID", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
@@ -16,21 +16,38 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
+        // 1. Check if the user is an Admin (by email)
+        const adminUser = await prisma.user.findUnique({
           where: { email: credentials.email }
         });
 
-        if (!user) {
-          return null;
+        if (adminUser) {
+          const passwordMatch = await bcrypt.compare(credentials.password, adminUser.password);
+          if (passwordMatch) {
+            return { id: adminUser.id, email: adminUser.email, role: "ADMIN" };
+          }
         }
 
-        const passwordMatch = await bcrypt.compare(credentials.password, user.password);
+        // 2. Check if the user is a Member (by Member ID / Username)
+        const memberAccount = await prisma.memberAccount.findUnique({
+          where: { username: credentials.email },
+          include: { member: true }
+        });
 
-        if (!passwordMatch) {
-          return null;
+        if (memberAccount && memberAccount.isActive) {
+          const passwordMatch = await bcrypt.compare(credentials.password, memberAccount.passwordHash);
+          if (passwordMatch) {
+            // Return member details mapped to the session
+            return { 
+              id: memberAccount.memberId, 
+              email: memberAccount.member.email || memberAccount.username, 
+              role: "MEMBER",
+              name: memberAccount.member.fullName
+            };
+          }
         }
 
-        return { id: user.id, email: user.email, role: user.role };
+        return null;
       }
     })
   ],
@@ -40,6 +57,22 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/",
   },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = user.role;
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.role = token.role as string;
+        session.user.id = token.id as string;
+      }
+      return session;
+    }
+  }
 };
 
 const handler = NextAuth(authOptions);

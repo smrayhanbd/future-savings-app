@@ -1,5 +1,6 @@
 "use server"
 
+import bcrypt from "bcryptjs"
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
@@ -14,13 +15,41 @@ export async function approveMember(memberId: string) {
     data: { status: "ACTIVE" },
   })
 
+  // 1. Generate Credentials
+  const username = member.memberNo // Using Member ID as Username
+  const tempPassword = Math.random().toString(36).slice(2, 10) // Random 8-char password
+  const hashedPassword = await bcrypt.hash(tempPassword, 10)
+
+  // 2. Save to MemberAccount table
+  await prisma.memberAccount.create({
+    data: {
+      memberId: member.id,
+      username: username,
+      passwordHash: hashedPassword,
+      emailVerified: false,
+      isActive: true,
+    }
+  })
+
+  // 3. Send Email with Credentials
   if (member.email) {
     try {
       await resend.emails.send({
         from: "Future Savings Foundation <onboarding@resend.dev>",
         to: member.email,
-        subject: "Membership Approved!",
-        html: `<p>Dear ${member.fullName},</p><p>Congratulations! Your membership has been approved by the management.</p><p>Your Member ID is: <strong>${member.memberNo}</strong></p>`
+        subject: "Membership Approved! Welcome to the Portal",
+        html: `
+          <p>Dear ${member.fullName},</p>
+          <p>Congratulations! Your membership has been approved by the management.</p>
+          <p>Your Member ID is: <strong>${member.memberNo}</strong></p>
+          <p>You can now log in to your Member Portal using the credentials below:</p>
+          <p>
+            <strong>Login URL:</strong> https://your-website.com<br/>
+            <strong>Username:</strong> ${username}<br/>
+            <strong>Temporary Password:</strong> ${tempPassword}
+          </p>
+          <p>Please change your password after logging in for the first time.</p>
+        `
       })
     } catch (error) {
       console.error("Failed to send email:", error)
@@ -188,18 +217,55 @@ export async function approveApplication(memberId: string, formData: FormData) {
     throw error; 
   }
 
-  // Send Email
+  // 1. Generate Credentials
   const finalMember = await prisma.member.findUnique({ where: { id: memberId } })
-  if (finalMember?.email) {
-    try {
-      await resend.emails.send({
-        from: "Future Savings Foundation <onboarding@resend.dev>",
-        to: finalMember.email,
-        subject: "Membership Approved!",
-        html: `<p>Dear ${finalMember.fullName},</p><p>Congratulations! Your membership has been approved by the management.</p><p>Your Member ID is: <strong>${finalMember.memberNo}</strong></p>`
+  
+  if (finalMember) {
+    // Check if account already exists to prevent errors
+    const existingAccount = await prisma.memberAccount.findUnique({
+      where: { username: finalMember.memberNo }
+    })
+
+    if (!existingAccount) {
+      const username = finalMember.memberNo
+      const tempPassword = Math.random().toString(36).slice(2, 10)
+      const hashedPassword = await bcrypt.hash(tempPassword, 10)
+
+      // 2. Save to MemberAccount table
+      await prisma.memberAccount.create({
+        data: {
+          memberId: finalMember.id,
+          username: username,
+          passwordHash: hashedPassword,
+          emailVerified: false,
+          isActive: true,
+        }
       })
-    } catch (error) {
-      console.error("Failed to send email:", error)
+
+      // 3. Send Email with Credentials
+      if (finalMember.email) {
+        try {
+          await resend.emails.send({
+            from: "Future Savings Foundation <onboarding@resend.dev>",
+            to: finalMember.email,
+            subject: "Membership Approved! Welcome to the Portal",
+            html: `
+              <p>Dear ${finalMember.fullName},</p>
+              <p>Congratulations! Your membership has been approved by the management.</p>
+              <p>Your Member ID is: <strong>${finalMember.memberNo}</strong></p>
+              <p>You can now log in to your Member Portal using the credentials below:</p>
+              <p>
+                <strong>Login URL:</strong> http://localhost:3000<br/>
+                <strong>Username:</strong> ${username}<br/>
+                <strong>Temporary Password:</strong> ${tempPassword}
+              </p>
+              <p>Please change your password after logging in for the first time.</p>
+            `
+          })
+        } catch (error) {
+          console.error("Failed to send credentials email:", error)
+        }
+      }
     }
   }
 
