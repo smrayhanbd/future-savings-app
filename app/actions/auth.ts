@@ -1,12 +1,10 @@
 "use server"
 
 import prisma from "@/lib/prisma"
-import { Resend } from "resend"
+import { sendEmail } from "@/lib/email"
 import bcrypt from "bcryptjs"
 import { randomBytes } from "crypto"
 import { redirect } from "next/navigation"
-
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function requestPasswordReset(formData: FormData) {
   const email = formData.get("email") as string
@@ -34,21 +32,12 @@ export async function requestPasswordReset(formData: FormData) {
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
   const resetUrl = `${baseUrl}/reset-password?token=${token}`
 
-  // Log URL in development so you can test it without the real email
-  if (process.env.NODE_ENV === "development") {
-    console.log("--------------------------------------------------")
-    console.log("PASSWORD RESET URL (DEV ONLY):")
-    console.log(resetUrl)
-    console.log("--------------------------------------------------")
-  }
-
   try {
-    await resend.emails.send({
-      from: "Future Savings Foundation <onboarding@resend.dev>",
-      to: email,
-      subject: "Password Reset Request",
-      html: `<p>You requested a password reset.</p><p>Click <a href="${resetUrl}">here</a> to reset your password. This link will expire in 1 hour.</p><p>If you did not request this, please ignore this email.</p>`
-    })
+    await sendEmail(
+      email,
+      "Password Reset Request",
+      `<p>You requested a password reset.</p><p>Click <a href="${resetUrl}">here</a> to reset your password. This link will expire in 1 hour.</p><p>If you did not request this, please ignore this email.</p>`
+    )
   } catch (error) {
     console.error("Failed to send reset email:", error)
   }

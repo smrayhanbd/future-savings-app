@@ -289,6 +289,7 @@ model SiteContent {
   whyJoinUs      Json     @default("[]") // Array of {icon, title, description}
   howWeRun       Json     @default("[]") // Array of {step, title, description}
   transparency   String   @default("100% Transparency in Somiti Management. All transactions are recorded in real-time ledgers. Members have 24/7 access to their balances, and automated receipts ensure accountability for every Taka.")
+  policyContent  String?  @db.Text // <-- ADD THIS LINE
   facilities     Json     @default("[]") // Array of {icon, title, description}
   management     Json     @default("[]") // Array of {name, role, photoUrl, bio}
   activities     Json     @default("[]") // Array of {title, date, description}
@@ -301,5 +302,14 @@ model PasswordReset {
   email     String
   token     String   @unique
   expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String   @default("SYSTEM") // SYSTEM, SMS_ERROR
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 }

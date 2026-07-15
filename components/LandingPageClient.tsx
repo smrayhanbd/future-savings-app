@@ -124,12 +124,12 @@ export default function LandingPageClient({ content }: { content: any }) {
             viewport={{ once: false, amount: 0.2 }}
           >
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">{content.aboutTitle}</h2>
-            <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8">{content.aboutContent}</p>
+            <div className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8" dangerouslySetInnerHTML={{ __html: content.aboutContent }} />
             <div className="flex items-start gap-4 p-6 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl border border-indigo-100 dark:border-indigo-900/50">
               <ShieldCheck className="h-8 w-8 text-indigo-600 dark:text-indigo-400 shrink-0" />
               <div>
                 <h3 className="font-bold text-indigo-900 dark:text-indigo-300 mb-1">{content.visionTitle}</h3>
-                <p className="text-indigo-700 dark:text-indigo-400">{content.visionContent}</p>
+                <p className="text-indigo-700 dark:text-indigo-400" dangerouslySetInnerHTML={{ __html: content.visionContent }} />
               </div>
             </div>
           </motion.div>
@@ -167,7 +167,7 @@ export default function LandingPageClient({ content }: { content: any }) {
         >
           <Lock className="h-10 w-10 mx-auto mb-4 text-indigo-200" />
           <h2 className="text-3xl font-bold mb-4">Transparency & Reporting</h2>
-          <p className="text-lg text-indigo-100 dark:text-indigo-200">{content.transparency}</p>
+          <p className="text-lg text-indigo-100 dark:text-indigo-200" dangerouslySetInnerHTML={{ __html: content.transparency }} />
         </motion.div>
       </section>
 

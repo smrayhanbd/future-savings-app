@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
+import { updateMemberStatus, deleteMember } from "@/app/actions/member";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -160,39 +161,91 @@ function MemberAvatar({ member }: { member: Member }) {
 }
 
 function ActionDropdown({ member }: { member: Member }) {
+  const [isPending, startTransition] = useTransition();
+
+  const handleSuspend = () => {
+    if (confirm(`Are you sure you want to suspend ${member.fullName}? They will lose portal access.`)) {
+      startTransition(() => updateMemberStatus(member.id, "SUSPENDED"));
+    }
+  };
+
+  const handleDelete = () => {
+    if (confirm(`Are you sure you want to DELETE ${member.fullName}? This action cannot be undone.`)) {
+      startTransition(() => deleteMember(member.id));
+    }
+  };
+
   return (
     <DropdownMenu>
-            <DropdownMenuTrigger className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors outline-none cursor-pointer">
+      <DropdownMenuTrigger className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors outline-none cursor-pointer">
         <MoreHorizontal className="w-4 h-4 text-slate-500" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 z-50">
-                <p className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Member Actions</p>
+        <p className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Member Actions</p>
         <DropdownMenuItem className="p-0">
           <Link href={`/dashboard/members/${member.id}`} className="flex items-center gap-2.5 w-full cursor-pointer p-2">
             <Eye className="w-4 h-4" /> View Profile
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem className="p-0">
-                            <Link href={`/dashboard/members/${member.id}/edit`} className="flex items-center gap-2.5 w-full cursor-pointer p-2">
-                              <Edit className="h-4 w-4" /> Edit Profile
-                            </Link>
-                          </DropdownMenuItem>
-        <DropdownMenuItem><Printer className="mr-2.5 h-4 w-4" /> Print Form</DropdownMenuItem>
+          <Link href={`/dashboard/members/${member.id}/edit`} className="flex items-center gap-2.5 w-full cursor-pointer p-2">
+            <Edit className="h-4 w-4" /> Edit Profile
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => window.print()}><Printer className="mr-2.5 h-4 w-4" /> Print Form</DropdownMenuItem>
         
         <DropdownMenuSeparator />
         <p className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Financial</p>
-        <DropdownMenuItem><Banknote className="mr-2.5 h-4 w-4" /> Deposit Entry</DropdownMenuItem>
-        <DropdownMenuItem><CreditCard className="mr-2.5 h-4 w-4" /> Payment Entry</DropdownMenuItem>
-        <DropdownMenuItem><BookOpen className="mr-2.5 h-4 w-4" /> View Ledger</DropdownMenuItem>
+        <DropdownMenuItem className="p-0">
+          <Link href="/dashboard/collection-entry" className="flex items-center gap-2.5 w-full cursor-pointer p-2">
+            <Banknote className="h-4 w-4" /> Deposit Entry
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="p-0">
+          <Link href="/dashboard/deposits" className="flex items-center gap-2.5 w-full cursor-pointer p-2">
+            <CreditCard className="h-4 w-4" /> Payment Entry
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="p-0">
+          <Link href="/dashboard/member-ledger" className="flex items-center gap-2.5 w-full cursor-pointer p-2">
+            <BookOpen className="h-4 w-4" /> View Ledger
+          </Link>
+        </DropdownMenuItem>
         
         <DropdownMenuSeparator />
         <p className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Communication</p>
-        <DropdownMenuItem><Mail className="mr-2.5 h-4 w-4" /> Send Email</DropdownMenuItem>
-        <DropdownMenuItem><MessageSquare className="mr-2.5 h-4 w-4" /> Send SMS</DropdownMenuItem>
+        {member.email ? (
+          <DropdownMenuItem className="p-0">
+            <a href={`mailto:${member.email}`} className="flex items-center gap-2.5 w-full cursor-pointer p-2">
+              <Mail className="h-4 w-4" /> Send Email
+            </a>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem disabled><Mail className="mr-2.5 h-4 w-4" /> No Email</DropdownMenuItem>
+        )}
+        {member.phone ? (
+          <DropdownMenuItem className="p-0">
+            <a href={`sms:${member.phone}`} className="flex items-center gap-2.5 w-full cursor-pointer p-2">
+              <MessageSquare className="h-4 w-4" /> Send SMS
+            </a>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem disabled><MessageSquare className="mr-2.5 h-4 w-4" /> No Phone</DropdownMenuItem>
+        )}
         
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-yellow-600 focus:text-yellow-700"><PauseCircle className="mr-2.5 h-4 w-4" /> Suspend Account</DropdownMenuItem>
-        <DropdownMenuItem className="text-red-600 focus:text-red-700"><Trash2 className="mr-2.5 h-4 w-4" /> Delete</DropdownMenuItem>
+        {member.status !== "SUSPENDED" ? (
+          <DropdownMenuItem onClick={handleSuspend} disabled={isPending} className="text-yellow-600 focus:text-yellow-700 cursor-pointer">
+            <PauseCircle className="mr-2.5 h-4 w-4" /> {isPending ? "Suspending..." : "Suspend Account"}
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem disabled className="text-slate-400">
+            <PauseCircle className="mr-2.5 h-4 w-4" /> Already Suspended
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={handleDelete} disabled={isPending} className="text-red-600 focus:text-red-700 cursor-pointer">
+          <Trash2 className="mr-2.5 h-4 w-4" /> {isPending ? "Deleting..." : "Delete"}
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -595,23 +648,6 @@ export default function MemberListClient({ members }: { members: Member[] }) {
           </div>
         </div>
       </main>
-
-      {/* Floating Action Button */}
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3 group">
-        <div className="flex flex-col gap-2 mb-2 opacity-0 translate-y-10 group-hover:opacity-100 group-hover:translate-y-0 transition-all pointer-events-none group-hover:pointer-events-auto">
-          <button className="flex items-center gap-3 px-4 py-2 h-auto bg-white dark:bg-slate-950 shadow-lg rounded-full border border-slate-200 dark:border-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-            <Upload className="w-4 h-4 text-indigo-600" /> Import Members
-          </button>
-          <button className="flex items-center gap-3 px-4 py-2 h-auto bg-white dark:bg-slate-950 shadow-lg rounded-full border border-slate-200 dark:border-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-            <Banknote className="w-4 h-4 text-indigo-600" /> Collection
-          </button>
-        </div>
-        <Link href="/dashboard/members/add">
-          <button className="w-14 h-14 rounded-full shadow-2xl bg-indigo-600 hover:bg-indigo-700 hover:scale-110 transition-all flex items-center justify-center text-white">
-            <PlusCircle className="w-6 h-6" />
-          </button>
-        </Link>
-      </div>
     </div>
   );
 }

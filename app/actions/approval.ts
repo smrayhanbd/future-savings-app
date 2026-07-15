@@ -1,66 +1,105 @@
 "use server"
 
+import { sendEmail } from "@/lib/email"
+import { sendSMS } from "@/lib/sms"
 import bcrypt from "bcryptjs"
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { uploadImage } from "@/lib/cloudinary"
-import { Resend } from "resend"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// --- Helper Function to Generate Credentials & Send Email/SMS ---
+async function generateAndSendCredentials(memberId: string) {
+  const member = await prisma.member.findUnique({ where: { id: memberId } })
 
+  if (!member) return
+
+  // 1. Check if account already exists to prevent duplicate errors
+  const existingAccount = await prisma.memberAccount.findUnique({
+    where: { username: member.memberNo }
+  })
+
+  if (!existingAccount) {
+    const username = member.memberNo
+    const tempPassword = Math.random().toString(36).slice(2, 10)
+    const hashedPassword = await bcrypt.hash(tempPassword, 10)
+
+    // 2. Save to MemberAccount table
+    await prisma.memberAccount.create({
+      data: {
+        memberId: member.id,
+        username: username,
+        passwordHash: hashedPassword,
+        emailVerified: false,
+        isActive: true,
+      }
+    })
+
+    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
+
+    // 3. Send Email with Credentials
+    if (member.email) {
+      try {
+        await sendEmail(
+          member.email,
+          "Membership Approved! Welcome to the Portal",
+          `
+            <p>Dear ${member.fullName},</p>
+            <p>Congratulations! Your membership has been approved by the management.</p>
+            <p>Your Member ID is: <strong>${member.memberNo}</strong></p>
+            <p>You can now log in to your Member Portal using the credentials below:</p>
+            <p>
+              <strong>Username:</strong> ${username}<br/>
+              <strong>Temporary Password:</strong> ${tempPassword}<br/>
+              <strong>Login URL:</strong> ${baseUrl}/login
+            </p>
+            <p>Please change your password after logging in for the first time.</p>
+          `
+        )
+      } catch (emailError: any) {
+        console.error("Failed to send credentials email:", emailError)
+        await prisma.notification.create({
+          data: {
+            type: "EMAIL_ERROR",
+            title: "Email Failed to Send",
+            message: `Failed to send approval email to ${member.fullName} (${member.email}). Reason: ${emailError.message || "Unknown error"}`
+          }
+        })
+      }
+    }
+
+    // 4. Send SMS with Credentials
+    if (member.phone) {
+      const smsMsg = `Welcome to Future Savings Foundation! Your account is approved. Member ID: ${username}, Password: ${tempPassword}. Login: ${baseUrl}/login`
+      const smsRes = await sendSMS(member.phone, smsMsg)
+      
+      if (smsRes.status !== "OK") {
+        await prisma.notification.create({
+          data: {
+            type: "SMS_ERROR",
+            title: "SMS Failed to Send",
+            message: `Failed to send approval SMS to ${member.fullName} (${member.phone}). Reason: ${smsRes.response}`
+          }
+        })
+      }
+    }
+  }
+}
+
+// --- Quick Approve Action ---
 export async function approveMember(memberId: string) {
-  const member = await prisma.member.update({
+  await prisma.member.update({
     where: { id: memberId },
     data: { status: "ACTIVE" },
   })
 
-  // 1. Generate Credentials
-  const username = member.memberNo // Using Member ID as Username
-  const tempPassword = Math.random().toString(36).slice(2, 10) // Random 8-char password
-  const hashedPassword = await bcrypt.hash(tempPassword, 10)
-
-  // 2. Save to MemberAccount table
-  await prisma.memberAccount.create({
-    data: {
-      memberId: member.id,
-      username: username,
-      passwordHash: hashedPassword,
-      emailVerified: false,
-      isActive: true,
-    }
-  })
-
-  // 3. Send Email with Credentials
-  if (member.email) {
-    try {
-      await resend.emails.send({
-        from: "Future Savings Foundation <onboarding@resend.dev>",
-        to: member.email,
-        subject: "Membership Approved! Welcome to the Portal",
-        html: `
-          <p>Dear ${member.fullName},</p>
-          <p>Congratulations! Your membership has been approved by the management.</p>
-          <p>Your Member ID is: <strong>${member.memberNo}</strong></p>
-          <p>You can now log in to your Member Portal using the credentials below:</p>
-          <p>
-            <strong>Login URL:</strong> https://your-website.com<br/>
-            <strong>Username:</strong> ${username}<br/>
-            <strong>Temporary Password:</strong> ${tempPassword}
-          </p>
-          <p>Please change your password after logging in for the first time.</p>
-        `
-      })
-    } catch (error) {
-      console.error("Failed to send email:", error)
-    }
-  }
+  await generateAndSendCredentials(memberId)
 
   revalidatePath("/dashboard/approvals")
   redirect("/dashboard/approvals")
 }
 
-// New Action: Reject and Delete Application
+// --- Reject and Delete Action ---
 export async function rejectMember(memberId: string) {
   await prisma.member.delete({ where: { id: memberId } })
   
@@ -68,7 +107,7 @@ export async function rejectMember(memberId: string) {
   redirect("/dashboard/approvals")
 }
 
-// New Action: Review, Edit, and Approve
+// --- Review, Edit, and Approve Action ---
 export async function approveApplication(memberId: string, formData: FormData) {
   // 1. Extract Data
   const firstName = formData.get("firstName") as string
@@ -115,6 +154,7 @@ export async function approveApplication(memberId: string, formData: FormData) {
     include: { documents: true, nominees: true }
   })
 
+  // Upload Photos/Documents OUTSIDE transaction to prevent timeouts
   const memberPhotoFile = formData.get("memberPhoto") as File
   const memberPhotoUrl = memberPhotoFile?.size > 0 ? await uploadImage(memberPhotoFile) : existingMember?.photoUrl
 
@@ -122,20 +162,50 @@ export async function approveApplication(memberId: string, formData: FormData) {
   const idDocUrl = idDocFile?.size > 0 ? await uploadImage(idDocFile) : existingMember?.documents.find(d => d.documentType === idType)?.fileUrl
 
   // Upload Additional Docs
-  const additionalDocsData: { name: string; fileName: string; fileUrl: string }[] = [];
-  let docIndex = 0;
+  const additionalDocsData: { name: string; fileName: string; fileUrl: string }[] = []
+  let docIndex = 0
   while (true) {
-    const docName = formData.get(`doc_${docIndex}_name`) as string;
-    const docFile = formData.get(`doc_${docIndex}_file`) as File;
-    if (!docName && !docFile) break;
+    const docName = formData.get(`doc_${docIndex}_name`) as string
+    const docFile = formData.get(`doc_${docIndex}_file`) as File
+    if (!docName && !docFile) break
 
     if (docFile?.size > 0) {
-      const docUrl = await uploadImage(docFile);
+      const docUrl = await uploadImage(docFile)
       if (docUrl) {
-        additionalDocsData.push({ name: docName || "Additional Document", fileName: docFile.name, fileUrl: docUrl });
+        additionalDocsData.push({ name: docName || "Additional Document", fileName: docFile.name, fileUrl: docUrl })
       }
     }
-    docIndex++;
+    docIndex++
+  }
+
+  // Upload Nominees Data
+  const nomineesData: any[] = []
+  let i = 0
+  while (true) {
+    const nomName = formData.get(`nom_${i}_name`) as string
+    if (!nomName) break
+
+    const nomRelation = formData.get(`nom_${i}_relation`) as string
+    const nomShare = formData.get(`nom_${i}_share`) as string
+    const nomPhone = formData.get(`nom_${i}_phone`) as string
+    const nomIdType = formData.get(`nom_${i}_idType`) as string
+    const nomIdNumber = formData.get(`nom_${i}_idNumber`) as string
+    
+    const nomDbId = formData.get(`nom_${i}_dbId`) as string
+    const existingNom = existingMember?.nominees.find(n => n.id === nomDbId)
+    
+    const nomPhotoFile = formData.get(`nom_${i}_photo`) as File
+    const nomPhotoUrl = nomPhotoFile?.size > 0 ? await uploadImage(nomPhotoFile) : existingNom?.photoUrl || null
+    
+    const nomIdDocFile = formData.get(`nom_${i}_idDoc`) as File
+    const nomIdDocUrl = nomIdDocFile?.size > 0 ? await uploadImage(nomIdDocFile) : existingNom?.idDocumentUrl || null
+
+    nomineesData.push({
+      name: nomName, relation: nomRelation || "Unknown",
+      phone: nomPhone, sharePercentage: nomShare ? parseFloat(nomShare) : 0,
+      idType: nomIdType, nidNumber: nomIdNumber, idDocumentUrl: nomIdDocUrl, photoUrl: nomPhotoUrl,
+    })
+    i++
   }
 
   // 3. Update Database & Set Status to ACTIVE
@@ -157,14 +227,6 @@ export async function approveApplication(memberId: string, formData: FormData) {
         },
       })
 
-      // Update Additional Docs
-      await tx.memberDocument.deleteMany({ where: { memberId, documentType: "ADDITIONAL" } })
-      for (const doc of additionalDocsData) {
-        await tx.memberDocument.create({
-          data: { memberId, documentType: "ADDITIONAL", name: doc.name, fileName: doc.fileName, fileUrl: doc.fileUrl }
-        });
-      }
-
       // Update Addresses
       await tx.memberAddress.deleteMany({ where: { memberId } })
       if (c_village || c_district) {
@@ -180,94 +242,31 @@ export async function approveApplication(memberId: string, formData: FormData) {
         await tx.memberDocument.create({ data: { memberId, documentType: idType || "ID", name: "Member ID Document", fileName: idDocFile?.name || "existing", fileUrl: idDocUrl } })
       }
 
+      // Update Additional Docs
+      await tx.memberDocument.deleteMany({ where: { memberId, documentType: "ADDITIONAL" } })
+      for (const doc of additionalDocsData) {
+        await tx.memberDocument.create({
+          data: { memberId, documentType: "ADDITIONAL", name: doc.name, fileName: doc.fileName, fileUrl: doc.fileUrl }
+        })
+      }
+
       // Update Nominees
       await tx.memberNominee.deleteMany({ where: { memberId } })
-      let i = 0;
-      while (true) {
-        const nomName = formData.get(`nom_${i}_name`) as string;
-        if (!nomName) break;
-
-        const nomRelation = formData.get(`nom_${i}_relation`) as string;
-        const nomShare = formData.get(`nom_${i}_share`) as string;
-        const nomPhone = formData.get(`nom_${i}_phone`) as string;
-        const nomIdType = formData.get(`nom_${i}_idType`) as string;
-        const nomIdNumber = formData.get(`nom_${i}_idNumber`) as string;
-        
-        const nomDbId = formData.get(`nom_${i}_dbId`) as string;
-        const existingNom = existingMember?.nominees.find(n => n.id === nomDbId);
-        
-        const nomPhotoFile = formData.get(`nom_${i}_photo`) as File;
-        const nomPhotoUrl = nomPhotoFile?.size > 0 ? await uploadImage(nomPhotoFile) : existingNom?.photoUrl || null;
-        
-        const nomIdDocFile = formData.get(`nom_${i}_idDoc`) as File;
-        const nomIdDocUrl = nomIdDocFile?.size > 0 ? await uploadImage(nomIdDocFile) : existingNom?.idDocumentUrl || null;
-
+      for (const nom of nomineesData) {
         await tx.memberNominee.create({
           data: {
-            memberId, name: nomName, relation: nomRelation || "Unknown",
-            phone: nomPhone, sharePercentage: nomShare ? parseFloat(nomShare) : 0,
-            idType: nomIdType, nidNumber: nomIdNumber, idDocumentUrl: nomIdDocUrl, photoUrl: nomPhotoUrl,
+            memberId, ...nom
           }
         })
-        i++;
       }
     })
   } catch (error) {
     console.error("Failed to approve member:", error)
-    throw error; 
+    throw error 
   }
 
-  // 1. Generate Credentials
-  const finalMember = await prisma.member.findUnique({ where: { id: memberId } })
-  
-  if (finalMember) {
-    // Check if account already exists to prevent errors
-    const existingAccount = await prisma.memberAccount.findUnique({
-      where: { username: finalMember.memberNo }
-    })
-
-    if (!existingAccount) {
-      const username = finalMember.memberNo
-      const tempPassword = Math.random().toString(36).slice(2, 10)
-      const hashedPassword = await bcrypt.hash(tempPassword, 10)
-
-      // 2. Save to MemberAccount table
-      await prisma.memberAccount.create({
-        data: {
-          memberId: finalMember.id,
-          username: username,
-          passwordHash: hashedPassword,
-          emailVerified: false,
-          isActive: true,
-        }
-      })
-
-      // 3. Send Email with Credentials
-      if (finalMember.email) {
-        try {
-          await resend.emails.send({
-            from: "Future Savings Foundation <onboarding@resend.dev>",
-            to: finalMember.email,
-            subject: "Membership Approved! Welcome to the Portal",
-            html: `
-              <p>Dear ${finalMember.fullName},</p>
-              <p>Congratulations! Your membership has been approved by the management.</p>
-              <p>Your Member ID is: <strong>${finalMember.memberNo}</strong></p>
-              <p>You can now log in to your Member Portal using the credentials below:</p>
-              <p>
-                <strong>Login URL:</strong> http://localhost:3000<br/>
-                <strong>Username:</strong> ${username}<br/>
-                <strong>Temporary Password:</strong> ${tempPassword}
-              </p>
-              <p>Please change your password after logging in for the first time.</p>
-            `
-          })
-        } catch (error) {
-          console.error("Failed to send credentials email:", error)
-        }
-      }
-    }
-  }
+  // 4. Generate Credentials & Send Email
+  await generateAndSendCredentials(memberId)
 
   revalidatePath("/dashboard/approvals")
   redirect("/dashboard/approvals")

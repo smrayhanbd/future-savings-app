@@ -13,6 +13,7 @@ export async function updateSiteContent(formData: FormData) {
   const visionTitle = formData.get("visionTitle") as string
   const visionContent = formData.get("visionContent") as string
   const transparency = formData.get("transparency") as string
+  const policyContent = formData.get("policyContent") as string // <-- ADD THIS
 
   // Parse JSON arrays from hidden inputs
   let whyJoinUs = JSON.parse(formData.get("whyJoinUs") as string || "[]")
@@ -44,11 +45,13 @@ export async function updateSiteContent(formData: FormData) {
     where: { id: "singleton" },
     update: {
       heroTitle, heroSubtitle, aboutTitle, aboutContent, visionTitle, visionContent, transparency,
+      policyContent, // <-- ADD THIS
       whyJoinUs, howWeRun, facilities, management, activities, projects
     },
     create: {
       id: "singleton",
       heroTitle, heroSubtitle, aboutTitle, aboutContent, visionTitle, visionContent, transparency,
+      policyContent, // <-- ADD THIS
       whyJoinUs, howWeRun, facilities, management, activities, projects
     }
   })

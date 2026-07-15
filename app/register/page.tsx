@@ -1,23 +1,23 @@
 import Link from "next/link"
 import RegisterForm from "./RegisterForm"
+import ThemeToggle from "@/components/ThemeToggle"
 import { Building2, ShieldCheck, Lock, Receipt, TrendingUp, FileText } from "lucide-react"
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col lg:flex-row transition-colors duration-300">
       
       {/* Left Side: Marketing & Trust Info (Fixed/Sticky on Desktop) */}
-      {/* Changed width to w-1/4 to give the form more space */}
       <div className="hidden lg:flex w-1/4 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-10 flex-col justify-between text-white relative overflow-hidden sticky top-0 h-screen">
         <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(circle_at_center,_white,_transparent_70%)]"></div>
         
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-10">
-            <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+          <Link href="/" className="flex items-center gap-3 mb-10 group cursor-pointer">
+            <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center group-hover:scale-105 transition-transform">
               <Building2 className="h-6 w-6 text-white" />
             </div>
             <span className="text-lg font-bold tracking-tight">Future Savings</span>
-          </div>
+          </Link>
           
           <h1 className="text-3xl font-extrabold leading-tight mb-4">
             Secure Your Financial Future Today.
@@ -51,7 +51,6 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* Somiti Policy Link Added Here */}
         <div className="relative z-10 space-y-2">
           <Link href="/policy" className="flex items-center gap-2 text-sm text-indigo-100 hover:text-white transition-colors group">
             <FileText className="h-4 w-4" />
@@ -65,14 +64,18 @@ export default function RegisterPage() {
       </div>
 
       {/* Right Side: Form (Scrollable) */}
-      <div className="flex-1 p-6 sm:p-10 lg:p-12 w-full">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-8 flex justify-between items-center">
+      <div className="flex-1 p-4 sm:p-8 lg:p-10 w-full bg-white dark:bg-slate-950 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto w-full">
+          {/* Header with Title, Toggle, and Back Link */}
+          <div className="mb-8 flex justify-between items-center gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">Member Application Form</h2>
-              <p className="text-slate-500 mt-1 text-sm">Please fill out all sections accurately. Your application will be reviewed by management.</p>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Member Application Form</h2>
+              <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Please fill out all sections accurately. Your application will be reviewed by management.</p>
             </div>
-            <Link href="/login" className="text-sm font-medium text-indigo-600 hover:underline hidden sm:block">Back to Login</Link>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Link href="/" className="text-sm font-medium text-indigo-600 hover:underline hidden sm:block">Back to Login</Link>
+            </div>
           </div>
           
           <RegisterForm />

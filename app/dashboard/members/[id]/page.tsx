@@ -1,3 +1,4 @@
+import StatusToggleButton from "@/components/StatusToggleButton"
 import prisma from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -79,7 +80,8 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
             </Button>
           </Link>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="rounded-xl shadow-sm hover:shadow-md transition-all bg-slate-50 dark:bg-slate-900"><Printer className="mr-2 h-4 w-4" /> Print</Button>
+            <StatusToggleButton memberId={member.id} status={member.status} />
+            <Button variant="outline" size="sm" className="rounded-xl shadow-sm hover:shadow-md transition-all bg-white/80 dark:bg-slate-900/80"><Printer className="mr-2 h-4 w-4" /> Print</Button>
             <Link href={`/dashboard/members/${member.id}/edit`}>
               <Button size="sm" className="rounded-xl shadow-md hover:shadow-lg hover:bg-indigo-500 transition-all bg-indigo-600"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Button>
             </Link>

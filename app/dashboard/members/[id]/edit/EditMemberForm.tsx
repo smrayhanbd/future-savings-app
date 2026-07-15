@@ -197,7 +197,7 @@ export default function EditMemberForm({ member }: { member: any }) {
             fd.append("idType", formData.idType); fd.append("idNumber", formData.idNumber);
             fd.append("accountName", formData.accountName); fd.append("accountNumber", formData.accountNumber);
             fd.append("bankName", formData.bankName); fd.append("branch", formData.branch);
-            fd.append("routingNumber", formData.routingNumber);
+            fd.append("memberStatus", formData.memberStatus);
             fd.append("c_village", formData.currentAddress); fd.append("c_postOffice", formData.currentPostOffice);
             fd.append("c_district", formData.currentDistrict); fd.append("c_postalCode", formData.currentPostCode);
             fd.append("p_village", formData.permanentAddress); fd.append("p_postOffice", formData.permanentPostOffice);
