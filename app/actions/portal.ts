@@ -83,3 +83,32 @@ export async function submitClosingRequest(memberId: string, formData: FormData)
   revalidatePath("/portal/settings")
   redirect("/portal/settings")
 }
+
+export async function submitProfileUpdateRequest(memberId: string, formData: FormData) {
+  const payload: any = {}
+  
+  // Compare current data with submitted data to build a payload of changes
+  const fields = ["firstName", "lastName", "phone", "email", "fatherName", "motherName", "spouseName", "occupation", "profession"]
+  
+  fields.forEach(field => {
+    const value = formData.get(field) as string
+    if (value) {
+      payload[field] = value
+    }
+  })
+
+  if (Object.keys(payload).length === 0) {
+    return { error: "No changes detected to request." }
+  }
+
+  await prisma.profileUpdateRequest.create({
+    data: {
+      memberId,
+      payload: payload,
+      status: "PENDING",
+    },
+  })
+
+  revalidatePath("/portal/profile")
+  return { success: "Profile update request submitted to admin!" }
+}

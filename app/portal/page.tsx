@@ -5,14 +5,13 @@ import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Wallet, TrendingUp, TrendingDown, AlertTriangle, Receipt } from "lucide-react"
+import { Wallet, TrendingUp, TrendingDown, AlertTriangle, Receipt, CalendarDays, MapPin } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
 
 export default async function PortalDashboardPage() {
   const session = await getServerSession(authOptions)
 
-  // Security: Ensure only members can access this page
   if (!session?.user || session.user.role !== "MEMBER") {
     redirect("/")
   }
@@ -22,14 +21,19 @@ export default async function PortalDashboardPage() {
   // Fetch Member Data & Transactions
   const member = await prisma.member.findUnique({
     where: { id: memberId },
-    include: { 
-      savings: { orderBy: { date: "desc" }, take: 5 } 
-    }
+    include: { savings: { orderBy: { date: "desc" }, take: 5 } },
   })
 
   if (!member) {
     redirect("/")
   }
+
+  // Fetch Upcoming Meetings
+  const meetings = await prisma.meeting.findMany({
+    where: { date: { gte: new Date() } },
+    orderBy: { date: "asc" },
+    take: 3,
+  })
 
   // Calculate Financials
   const totalDeposit = member.savings.filter(s => s.type !== "WITHDRAWAL").reduce((acc, s) => acc + Number(s.amount), 0)
@@ -67,14 +71,37 @@ export default async function PortalDashboardPage() {
           <Card key={index} className={`bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border ${stat.border} ${stat.bg} shadow-sm rounded-2xl overflow-hidden`}>
             <CardContent className="p-5 flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase tracking-widest font-bold text-slate-500">{stat.label}</span>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                <span className="text-[11px] uppercase tracking-widest font-bold text-slate-500 dark:text-slate-400">{stat.label}</span>
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
               </div>
               <h3 className={`text-2xl font-extrabold tracking-tight ${stat.color}`}>{stat.value}</h3>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Upcoming Meetings */}
+      {meetings.length > 0 && (
+        <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden">
+          <CardHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200/50 dark:border-slate-800/50 px-6 py-4">
+            <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-white">
+              <CalendarDays className="h-5 w-5 text-indigo-500" /> Upcoming Meetings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            {meetings.map((m) => (
+              <div key={m.id} className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950">
+                <h4 className="font-bold text-lg text-indigo-600 dark:text-indigo-400">{m.title}</h4>
+                <div className="flex flex-wrap gap-4 text-sm text-slate-600 dark:text-slate-300 mt-1">
+                  <span className="flex items-center gap-1.5"><CalendarDays className="h-4 w-4 text-slate-400" /> {new Date(m.date).toLocaleString()}</span>
+                  <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4 text-slate-400" /> {m.location}</span>
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">{m.agenda}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent Transactions Table */}
       <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden">
@@ -111,9 +138,9 @@ export default async function PortalDashboardPage() {
                     </TableCell>
                     <TableCell className="px-6 py-4 text-sm">
                       <Badge variant="outline" className={
-                        sav.type === "WITHDRAWAL" ? "bg-rose-50 text-rose-700 border-rose-200" :
-                        sav.type === "FINE" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                        "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        sav.type === "WITHDRAWAL" ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400" :
+                        sav.type === "FINE" ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400" :
+                        "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400"
                       }>
                         {sav.type.replace("_", " ")}
                       </Badge>

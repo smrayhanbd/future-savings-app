@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import ProfileEditDialog from "./ProfileEditDialog"
 import { 
   User, Phone, Mail, Home, Building, Banknote, CreditCard, 
   FileText, Users, CalendarDays, Heart, Globe, Droplet, Briefcase, 
@@ -15,14 +16,12 @@ export const dynamic = 'force-dynamic'
 export default async function PortalProfilePage() {
   const session = await getServerSession(authOptions)
 
-  // Security: Ensure only members can access this page
   if (!session?.user || session.user.role !== "MEMBER") {
     redirect("/")
   }
 
   const memberId = session.user.id
 
-  // Fetch Member Data & All Related Info
   const member = await prisma.member.findUnique({
     where: { id: memberId },
     include: {
@@ -39,11 +38,8 @@ export default async function PortalProfilePage() {
   const currentAddress = member.addresses.find((a) => a.addressType === "CURRENT")
   const permanentAddress = member.addresses.find((a) => a.addressType === "PERMANENT")
   
-  // Determine ID Type dynamically
   const idType = member.nidNumber ? "National ID" : member.passportNumber ? "Passport" : member.birthCertificateNo ? "Birth Certificate" : "ID"
   const idNumber = member.nidNumber || member.passportNumber || member.birthCertificateNo || "N/A"
-  
-  // Find the main ID document
   const idDoc = member.documents.find(d => d.documentType === idType)
 
   return (
@@ -68,9 +64,12 @@ export default async function PortalProfilePage() {
             <div>
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">{member.fullName}</h2>
               <p className="text-sm font-mono text-slate-500 dark:text-slate-400">{member.memberNo} • {member.phone}</p>
-              <Badge variant={member.status === "ACTIVE" ? "default" : "secondary"} className={`uppercase text-xs px-2.5 py-1 rounded-full mt-2 ${member.status === "ACTIVE" ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-amber-500/10 text-amber-600 border border-amber-500/20"}`}>
-                {member.status}
-              </Badge>
+              <div className="mt-2 flex items-center gap-2">
+                <Badge variant={member.status === "ACTIVE" ? "default" : "secondary"} className={`uppercase text-xs px-2.5 py-1 rounded-full ${member.status === "ACTIVE" ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-amber-500/10 text-amber-600 border border-amber-500/20"}`}>
+                  {member.status}
+                </Badge>
+                <ProfileEditDialog member={JSON.parse(JSON.stringify(member))} />
+              </div>
             </div>
           </div>
         </CardContent>

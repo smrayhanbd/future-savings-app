@@ -129,6 +129,7 @@ model Member {
   createdBy              String?
   updatedBy              String?
   requests      MemberRequest[]
+  profileRequests ProfileUpdateRequest[]
 
   @@index([memberNo])
   @@index([phone])
@@ -324,6 +325,24 @@ model MemberRequest {
   method    String?
   reason    String?
   notes     String?
+  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt DateTime @default(now())
+}
+
+model Meeting {
+  id        String   @id @default(uuid())
+  title     String
+  date      DateTime
+  location  String
+  agenda    String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model ProfileUpdateRequest {
+  id        String   @id @default(uuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  payload   Json     // Stores the requested changes as JSON
   status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
   createdAt DateTime @default(now())
 }
