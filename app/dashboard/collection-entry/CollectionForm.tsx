@@ -1,27 +1,26 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { addCollection } from "@/app/actions/finance"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { 
-  Search, User, Calendar, Landmark, Wallet, Banknote, 
+  Search, Calendar, Landmark, Wallet, Banknote, 
   Percent, Receipt, Tag, FileText, Printer, CheckCircle, 
-  TrendingUp, ListChecks, PiggyBank, AlertCircle 
+  TrendingUp, ListChecks, AlertCircle 
 } from "lucide-react"
 
-interface Member { id: string, fullName: string, memberNo: string, phone: string }
+interface Member { id: string, fullName: string, memberNo: string, phone: string, currentBalance: number }
+interface Overview { todaysCollection: number, cashBalance: number, todaysTransactions: number }
 
-export default function CollectionForm({ members }: { members: Member[] }) {
+export default function CollectionForm({ members, overview }: { members: Member[], overview: Overview }) {
   const today = new Date().toISOString().split('T')[0]
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
   // Form State
@@ -67,10 +66,8 @@ export default function CollectionForm({ members }: { members: Member[] }) {
 
   // Simulate fetching member data
   const handleSelectMember = (member: Member) => {
-    setIsLoading(true)
     setSelectedMember(member)
     setSearchQuery("")
-    setTimeout(() => setIsLoading(false), 800) // Simulate network delay for skeleton
   }
 
   // Keyboard Navigation (Enter to move to next field)
@@ -81,8 +78,8 @@ export default function CollectionForm({ members }: { members: Member[] }) {
     }
   }
 
-  const handleChange = (name: string, value: string | null | undefined) => {
-    setFormData(prev => ({ ...prev, [name]: value ?? "" }))
+  const handleChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }))
   }
 
   const handleSave = () => {
@@ -158,37 +155,24 @@ export default function CollectionForm({ members }: { members: Member[] }) {
         {/* Member Info Card */}
         {selectedMember && (
           <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl overflow-hidden">
-            {isLoading ? (
-              <div className="p-6 flex items-center gap-4">
-                <Skeleton className="h-16 w-16 rounded-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-[250px]" />
-                  <Skeleton className="h-4 w-[200px]" />
+            <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-950">
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xl shadow-sm">
+                  {selectedMember.fullName.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">{selectedMember.fullName}</h3>
+                  <p className="text-sm font-mono text-slate-500">{selectedMember.memberNo} • {selectedMember.phone}</p>
+                  <span className="mt-1 inline-block px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">ACTIVE</span>
                 </div>
               </div>
-            ) : (
-              <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xl shadow-sm">
-                    {selectedMember.fullName.charAt(0)}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">{selectedMember.fullName}</h3>
-                    <p className="text-sm font-mono text-slate-500">{selectedMember.memberNo} • {selectedMember.phone}</p>
-                  </div>
-                </div>
-                <div className="flex gap-6 text-right">
-                  <div>
-                    <p className="text-xs text-slate-400 uppercase font-bold">Current Balance</p>
-                    <p className="text-lg font-bold text-emerald-600">৳ 12,500</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400 uppercase font-bold">Outstanding Loan</p>
-                    <p className="text-lg font-bold text-rose-600">৳ 0</p>
-                  </div>
+              <div className="flex gap-8 text-right">
+                <div>
+                  <p className="text-xs text-slate-400 uppercase font-bold">Available Balance</p>
+                  <p className="text-2xl font-extrabold text-emerald-600">৳ {selectedMember.currentBalance.toLocaleString()}</p>
                 </div>
               </div>
-            )}
+            </div>
           </Card>
         )}
 
@@ -209,7 +193,7 @@ export default function CollectionForm({ members }: { members: Member[] }) {
 
             <div className="space-y-2">
               <Label>Collection Type</Label>
-              <Select value={formData.collectionType} onValueChange={(v) => handleChange("collectionType", String(v))}>
+              <Select value={formData.collectionType} onValueChange={(v) => handleChange("collectionType", v)}>
                 <SelectTrigger className="bg-white dark:bg-slate-950"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="MONTHLY">Monthly Savings</SelectItem>
@@ -335,7 +319,7 @@ export default function CollectionForm({ members }: { members: Member[] }) {
           </CardContent>
         </Card>
 
-        {/* Today's Overview */}
+        {/* Today's Overview (Real Data) */}
         <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl overflow-hidden">
            <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
             <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2"><ListChecks className="h-4 w-4 text-indigo-600" /> Today's Overview</h3>
@@ -343,31 +327,27 @@ export default function CollectionForm({ members }: { members: Member[] }) {
           <CardContent className="p-5 grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-slate-400 uppercase font-bold">Total Collection</p>
-              <p className="text-lg font-bold text-slate-900 dark:text-white">৳ 45,200</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white">৳ {overview.todaysCollection.toLocaleString()}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400 uppercase font-bold">Transactions</p>
-              <p className="text-lg font-bold text-slate-900 dark:text-white">12</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white">{overview.todaysTransactions}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400 uppercase font-bold">Cash Balance</p>
-              <p className="text-lg font-bold text-emerald-600">৳ 30,200</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-400 uppercase font-bold">Pending</p>
-              <p className="text-lg font-bold text-amber-600">3</p>
+              <p className="text-lg font-bold text-emerald-600">৳ {overview.cashBalance.toLocaleString()}</p>
             </div>
           </CardContent>
         </Card>
 
         {/* Action Buttons */}
         <div className="space-y-3">
-          <Button onClick={handleSave} className="w-full h-12 text-base bg-emerald-600 hover:bg-emerald-700 shadow-md">
+          <Button onClick={handleSave} className="w-full h-12 text-base bg-emerald-600 hover:bg-emerald-700 shadow-md" disabled={!selectedMember || totals.netReceived <= 0}>
             <CheckCircle className="mr-2 h-5 w-5" /> Save Collection
           </Button>
           <div className="grid grid-cols-2 gap-3">
             <Button variant="outline" className="h-11 shadow-sm"><Printer className="mr-2 h-4 w-4" /> Save & Print</Button>
-            <Button variant="outline" className="h-11 shadow-sm" onClick={() => setSelectedMember(null)}>Clear</Button>
+            <Button variant="outline" className="h-11 shadow-sm" onClick={() => { setSelectedMember(null); setFormData({ ...formData, depositAmount: "", principalAmount: "", interestAmount: "", fineAmount: "", otherCharges: "", discount: "" }) }}>Clear</Button>
           </div>
         </div>
       </div>

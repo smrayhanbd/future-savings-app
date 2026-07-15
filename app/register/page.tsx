@@ -8,7 +8,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col lg:flex-row transition-colors duration-300">
       
       {/* Left Side: Marketing & Trust Info (Fixed/Sticky on Desktop) */}
-      <div className="hidden lg:flex w-1/4 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-10 flex-col justify-between text-white relative overflow-hidden sticky top-0 h-screen">
+      <div className="hidden lg:flex w-1/4 bg-gradient-to-br from-emerald-800 via-teal-800 to-slate-900 p-10 flex-col justify-between text-white relative overflow-hidden sticky top-0 h-screen">
         <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(circle_at_center,_white,_transparent_70%)]"></div>
         
         <div className="relative z-10">
@@ -74,7 +74,7 @@ export default function RegisterPage() {
             </div>
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              <Link href="/" className="text-sm font-medium text-indigo-600 hover:underline hidden sm:block">Back to Login</Link>
+              <Link href="/login" className="text-sm font-medium text-indigo-600 hover:underline hidden sm:block">Back to Login</Link>
             </div>
           </div>
           

@@ -5,11 +5,47 @@ import CollectionForm from "./CollectionForm"
 export const dynamic = 'force-dynamic'
 
 export default async function CollectionEntryPage() {
-  const members = await prisma.member.findMany({
+  // 1. Fetch Active Members with their savings to calculate real balances
+  const dbMembers = await prisma.member.findMany({
     where: { status: "ACTIVE" },
-    orderBy: { firstName: "asc" },
-    select: { id: true, fullName: true, memberNo: true, phone: true }
+    include: { savings: true },
   })
+
+  const members = dbMembers.map(m => {
+    const totalDeposit = m.savings.filter(s => s.type !== "WITHDRAWAL").reduce((acc, s) => acc + Number(s.amount), 0)
+    const totalWithdrawal = m.savings.filter(s => s.type === "WITHDRAWAL").reduce((acc, s) => acc + Number(s.amount), 0)
+    return {
+      id: m.id,
+      fullName: m.fullName,
+      memberNo: m.memberNo,
+      phone: m.phone,
+      currentBalance: totalDeposit - totalWithdrawal,
+    }
+  })
+
+  // 2. Fetch Today's Overview Stats
+  const startOfDay = new Date()
+  startOfDay.setHours(0, 0, 0, 0)
+  const endOfDay = new Date()
+  endOfDay.setHours(23, 59, 59, 999)
+
+  const todaysSavings = await prisma.savings.findMany({
+    where: { 
+      date: { gte: startOfDay, lte: endOfDay },
+      type: { not: "WITHDRAWAL" } 
+    },
+  })
+
+  const todaysCollection = todaysSavings.reduce((acc, s) => acc + Number(s.amount), 0)
+  const cashBalance = todaysSavings.filter(s => s.method === "CASH").reduce((acc, s) => acc + Number(s.amount), 0)
+  const todaysTransactions = todaysSavings.length
+
+  // 3. Define the overview object
+  const overview = {
+    todaysCollection,
+    cashBalance,
+    todaysTransactions,
+  }
 
   return (
     <div className="space-y-6">
@@ -27,7 +63,7 @@ export default async function CollectionEntryPage() {
         </div>
       </div>
 
-      <CollectionForm members={members} />
+      <CollectionForm members={members} overview={overview} />
     </div>
   )
 }

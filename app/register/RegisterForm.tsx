@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import React, { useState, useMemo } from "react"
 import { registerMember } from "@/app/actions/member"
 import Link from "next/link"
@@ -84,6 +85,7 @@ export default function RegisterForm() {
     const [showNomineeModal, setShowNomineeModal] = useState(false)
     const [nomineeForm, setNomineeForm] = useState<Omit<Nominee, "id">>({ name: "", relation: "", share: "", phone: "", idType: "nid", idNumber: "", idDocumentFile: null, photo: null })
     const [loading, setLoading] = useState(false)
+    const router = useRouter()
 
     const steps = useMemo(() => [
         { name: "Personal Information", complete: !!(formData.firstName && formData.lastName && formData.dateOfBirth && formData.gender) },
@@ -174,20 +176,18 @@ export default function RegisterForm() {
                 toast.error("Registration Failed", {
                     description: result.error
                 })
-                // Fallback alert just in case Toaster isn't rendering
-                alert("Registration Failed: " + result.error)
                 setLoading(false)
+            } else if (result && result.success) {
+                // If successful, redirect to the success page
+                router.push("/register/success")
             }
-            // If no error, the server action will handle the redirect automatically
         } catch (err: any) {
             // Catch any unexpected network errors
             toast.error("Registration Failed", {
                 description: "An unexpected error occurred. Please try again."
             })
-            alert("Registration Failed: An unexpected error occurred.")
             setLoading(false)
-        }
-    }
+        }    }
 
     const renderFileUpload = (file: File | null, onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void, onRemove: () => void, label: string) => {
         return (
@@ -381,8 +381,8 @@ export default function RegisterForm() {
                     </SectionCard>
                 </div>
 
-                <div className="mt-8 flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
-                    <Link href="/"><button type="button" className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium">Cancel</button></Link>
+                                <div className="mt-8 flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
+                    <Link href="/login"><button type="button" className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium">Cancel</button></Link>
                     <button type="submit" disabled={loading} className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium shadow-md disabled:opacity-50">
                         {loading ? "Submitting..." : <><CheckCircle className="w-4 h-4" /> Submit Application</>}
                     </button>

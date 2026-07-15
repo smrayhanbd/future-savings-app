@@ -8,12 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
-import { Building2, ArrowLeft } from "lucide-react"
+import { Building2, ArrowLeft, Eye, EyeOff } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -87,7 +88,7 @@ export default function LoginPage() {
       <div className="flex items-center justify-center p-6 lg:p-12 bg-slate-50 dark:bg-slate-950">
         <div className="w-full max-w-sm">
           <div className="mb-6 lg:hidden">
-            <Link href="/" className="flex items-center gap-2 text-slate-600 hover:text-slate-900">
+            <Link href="/" className="flex items-center gap-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
               <ArrowLeft className="h-4 w-4" /> Back to Home
             </Link>
           </div>
@@ -106,7 +107,6 @@ export default function LoginPage() {
                 )}
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-slate-700 dark:text-slate-300">Email or Member ID</Label>
-                  {/* Changed to type="text" so Members can type "M0001" without browser stopping them */}
                   <Input 
                     id="email" 
                     name="email" 
@@ -117,19 +117,30 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-slate-700 dark:text-slate-300">Password</Label>
-                  <Link href="/forgot-password" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-                    Forgot password?
-                  </Link>
-                </div>
-                <Input 
-                  id="password" 
-                  name="password" 
-                  type="password" 
-                  required 
-                  className="bg-white dark:bg-slate-900" 
-                />
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-slate-700 dark:text-slate-300">Password</Label>
+                    <Link href="/forgot-password" className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
+                      Forgot password?
+                    </Link>
+                  </div>
+                  {/* Password Input with Eye Icon */}
+                  <div className="relative">
+                    <Input 
+                      id="password" 
+                      name="password" 
+                      type={showPassword ? "text" : "password"} 
+                      required 
+                      className="bg-white dark:bg-slate-900 pr-10" 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
                 <Button 
                   type="submit" 
@@ -142,7 +153,7 @@ export default function LoginPage() {
               
               <div className="mt-6 text-center text-sm">
                 <p className="text-slate-500 dark:text-slate-400">Are you a new member?</p>
-                <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500 mt-1 inline-block">
+                <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 mt-1 inline-block">
                   Register for an account
                 </Link>
               </div>
@@ -150,7 +161,7 @@ export default function LoginPage() {
           </Card>
           
           <div className="mt-6 text-center hidden lg:block">
-            <Link href="/" className="text-xs text-slate-400 hover:text-slate-600">
+            <Link href="/" className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
               ← Back to Home
             </Link>
           </div>

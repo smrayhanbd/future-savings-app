@@ -7,10 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, Trash2, Save, ChevronDown, GripVertical } from "lucide-react"
+import { Plus, Trash2, Save, ChevronDown } from "lucide-react"
 import RichTextEditor from "@/components/RichTextEditor"
 
-interface ArrayItem { [key: string]: string }
+interface ArrayItem { [key: string]: any }
 
 export default function SiteContentForm({ content }: { content: any }) {
   const [data, setData] = useState(content)
@@ -19,20 +19,16 @@ export default function SiteContentForm({ content }: { content: any }) {
     setData((prev: any) => ({ ...prev, [name]: value }))
   }
 
-  const handleArrayChange = (arrayName: string, index: number, field: string, value: string) => {
+  const handleArrayChange = (arrayName: string, index: number, field: string, value: any) => {
     const newArray = [...data[arrayName]]
     newArray[index] = { ...newArray[index], [field]: value }
     setData((prev: any) => ({ ...prev, [arrayName]: newArray }))
   }
 
-  const addArrayItem = (arrayName: string, fields: string[], index?: number) => {
+  const addArrayItem = (arrayName: string, fields: string[]) => {
     const newItem = fields.reduce((acc, f) => { acc[f] = ""; return acc }, {} as ArrayItem)
     const newArray = [...data[arrayName], newItem]
     setData((prev: any) => ({ ...prev, [arrayName]: newArray }))
-    // Expand the newly added item
-    setTimeout(() => {
-      document.getElementById(`${arrayName}-header-${newArray.length - 1}`)?.scrollIntoView({ behavior: "smooth", block: "center" })
-    }, 100)
   }
 
   const removeArrayItem = (arrayName: string, index: number) => {
@@ -40,8 +36,12 @@ export default function SiteContentForm({ content }: { content: any }) {
     setData((prev: any) => ({ ...prev, [arrayName]: newArray }))
   }
 
+  // Helper to remove the temporary _file object before saving JSON
+  const cleanArray = (arr: any[]) => arr.map(({ _file, ...rest }) => rest)
+
   return (
     <form action={(formData) => {
+      // Append text fields
       formData.append("heroTitle", data.heroTitle || "")
       formData.append("heroSubtitle", data.heroSubtitle || "")
       formData.append("aboutTitle", data.aboutTitle || "")
@@ -51,12 +51,25 @@ export default function SiteContentForm({ content }: { content: any }) {
       formData.append("transparency", data.transparency || "")
       formData.append("policyContent", data.policyContent || "")
 
-      formData.append("whyJoinUs", JSON.stringify(data.whyJoinUs))
-      formData.append("howWeRun", JSON.stringify(data.howWeRun))
-      formData.append("facilities", JSON.stringify(data.facilities))
-      formData.append("management", JSON.stringify(data.management))
-      formData.append("activities", JSON.stringify(data.activities))
-      formData.append("projects", JSON.stringify(data.projects))
+      // Append clean JSON arrays (without the File objects)
+      formData.append("whyJoinUs", JSON.stringify(cleanArray(data.whyJoinUs)))
+      formData.append("howWeRun", JSON.stringify(cleanArray(data.howWeRun)))
+      formData.append("facilities", JSON.stringify(cleanArray(data.facilities)))
+      formData.append("management", JSON.stringify(cleanArray(data.management)))
+      formData.append("activities", JSON.stringify(cleanArray(data.activities)))
+      formData.append("projects", JSON.stringify(cleanArray(data.projects)))
+
+      // Manually append File objects from state
+      const appendFiles = (arrayName: string, arr: any[]) => {
+        arr.forEach((item, i) => {
+          if (item._file) {
+            formData.append(`${arrayName}_${i}_photoUrl`, item._file)
+          }
+        })
+      }
+      appendFiles("management", data.management)
+      appendFiles("projects", data.projects)
+      appendFiles("activities", data.activities)
       
       updateSiteContent(formData)
     }} className="space-y-8 pb-20">
@@ -126,7 +139,7 @@ export default function SiteContentForm({ content }: { content: any }) {
   )
 }
 
-// Reusable List Editor Component with Accordion
+// Reusable List Editor Component with Accordion and State-Managed Files
 function DynamicListEditor({ title, arrayName, items, fields, labels, onAdd, onRemove, onChange }: any) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(0)
 
@@ -151,7 +164,6 @@ function DynamicListEditor({ title, arrayName, items, fields, labels, onAdd, onR
             <div key={index} className="border border-slate-200 rounded-lg overflow-hidden bg-slate-50/50 dark:bg-slate-900/50">
               {/* Accordion Header */}
               <div 
-                id={`${arrayName}-header-${index}`}
                 className="flex items-center justify-between p-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 onClick={() => setExpandedIndex(isExpanded ? null : index)}
               >
@@ -180,7 +192,22 @@ function DynamicListEditor({ title, arrayName, items, fields, labels, onAdd, onR
                       {field === "photoUrl" ? (
                         <div className="flex items-center gap-4 mt-1">
                           {item.photoUrl && <img src={item.photoUrl} alt="Preview" className="w-16 h-16 object-cover rounded-md border border-slate-200" />}
-                          <Input type="file" name={`${arrayName}_${index}_photoUrl`} accept="image/*" className="max-w-xs" />
+                          <Input 
+                            type="file" 
+                            accept="image/*" 
+                            className="max-w-xs"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] || null
+                              if (file) {
+                                // Store file object in state and create a preview URL
+                                onChange(index, "photoUrl", URL.createObjectURL(file))
+                                onChange(index, "_file", file)
+                              } else {
+                                onChange(index, "photoUrl", "")
+                                onChange(index, "_file", null)
+                              }
+                            }}
+                          />
                         </div>
                       ) : field === "description" || field === "bio" ? (
                         <RichTextEditor value={item[field] || ""} onChange={(val) => onChange(index, field, val)} />

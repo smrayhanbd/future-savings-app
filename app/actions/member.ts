@@ -234,8 +234,8 @@ export async function registerMember(formData: FormData) {
     return { error: "Could not submit application. Please try again." }
   }
   
-  // If successful, redirect
-  redirect("/register/success")
+  // If successful, return success object instead of redirecting
+  return { success: true }
 }
 
 // --- Update Member Action ---

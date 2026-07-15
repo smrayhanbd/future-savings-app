@@ -4,12 +4,14 @@ import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Building2, LayoutDashboard, Wallet, User, LogOut } from "lucide-react"
+import ThemeToggle from "@/components/ThemeToggle"
+import { Building2, LayoutDashboard, Wallet, User, LogOut, Settings } from "lucide-react"
 
 const navItems = [
   { name: "Dashboard", href: "/portal", icon: LayoutDashboard },
   { name: "My Savings", href: "/portal/savings", icon: Wallet },
   { name: "My Profile", href: "/portal/profile", icon: User },
+  { name: "Settings", href: "/portal/settings", icon: Settings }, // <-- ADD THIS
 ]
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -17,9 +19,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname()
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col transition-colors duration-300">
       {/* Portal Top Navbar */}
-      <header className="sticky top-0 z-40 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+      <header className="sticky top-0 z-40 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-300">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
@@ -40,14 +42,15 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 </Link>
               )
             })}
+            <ThemeToggle />
           </nav>
 
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-slate-900 dark:text-white">{session?.user?.name}</p>
-              <p className="text-xs text-slate-500">{session?.user?.email}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{session?.user?.email}</p>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => signOut({ callbackUrl: "/" })} className="text-red-600 hover:bg-red-50">
+            <Button variant="ghost" size="icon" onClick={() => signOut({ callbackUrl: "/" })} className="text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50">
               <LogOut className="h-5 w-5" />
             </Button>
           </div>

@@ -23,7 +23,7 @@ export default function Topbar({ onMenuClick, notifications = [] }: { onMenuClic
   useEffect(() => setMounted(true), [])
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 dark:border-slate-800 dark:bg-slate-950">
+        <header className="z-40 relative flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 dark:border-slate-800 dark:bg-slate-950">
       <div className="flex items-center gap-4 flex-1">
         <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick}>
           <Menu className="h-6 w-6" />
