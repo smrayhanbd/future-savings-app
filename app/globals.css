@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 /* Add the Typography plugin for the Rich Text Editor (Word paste formatting) */
-@plugin "@tailwindcss/typography";
 
 /* Enable class-based dark mode (if not already configured) */
 @custom-variant dark (&:is(.dark *));
 
 /* If you have existing CSS variables below this, leave them as they are */
 
-
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
