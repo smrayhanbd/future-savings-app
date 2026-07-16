@@ -381,9 +381,11 @@ export default function RegisterForm() {
                     </SectionCard>
                 </div>
 
-                                <div className="mt-8 flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
-                    <Link href="/login"><button type="button" className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium">Cancel</button></Link>
-                    <button type="submit" disabled={loading} className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium shadow-md disabled:opacity-50">
+                <div className="mt-8 flex flex-col sm:flex-row sm:justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
+                    <Link href="/login" className="w-full sm:w-auto">
+                        <button type="button" className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium">Cancel</button>
+                    </Link>
+                    <button type="submit" disabled={loading} className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium shadow-md disabled:opacity-50">
                         {loading ? "Submitting..." : <><CheckCircle className="w-4 h-4" /> Submit Application</>}
                     </button>
                 </div>

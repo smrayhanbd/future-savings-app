@@ -1,6 +1,7 @@
 import Link from "next/link"
 import RegisterForm from "./RegisterForm"
 import ThemeToggle from "@/components/ThemeToggle"
+import { Button } from "@/components/ui/button"
 import { Building2, ShieldCheck, Lock, Receipt, TrendingUp, FileText } from "lucide-react"
 
 export default function RegisterPage() {
@@ -72,10 +73,15 @@ export default function RegisterPage() {
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Member Application Form</h2>
               <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Please fill out all sections accurately. Your application will be reviewed by management.</p>
             </div>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <Link href="/login" className="text-sm font-medium text-indigo-600 hover:underline hidden sm:block">Back to Login</Link>
-            </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            {/* Desktop View (Text Link) */}
+            <Link href="/login" className="text-sm font-medium text-indigo-600 hover:underline hidden sm:block">Back to Login</Link>
+            {/* Mobile View (Button) */}
+            <Link href="/login" className="sm:hidden">
+              <Button variant="outline" size="sm">Login</Button>
+            </Link>
+          </div>
           </div>
           
           <RegisterForm />
