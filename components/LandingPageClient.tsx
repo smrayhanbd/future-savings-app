@@ -6,9 +6,10 @@ import { useTheme } from "next-themes"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { 
   Building2, ShieldCheck, TrendingUp, Wallet, Users, Receipt, 
-  ArrowRight, CheckCircle2, Lock, Sun, Moon, Sparkles
+  ArrowRight, CheckCircle2, Lock, Sun, Moon, Sparkles, ChevronDown 
 } from "lucide-react"
 
 // Premium Animation Variants
@@ -62,8 +63,29 @@ export default function LandingPageClient({ content }: { content: any }) {
           </nav>
           <div className="flex items-center gap-2 sm:gap-4">
             <ThemeToggle />
-            <Link href="/login"><Button variant="ghost" className="text-sm font-medium hidden sm:block">Login</Button></Link>
-            <Link href="/register"><Button className="bg-indigo-600 hover:bg-indigo-700 text-sm font-medium shadow-md">Register <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+            
+            {/* Desktop View (Separate Buttons) */}
+            <div className="hidden sm:flex items-center gap-2">
+              <Link href="/login"><Button variant="ghost" className="text-sm font-medium">Login</Button></Link>
+              <Link href="/register"><Button className="bg-indigo-600 hover:bg-indigo-700 text-sm font-medium shadow-md">Register <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+            </div>
+
+            {/* Mobile View (Dropdown Menu) */}
+            <div className="sm:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 bg-indigo-600 text-white shadow hover:bg-indigo-700 h-9 px-3 cursor-pointer outline-none">
+                  Get Started <ChevronDown className="ml-1 h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem className="p-0">
+                    <Link href="/login" className="flex items-center w-full cursor-pointer p-2">Login</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="p-0">
+                    <Link href="/register" className="flex items-center w-full cursor-pointer p-2">Register</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </header>
