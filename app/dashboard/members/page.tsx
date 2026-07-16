@@ -1,3 +1,4 @@
+import { calculateDues } from "@/lib/dueCalculator"
 import prisma from "@/lib/prisma"
 import MemberListClient from "./MemberListClient"
 
@@ -11,15 +12,14 @@ export default async function MembersPage() {
   })
 
   // Format the data so the Client Component can read it perfectly
-  const members = dbMembers.map((m) => {
-    const totalSavings = m.savings.reduce((acc, s) => acc + Number(s.amount), 0)
+  const feeSetups = await prisma.feeSetup.findMany()
+
+  const members = dbMembers.map(m => {
+    const totalDeposit = m.savings.filter(s => s.type !== "WITHDRAWAL").reduce((acc, s) => acc + Number(s.amount), 0)
+    const totalWithdrawal = m.savings.filter(s => s.type === "WITHDRAWAL").reduce((acc, s) => acc + Number(s.amount), 0)
     
-    // Calculate Due Balance (Assuming 500 BDT expected per month)
-    const joinDate = new Date(m.createdAt)
-    const now = new Date()
-    const monthsJoined = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth())
-    const expectedAmount = monthsJoined * 500 // You can change 500 to your standard monthly amount
-    const dueBalance = Math.max(0, expectedAmount - totalSavings)
+    // Calculate real dues using the engine
+    const dues = calculateDues(m.membershipDate || m.createdAt, feeSetups, m.savings)
 
     return {
       id: m.id,
@@ -33,7 +33,8 @@ export default async function MembersPage() {
       photoUrl: m.photoUrl,
       savings: m.savings.map((s) => ({ amount: Number(s.amount) })),
       createdAt: m.createdAt.toISOString(),
-      dueBalance: dueBalance, // The calculated due amount
+      dueBalance: dues.totalDue,
+      lateFines: dues.totalFines // Pass the late fines to the table
     }
   })
 

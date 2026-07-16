@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { calculateDues } from "@/lib/dueCalculator"
 import { Wallet, TrendingUp, TrendingDown, AlertTriangle, Receipt, CalendarDays, MapPin } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
@@ -35,23 +36,21 @@ export default async function PortalDashboardPage() {
     take: 3,
   })
 
+  // Fetch Fee Setups and Calculate Dynamic Dues
+  const feeSetups = await prisma.feeSetup.findMany()
+  const joinDate = member.membershipDate || member.createdAt
+  const dues = calculateDues(joinDate, feeSetups, member.savings)
+
   // Calculate Financials
   const totalDeposit = member.savings.filter(s => s.type !== "WITHDRAWAL").reduce((acc, s) => acc + Number(s.amount), 0)
   const totalWithdrawal = member.savings.filter(s => s.type === "WITHDRAWAL").reduce((acc, s) => acc + Number(s.amount), 0)
   const currentBalance = totalDeposit - totalWithdrawal
 
-  // Calculate Due Balance (Assuming 500 BDT expected per month)
-  const joinDate = new Date(member.membershipDate)
-  const now = new Date()
-  const monthsJoined = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth())
-  const expectedAmount = monthsJoined * 500
-  const dueBalance = Math.max(0, expectedAmount - totalDeposit)
-
   const stats = [
     { label: "Current Balance", value: `৳ ${currentBalance.toLocaleString()}`, icon: Wallet, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/50", border: "border-emerald-200/50 dark:border-emerald-900/50" },
-    { label: "Total Deposited", value: `৳ ${totalDeposit.toLocaleString()}`, icon: TrendingUp, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/50", border: "border-blue-200/50 dark:border-blue-900/50" },
-    { label: "Total Withdrawn", value: `৳ ${totalWithdrawal.toLocaleString()}`, icon: TrendingDown, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-950/50", border: "border-rose-200/50 dark:border-rose-900/50" },
-    { label: "Due Balance", value: `৳ ${dueBalance.toLocaleString()}`, icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/50", border: "border-amber-200/50 dark:border-amber-900/50" },
+    { label: "Total Deposited", value: `৳ ${dues.totalPaid.toLocaleString()}`, icon: TrendingUp, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/50", border: "border-blue-200/50 dark:border-blue-900/50" },
+    { label: "Late Fines", value: `৳ ${dues.totalFines.toLocaleString()}`, icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/50", border: "border-red-200/50 dark:border-red-900/50" },
+    { label: "Net Due Balance", value: `৳ ${dues.totalDue.toLocaleString()}`, icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/50", border: "border-amber-200/50 dark:border-amber-900/50" },
   ]
 
   return (

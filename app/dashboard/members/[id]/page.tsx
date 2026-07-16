@@ -1,10 +1,11 @@
-import StatusToggleButton from "@/components/StatusToggleButton"
 import prisma from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import StatusToggleButton from "@/components/StatusToggleButton"
+import { calculateDues } from "@/lib/dueCalculator"
 import { 
   ArrowLeft, Edit, Printer, User, Phone, Mail, Home, Building, 
   Banknote, CreditCard, FileText, Users, Wallet, CalendarDays, 
@@ -39,21 +40,14 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
   }
 
   // 1. Calculate Financial Stats
-  const totalDeposit = member.savings
-    .filter(s => !["WITHDRAWAL", "FINE", "PENALTY", "LOAN_PAYMENT"].includes(s.type))
-    .reduce((acc, s) => acc + Number(s.amount), 0);
-    
-  const totalWithdrawal = member.savings
-    .filter(s => s.type === "WITHDRAWAL")
-    .reduce((acc, s) => acc + Number(s.amount), 0);
-    
+  const totalDeposit = member.savings.filter(s => !["WITHDRAWAL", "FINE", "PENALTY", "LOAN_PAYMENT"].includes(s.type)).reduce((acc, s) => acc + Number(s.amount), 0);
+  const totalWithdrawal = member.savings.filter(s => s.type === "WITHDRAWAL").reduce((acc, s) => acc + Number(s.amount), 0);
   const loanAmount = 0; 
   
-  const joinDate = new Date(member.membershipDate);
-  const now = new Date();
-  const monthsJoined = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
-  const expectedAmount = monthsJoined * 500;
-  const dueBalance = Math.max(0, expectedAmount - totalDeposit);
+  // 2. Fetch Fee Setups and Calculate Dynamic Dues
+  const feeSetups = await prisma.feeSetup.findMany()
+  const joinDate = member.membershipDate || member.createdAt
+  const dues = calculateDues(joinDate, feeSetups, member.savings)
 
   const currentAddress = member.addresses.find((a) => a.addressType === "CURRENT")
   const permanentAddress = member.addresses.find((a) => a.addressType === "PERMANENT")
@@ -66,11 +60,11 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
     { label: "Total Deposit", value: `৳ ${totalDeposit.toLocaleString()}`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/50", border: "border-emerald-200/50 dark:border-emerald-900/50" },
     { label: "Withdrawal", value: `৳ ${totalWithdrawal.toLocaleString()}`, icon: TrendingDown, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-950/50", border: "border-rose-200/50 dark:border-rose-900/50" },
     { label: "Loan Amount", value: `৳ ${loanAmount.toLocaleString()}`, icon: Landmark, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/50", border: "border-blue-200/50 dark:border-blue-900/50" },
-    { label: "Due Balance", value: `৳ ${dueBalance.toLocaleString()}`, icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/50", border: "border-amber-200/50 dark:border-amber-900/50" },
+    { label: "Due Balance", value: `৳ ${dues.totalDue.toLocaleString()}`, icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/50", border: "border-amber-200/50 dark:border-amber-900/50" },
   ]
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Solid Sticky Action Bar */}
       <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-white dark:bg-slate-950 border-b border-slate-200/60 dark:border-slate-800/60">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
@@ -81,7 +75,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
           </Link>
           <div className="flex gap-2">
             <StatusToggleButton memberId={member.id} status={member.status} />
-            <Button variant="outline" size="sm" className="rounded-xl shadow-sm hover:shadow-md transition-all bg-white/80 dark:bg-slate-900/80"><Printer className="mr-2 h-4 w-4" /> Print</Button>
+            <Button variant="outline" size="sm" className="rounded-xl shadow-sm hover:shadow-md transition-all bg-slate-50 dark:bg-slate-900"><Printer className="mr-2 h-4 w-4" /> Print</Button>
             <Link href={`/dashboard/members/${member.id}/edit`}>
               <Button size="sm" className="rounded-xl shadow-md hover:shadow-lg hover:bg-indigo-500 transition-all bg-indigo-600"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Button>
             </Link>
@@ -110,15 +104,39 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
         ))}
       </div>
 
+      {/* Due Breakdown Card */}
+      <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-amber-200/50 dark:border-amber-900/50 shadow-sm rounded-2xl overflow-hidden">
+        <div className="p-5 border-b border-amber-100 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20">
+          <h3 className="font-bold text-amber-800 dark:text-amber-400 flex items-center gap-2"><AlertTriangle className="h-5 w-5" /> Automated Due Calculation</h3>
+        </div>
+        <CardContent className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div>
+            <p className="text-xs uppercase font-bold text-slate-400">Total Expected</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white">৳ {dues.totalExpected.toLocaleString()}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase font-bold text-slate-400">Late Fines</p>
+            <p className="text-xl font-bold text-red-600">৳ {dues.totalFines.toLocaleString()}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase font-bold text-slate-400">Total Paid</p>
+            <p className="text-xl font-bold text-emerald-600">৳ {dues.totalPaid.toLocaleString()}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase font-bold text-slate-400">Net Due Balance</p>
+            <p className="text-2xl font-extrabold text-amber-600">৳ {dues.totalDue.toLocaleString()}</p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Main Layout Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         
         {/* LEFT COLUMN: Profile & Nominees */}
         <div className="lg:col-span-1 space-y-4">
-          {/* Profile Card with Color Banner */}
+          {/* Profile Card */}
           <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden">
-            <div className="h-24 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500"></div>
-            <CardContent className="flex flex-col items-center text-center -mt-12 pb-4 px-4">
+            <CardContent className="flex flex-col items-center text-center pt-6 pb-4 px-4">
               {member.photoUrl ? (
                 <img src={member.photoUrl} alt="Member" className="w-24 h-24 rounded-full object-cover ring-4 ring-white dark:ring-slate-900 shadow-xl" />
               ) : (
@@ -158,7 +176,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
 
           {/* Nominees Section */}
           <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden flex flex-col">
-            <CardHeader className="bg-green-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 px-5 py-2.5">
+            <CardHeader className="bg-purple-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 px-5 py-2.5">
               <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
                 <Users className="h-4 w-4" /> Nominees
               </CardTitle>
@@ -194,10 +212,10 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
         </div>
 
         {/* RIGHT SIDE: Middle & Right Columns (3/4 width) */}
-        <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
           
           {/* MIDDLE COLUMN: Personal & Residence (Wider - 7/12) */}
-          <div className="lg:col-span-7 flex flex-col gap-4">
+          <div className="md:col-span-7 flex flex-col gap-4">
             
             {/* Personal Information */}
             <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden flex-grow flex flex-col">
@@ -206,11 +224,9 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                   <User className="h-4 w-4" /> Personal Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-x-5 gap-y-3.5 pt-3.5 px-5 flex-grow">
+              <CardContent className="grid gap-4 sm:grid-cols-3 pt-3.5 px-5 flex-grow">
                 <InfoItem icon={User} label="First Name" value={member.firstName} />
                 <InfoItem icon={User} label="Last Name" value={member.lastName} />
-                <InfoItem icon={User} label="Father's Name" value={member.fatherName} />
-                <InfoItem icon={User} label="Mother's Name" value={member.motherName} />
                 <InfoItem icon={Heart} label="Spouse Name" value={member.spouseName} />
                 <InfoItem icon={CalendarDays} label="Date of Birth" value={member.dateOfBirth ? new Date(member.dateOfBirth).toLocaleDateString() : null} />
                 <InfoItem icon={User} label="Gender" value={formatEnum(member.gender)} />
@@ -230,7 +246,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                   <Home className="h-4 w-4" /> Residence Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3.5 px-5 flex-grow">
+              <CardContent className="grid gap-4 md:grid-cols-2 pt-3.5 px-5 flex-grow">
                 <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/50">
                   <h4 className="text-[11px] font-bold uppercase text-slate-500 flex items-center gap-1.5 tracking-wider"><MapPin className="h-3 w-3" /> Current Address</h4>
                   <AddressDisplay address={currentAddress} />
@@ -244,7 +260,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
           </div>
 
           {/* RIGHT COLUMN: Contact, Documents, Bank (Smaller - 5/12) */}
-          <div className="lg:col-span-5 flex flex-col gap-4">
+          <div className="md:col-span-5 flex flex-col gap-4">
             
             {/* Group: Contact + Documents (to match Personal Info height) */}
             <div className="flex flex-col gap-4 flex-grow">
@@ -255,7 +271,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                     <Phone className="h-4 w-4" /> Contact Information
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-x-5 gap-y-3.5 pt-3.5 px-5 flex-grow">
+                <CardContent className="grid gap-4 sm:grid-cols-2 pt-3.5 px-5 flex-grow">
                   <InfoItem icon={Phone} label="Phone Number" value={member.phone} />
                   <InfoItem icon={Mail} label="Email Address" value={member.email} />
                   <InfoItem icon={Phone} label="Emergency Contact" value={member.emergencyPhone} />
@@ -362,27 +378,29 @@ function InfoItem({ icon: Icon, label, value, vertical }: { icon: any, label: st
   )
 }
 
-// Premium Reusable Address Display Component
+// Premium Reusable Address Display Component (Updated Layout)
 function AddressDisplay({ address }: { address: any }) {
   if (!address) return <p className="text-xs text-slate-500 italic">Not provided</p>;
   return (
     <div className="space-y-2 text-xs">
+      {/* Address field full width */}
       <div>
-        <p className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Address</p>
-        <p className="text-slate-700 dark:text-slate-200 mt-0.5 font-bold">{address.village || "N/A"}</p>
+        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Address</p>
+        <p className="text-slate-700 dark:text-slate-200 mt-0.5">{address.village || "N/A"}</p>
       </div>
+      {/* Post Office, District, Post Code side-by-side */}
       <div className="grid grid-cols-3 gap-2">
         <div>
-          <p className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Post Office</p>
-          <p className="text-slate-700 dark:text-slate-200 mt-0.5 font-bold">{address.postOffice || "N/A"}</p>
+          <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Post Office</p>
+          <p className="text-slate-700 dark:text-slate-200 mt-0.5">{address.postOffice || "N/A"}</p>
         </div>
         <div>
-          <p className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">District</p>
-          <p className="text-slate-700 dark:text-slate-200 mt-0.5 font-bold">{address.district || "N/A"}</p>
+          <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">District</p>
+          <p className="text-slate-700 dark:text-slate-200 mt-0.5">{address.district || "N/A"}</p>
         </div>
         <div>
-          <p className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Post Code</p>
-          <p className="text-slate-700 dark:text-slate-200 mt-0.5 font-bold">{address.postalCode || "N/A"}</p>
+          <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Post Code</p>
+          <p className="text-slate-700 dark:text-slate-200 mt-0.5">{address.postalCode || "N/A"}</p>
         </div>
       </div>
     </div>

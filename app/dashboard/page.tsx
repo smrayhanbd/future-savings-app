@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
+import { calculateDues } from "@/lib/dueCalculator"
 import { Users, Wallet, AlertTriangle, Clock, FolderKanban, TrendingUp, TrendingDown, Landmark, Banknote, HandCoins, Scale, ArrowRight, Gem, Cake, MoreHorizontal, Eye, MessageSquare, Mail, BookOpen, PauseCircle, CheckCircle } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
@@ -22,23 +23,18 @@ export default async function DashboardPage() {
   const fineAgg = await prisma.savings.aggregate({ _sum: { amount: true }, where: { type: "FINE" } })
   const fineAmount = Number(fineAgg._sum.amount || 0)
 
-  const monthlyExpected = activeMembers * 500
-  const monthlyDue = Math.max(0, monthlyExpected - membersTotalDeposit)
-
   // Fetch Active Members with their Savings
   const dbMembers = await prisma.member.findMany({
     where: { status: "ACTIVE" },
     include: { savings: true },
   })
 
-  // Calculate Due Balance for each member and filter out those who are fully paid
-  const now = new Date()
+  // Fetch all fee setups to calculate dues dynamically
+  const feeSetups = await prisma.feeSetup.findMany()
+
+  // Calculate Due Balance for each member using the dynamic engine
   const membersWithDues = dbMembers.map((m) => {
-    const totalSavings = m.savings.reduce((acc, s) => acc + Number(s.amount), 0)
-    const joinDate = new Date(m.createdAt)
-    const monthsJoined = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth())
-    const expectedAmount = monthsJoined * 500
-    const dueBalance = Math.max(0, expectedAmount - totalSavings)
+    const dues = calculateDues(m.membershipDate || m.createdAt, feeSetups, m.savings)
 
     return {
       id: m.id,
@@ -51,9 +47,16 @@ export default async function DashboardPage() {
       annual: m.savings.filter(s => s.type === "ANNUAL").reduce((acc, s) => acc + Number(s.amount), 0),
       fine: m.savings.filter(s => s.type === "FINE").reduce((acc, s) => acc + Number(s.amount), 0),
       donation: m.savings.filter(s => s.type === "DONATION").reduce((acc, s) => acc + Number(s.amount), 0),
-      dueBalance: dueBalance
+      dueBalance: dues.totalDue, // Dynamic Due
+      lateFines: dues.totalFines // Dynamic Fines
     }
   }).filter((m) => m.dueBalance > 0).slice(0, 10)
+
+  // Calculate Total Dynamic Due for the Stats Card
+  const totalDynamicDue = dbMembers.reduce((acc, m) => {
+    const dues = calculateDues(m.membershipDate || m.createdAt, feeSetups, m.savings)
+    return acc + dues.totalDue
+  }, 0)
 
   // Mock data for Accounting & Operations
   const totalIncome = 0 
@@ -100,7 +103,7 @@ export default async function DashboardPage() {
 
   const group3 = [
     { label: "Paid to Members", value: `৳ ${totalPaymentToMembers.toLocaleString()}`, icon: HandCoins, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-950/40", border: "border-rose-200 dark:border-rose-900" },
-    { label: "Monthly Due", value: `৳ ${monthlyDue.toLocaleString()}`, icon: AlertTriangle, color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-950/40", border: "border-orange-200 dark:border-orange-900" },
+    { label: "Total Due", value: `৳ ${totalDynamicDue.toLocaleString()}`, icon: AlertTriangle, color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-950/40", border: "border-orange-200 dark:border-orange-900" },
     { label: "Extra Due", value: `৳ ${extraDue.toLocaleString()}`, icon: AlertTriangle, color: "text-yellow-600", bg: "bg-yellow-50 dark:bg-yellow-950/40", border: "border-yellow-200 dark:border-yellow-900" },
     { label: "Fine Amount Due", value: `৳ ${fineAmount.toLocaleString()}`, icon: AlertTriangle, color: "text-red-700", bg: "bg-red-50 dark:bg-red-950/40", border: "border-red-200 dark:border-red-900" },
   ]
@@ -118,7 +121,7 @@ export default async function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard Overview</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Welcome back! Here is what's happening in your foundation today.</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Welcome back! Here is what&apos;s happening in your foundation today.</p>
         </div>
         <Link href="/dashboard/members/add">
           <Button className="bg-indigo-600 hover:bg-indigo-700">
@@ -127,7 +130,7 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-            {/* 2x2 Grid for Groups */}
+      {/* 2x2 Grid for Groups */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
         
         {/* Group 1 */}
@@ -185,7 +188,7 @@ export default async function DashboardPage() {
 
       {/* Members Due List Table */}
       <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
-                <div className="p-5 border-b border-blue-200 dark:border-blue-900 flex items-center justify-between bg-blue-50 dark:bg-blue-950/40">
+        <div className="p-5 border-b border-blue-200 dark:border-blue-900 flex items-center justify-between bg-blue-50 dark:bg-blue-950/40">
           <h2 className="font-bold text-blue-800 dark:text-blue-300 flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Members Due List
           </h2>
@@ -195,7 +198,7 @@ export default async function DashboardPage() {
         </div>
         <div className="overflow-x-auto bg-white dark:bg-slate-950">
           <Table>
-                        <TableHeader>
+            <TableHeader>
               <TableRow className="bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-950/40">
                 <TableHead className="uppercase text-xs tracking-wider text-blue-700 dark:text-blue-300">Mem No</TableHead>
                 <TableHead className="uppercase text-xs tracking-wider text-blue-700 dark:text-blue-300">Member Name</TableHead>

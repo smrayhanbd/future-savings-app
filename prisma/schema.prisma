@@ -346,3 +346,22 @@ model ProfileUpdateRequest {
   status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
   createdAt DateTime @default(now())
 }
+
+model FeeSetup {
+  id             String   @id @default(uuid())
+  name           String   
+  amount         Decimal  @db.Decimal(12,2)
+  effectiveDate  DateTime 
+  frequency      String   @default("MONTHLY") // WEEKLY, MONTHLY, QUARTERLY, HALF_YEARLY, YEARLY
+  dueDay         Int      @default(10) // 1-31 for months, 0-6 for weekdays (0=Sun, 6=Sat)
+  hasFine        Boolean  @default(false)
+  fineAmount     Decimal? @db.Decimal(12,2)
+  boardApproved  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+}
+
+model ChargeType {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}

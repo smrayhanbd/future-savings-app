@@ -20,11 +20,11 @@ import { Separator } from "@/components/ui/separator"
 
 // Lucide Icons
 import {
-  LayoutDashboard, Users, Clock, PieChart, Landmark, 
+  LayoutDashboard, Users, Clock, Archive, PieChart, Landmark, 
   ArrowDownUp, Receipt, Printer, CalendarCheck, Briefcase, Gem, 
   CheckSquare, Heart, UserCog, Settings, Cloud, LogOut, 
   ChevronLeft, ChevronRight, ChevronDown, Building2, 
-  Banknote, SlidersHorizontal, FilePlus2, HandCoins, type LucideIcon
+  Banknote, SlidersHorizontal, FilePlus2, HandCoins, AlertTriangle, type LucideIcon
 } from "lucide-react"
 
 // --- Types ---
@@ -58,6 +58,7 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
    {
     title: "Finance & Accounting",
     items: [
+      { label: "Due List", icon: AlertTriangle, href: "/dashboard/due-list" },
       { label: "Collection Entry", icon: Banknote, href: "/dashboard/collection-entry" },
       { label: "Withdrawal Entry", icon: Landmark, href: "/dashboard/deposits" },
       { label: "Income Distribution", icon: ArrowDownUp, href: "/dashboard/income-distribution" },
@@ -76,7 +77,8 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
           { label: "Money Receipts", href: "/dashboard/receipts" },
           { label: "View Vouchers", href: "/dashboard/vouchers" }
         ]
-      }
+      },
+
     ]
   },
   {

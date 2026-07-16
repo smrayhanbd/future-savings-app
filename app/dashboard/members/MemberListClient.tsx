@@ -17,7 +17,7 @@ import {
 
 // ─── Types ─────────────────────────────────────────────────────────
 interface Member {
-  id: string; // Changed from number to string
+  id: string;
   fullName: string;
   memberNo: string;
   phone: string;
@@ -29,6 +29,7 @@ interface Member {
   savings: { amount: number }[];
   createdAt: string;
   dueBalance: number;
+  lateFines: number; // <-- ADD THIS
 }
 
 interface StatCard {
@@ -580,10 +581,18 @@ export default function MemberListClient({ members }: { members: Member[] }) {
                         {/* Due Balance Cell */}
                         <td className="px-4 py-4">
                           {member.dueBalance > 0 ? (
-                            <span className="text-red-600 dark:text-red-400 font-bold text-sm flex items-center gap-1.5 bg-red-50 dark:bg-red-950/30 px-2 py-1 rounded-md w-fit">
-                              <AlertCircle className="w-3.5 h-3.5" />
-                              ৳ {member.dueBalance.toLocaleString()}
-                            </span>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-red-600 dark:text-red-400 font-bold text-sm flex items-center gap-1.5 bg-red-50 dark:bg-red-950/30 px-2 py-1 rounded-md w-fit">
+                                <AlertCircle className="w-3.5 h-3.5" />
+                                ৳ {member.dueBalance.toLocaleString()}
+                              </span>
+                              {member.lateFines > 0 && (
+                                <span className="text-orange-600 dark:text-orange-400 font-medium text-xs flex items-center gap-1.5 bg-orange-50 dark:bg-orange-950/30 px-2 py-1 rounded-md w-fit">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  Fine: ৳ {member.lateFines.toLocaleString()}
+                                </span>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-emerald-600 dark:text-emerald-400 text-sm font-medium flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded-md w-fit">
                               <CheckCircle2 className="w-3.5 h-3.5" />
