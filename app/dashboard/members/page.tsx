@@ -16,10 +16,7 @@ export default async function MembersPage() {
 
   const members = dbMembers.map(m => {
     const totalDeposit = m.savings.filter(s => s.type !== "WITHDRAWAL").reduce((acc, s) => acc + Number(s.amount), 0)
-    const totalWithdrawal = m.savings.filter(s => s.type === "WITHDRAWAL").reduce((acc, s) => acc + Number(s.amount), 0)
-    
-    // Calculate real dues using the engine
-    const dues = calculateDues(m.membershipDate || m.createdAt, feeSetups, m.savings)
+    const dues = calculateDues(m.id, m.membershipDate || m.createdAt, feeSetups, m.savings)
 
     return {
       id: m.id,
@@ -28,13 +25,15 @@ export default async function MembersPage() {
       phone: m.phone,
       email: m.email,
       gender: m.gender || "OTHER",
-      status: m.status as "ACTIVE" | "PENDING" | "SUSPENDED",
+      status: m.status as "ACTIVE" | "PENDING" | "SUSPENDED" | "INACTIVE",
       nidNumber: m.nidNumber,
+      kycVerified: m.kycVerified || false, // <-- ADD THIS LINE
       photoUrl: m.photoUrl,
       savings: m.savings.map((s) => ({ amount: Number(s.amount) })),
       createdAt: m.createdAt.toISOString(),
+      membershipDate: (m.membershipDate || m.createdAt).toISOString(),
       dueBalance: dues.totalDue,
-      lateFines: dues.totalFines // Pass the late fines to the table
+      lateFines: dues.totalFines
     }
   })
 

@@ -63,7 +63,7 @@ export async function addWithdrawal(formData: FormData) {
   revalidatePath("/dashboard/deposits")
   redirect("/dashboard/deposits")
 }
-// --- Charge Type Action ---
+// --- Collection Type Actions ---
 export async function createChargeType(formData: FormData) {
   const name = formData.get("name") as string
   if (!name) throw new Error("Name is required")
@@ -76,6 +76,43 @@ export async function createChargeType(formData: FormData) {
   redirect("/dashboard/collection-setup")
 }
 
+export async function updateCollectionType(id: string, name: string) {
+  if (!name) throw new Error("Name is required")
+  
+  await prisma.chargeType.update({
+    where: { id },
+    data: { name },
+  })
+
+  revalidatePath("/dashboard/collection-setup")
+}
+
+export async function deleteCollectionType(id: string) {
+  // Find the type to get its name
+  const type = await prisma.chargeType.findUnique({ where: { id } })
+  if (!type) throw new Error("Collection type not found.")
+
+  // Safety Check: See if any FeeSetup uses this name
+  const setupsCount = await prisma.feeSetup.count({
+    where: { name: type.name }
+  })
+
+  if (setupsCount > 0) {
+    throw new Error("Cannot delete: This Collection Type is used in existing Collection Setups.")
+  }
+
+  await prisma.chargeType.delete({ where: { id } })
+  revalidatePath("/dashboard/collection-setup")
+}
+
+export async function toggleCollectionTypeStatus(id: string, isActive: boolean) {
+  await prisma.chargeType.update({
+    where: { id },
+    data: { isActive },
+  })
+
+  revalidatePath("/dashboard/collection-setup")
+}
 // --- Updated Fee Setup Action ---
 export async function createFeeSetup(formData: FormData) {
   const chargeTypeId = formData.get("name") as string
@@ -84,14 +121,18 @@ export async function createFeeSetup(formData: FormData) {
   const frequency = formData.get("frequency") as string
   const dueDay = parseInt(formData.get("dueDay") as string)
   
-  // Updated to check for "YES" instead of "on"
   const hasFine = formData.get("hasFine") === "YES"
   const fineAmount = parseFloat(formData.get("fineAmount") as string) || 0
   
-  // Removed boardApproved
+  const targetType = formData.get("targetType") as string
+  const targetMemberIds = formData.get("targetMemberIds") as string
 
   if (!chargeTypeId || !amount || !effectiveDate || !dueDay) {
     throw new Error("All fields marked with * are required.")
+  }
+
+  if (targetType === "SPECIFIC" && (!targetMemberIds || JSON.parse(targetMemberIds).length === 0)) {
+    throw new Error("Please select at least one member for 'Specific Members'.")
   }
 
   const chargeType = await prisma.chargeType.findUnique({ where: { id: chargeTypeId } })
@@ -106,8 +147,9 @@ export async function createFeeSetup(formData: FormData) {
       dueDay,
       hasFine,
       fineAmount: hasFine ? fineAmount : null,
-      // boardApproved is removed, defaults to false in schema
       boardApproved: false, 
+      targetType,
+      targetMemberIds: targetType === "SPECIFIC" ? targetMemberIds : null,
     },
   })
 
@@ -131,7 +173,7 @@ export async function sendDueReminders() {
   let failedCount = 0
 
   for (const member of members) {
-    const dues = calculateDues(member.membershipDate || member.createdAt, feeSetups, member.savings)
+      const dues = calculateDues(member.id, member.membershipDate || member.createdAt, feeSetups, member.savings)
     
     if (dues.totalDue > 0) {
       const msg = `Dear ${member.fullName}, your due balance is ৳ ${dues.totalDue.toLocaleString()}. Please clear your dues ASAP. - Future Savings Foundation`

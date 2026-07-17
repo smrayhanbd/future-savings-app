@@ -16,7 +16,7 @@ export default async function DueListPage() {
 
   // 2. Calculate dues for each member and filter out those with 0 due
   const dueMembers = dbMembers.map(m => {
-    const dues = calculateDues(m.membershipDate || m.createdAt, feeSetups, m.savings)
+    const dues = calculateDues(m.id, m.membershipDate || m.createdAt, feeSetups, m.savings)
     
     return {
       id: m.id,

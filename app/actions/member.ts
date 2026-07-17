@@ -6,25 +6,8 @@ import { redirect } from "next/navigation"
 import { uploadImage } from "@/lib/cloudinary"
 import { sendEmail } from "@/lib/email"
 import { sendSMS } from "@/lib/sms"
-import { z } from "zod"
 
-// Enterprise Backend Validation Schema
-const MemberSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  phone: z.string().regex(/^\d{11}$/, "Phone number must be exactly 11 digits"),
-  email: z.string().email("Invalid email").optional().or(z.literal("")),
-  idType: z.string().min(1, "ID type is required"),
-  idNumber: z.string().min(5, "ID number is required"),
-  accountName: z.string().min(2, "Account name is required"),
-  accountNumber: z.string().min(5, "Account number is required"),
-  bankName: z.string().min(2, "Bank name is required"),
-  c_village: z.string().min(2, "Current address is required"),
-  c_district: z.string().min(2, "Current district is required"),
-  p_village: z.string().min(2, "Permanent address is required"),
-  p_district: z.string().min(2, "Permanent district is required"),
-})
-
+// --- Add Member Action ---
 export async function addMember(formData: FormData, isPublic: boolean = false) {
   // 1. Extract Data
   const firstName = formData.get("firstName") as string
@@ -64,6 +47,39 @@ export async function addMember(formData: FormData, isPublic: boolean = false) {
   const nidNumber = idType === "National ID" ? idNumber : null
   const passportNumber = idType === "Passport" ? idNumber : null
   const birthCertificateNo = idType === "Birth Certificate" ? idNumber : null
+
+  // 1b. Duplicate check BEFORE uploads/transaction.
+  // `phone` is intentionally not @unique in the schema, so it is checked explicitly.
+  // ID fields (nid/passport/birthCert) ARE @unique, but we pre-check them too so the
+  // user gets a clear, field-targeted message instead of a generic DB error.
+  const dupClauses = [
+    ...(email ? [{ email }] : []),
+    { phone },
+    ...(nidNumber ? [{ nidNumber }] : []),
+    ...(passportNumber ? [{ passportNumber }] : []),
+    ...(birthCertificateNo ? [{ birthCertificateNo }] : []),
+  ]
+  const existing = dupClauses.length
+    ? await prisma.member.findFirst({
+        where: { OR: dupClauses },
+        select: { email: true, phone: true, nidNumber: true, passportNumber: true, birthCertificateNo: true },
+      })
+    : null
+
+  if (existing) {
+    const emailClash = !!email && existing.email === email
+    const phoneClash = existing.phone === phone
+    const idClash =
+      (!!nidNumber && existing.nidNumber === nidNumber) ||
+      (!!passportNumber && existing.passportNumber === passportNumber) ||
+      (!!birthCertificateNo && existing.birthCertificateNo === birthCertificateNo)
+
+    if ((emailClash || phoneClash) && idClash) throw new Error("DUPLICATE_BOTH")
+    if (emailClash && phoneClash) throw new Error("DUPLICATE_BOTH")
+    if (emailClash) throw new Error("DUPLICATE_EMAIL")
+    if (phoneClash) throw new Error("DUPLICATE_PHONE")
+    if (idClash) throw new Error("DUPLICATE_ID")
+  }
 
   // 2. Handle File Uploads OUTSIDE the transaction to prevent timeout
   const memberPhotoFile = formData.get("memberPhoto") as File
@@ -121,7 +137,7 @@ export async function addMember(formData: FormData, isPublic: boolean = false) {
   const memberNo = `M${String(memberCount + 1).padStart(4, "0")}`
 
   // 4. Save to Database (Fast transaction with no network uploads inside)
-  let member: any;
+  let member: any
   try {
     member = await prisma.$transaction(async (tx) => {
       const newMember = await tx.member.create({
@@ -173,14 +189,21 @@ export async function addMember(formData: FormData, isPublic: boolean = false) {
         })
       }
 
-      return newMember; // Return the member object from the transaction
+      return newMember
     })
   } catch (error: any) {
     if (error.code === 'P2002') {
-      throw new Error("A member with this email already exists. Please use a different email.")
+      // Identify the actual unique field that collided (Prisma gives it in meta.target)
+      const target: string[] = Array.isArray(error?.meta?.target) ? error.meta.target : []
+      if (target.includes("phone")) throw new Error("DUPLICATE_PHONE")
+      if (target.includes("nidNumber") || target.includes("passportNumber") || target.includes("birthCertificateNo")) {
+        throw new Error("DUPLICATE_ID")
+      }
+      // memberNo collisions (or any email-constraint race) default to a clear message
+      throw new Error("DUPLICATE_EMAIL")
     }
     console.error("Failed to create member:", error)
-    throw error; 
+    throw error
   }
 
   // 5. Handle Public Registration Notifications (Thank You)
@@ -214,7 +237,7 @@ export async function addMember(formData: FormData, isPublic: boolean = false) {
         console.error("Failed to send registration SMS:", smsError)
       }
     }
-    return member // Return the member instead of redirecting
+    return member
   } else {
     revalidatePath("/dashboard/approvals")
     redirect("/dashboard/approvals")
@@ -224,17 +247,44 @@ export async function addMember(formData: FormData, isPublic: boolean = false) {
 // --- Public Registration Action ---
 export async function registerMember(formData: FormData) {
   try {
-    // Pass isPublic = true
-    await addMember(formData, true) 
+    await addMember(formData, true)
   } catch (error: any) {
-    if (error?.code === 'P2002' || error?.message?.includes('already exists') || error?.message?.includes('Unique constraint')) {
-      return { error: "A member with this email already exists. Please use a different email." }
+    const code = error?.message || ""
+    if (code === "DUPLICATE_BOTH") {
+      return {
+        error: "A member with this email & phone number already exists. Please use a different email and phone number.",
+        field: "both",
+      }
+    }
+    if (code === "DUPLICATE_EMAIL") {
+      return {
+        error: "A member with this email already exists. Please use a different email.",
+        field: "email",
+      }
+    }
+    if (code === "DUPLICATE_PHONE") {
+      return {
+        error: "A member with this phone number already exists. Please use a different phone number.",
+        field: "phone",
+      }
+    }
+    if (code === "DUPLICATE_ID") {
+      return {
+        error: "A member with this ID number already exists. Please check your ID type and number, or contact support.",
+        field: "idNumber",
+      }
+    }
+    // Fallback: Prisma unique-constraint violation or legacy message
+    if (error?.code === 'P2002' || code.includes('already exists') || code.includes('Unique constraint')) {
+      return {
+        error: "A member with this email already exists. Please use a different email.",
+        field: "email",
+      }
     }
     console.error("Registration failed:", error)
     return { error: "Could not submit application. Please try again." }
   }
-  
-  // If successful, return success object instead of redirecting
+
   return { success: true }
 }
 
@@ -274,6 +324,10 @@ export async function updateMember(memberId: string, formData: FormData) {
   const p_postOffice = (formData.get("p_postOffice") as string) || null
   const p_district = (formData.get("p_district") as string) || null
   const p_postalCode = (formData.get("p_postalCode") as string) || null
+
+  // Extract Join Date (Membership Date)
+  const joinedDate = formData.get("joinedDate") as string
+  const kycVerified = formData.get("kycVerified") === "on"
 
   const nidNumber = idType === "National ID" ? idNumber : null
   const passportNumber = idType === "Passport" ? idNumber : null
@@ -345,7 +399,11 @@ export async function updateMember(memberId: string, formData: FormData) {
         where: { id: memberId },
         data: {
           firstName, lastName, fullName, fatherName, motherName, spouseName,
+          // Save the joining date and KYC status here:
+          membershipDate: joinedDate ? new Date(joinedDate) : undefined,
+          kycVerified: kycVerified,
           dateOfBirth: dob ? new Date(dob) : null,
+          // ... rest of the fields
           gender: gender as any, religion, nationality,
           bloodGroup: bloodGroup as any, profession,
           phone, emergencyPhone, emergencyContactName, email,
@@ -395,7 +453,7 @@ export async function updateMember(memberId: string, formData: FormData) {
       throw new Error("A member with this email already exists. Please use a different email.")
     }
     console.error("Failed to update member:", error)
-    throw error; 
+    throw error 
   }
 
   revalidatePath(`/dashboard/members/${memberId}`)

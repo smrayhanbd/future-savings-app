@@ -39,7 +39,7 @@ export default async function PortalDashboardPage() {
   // Fetch Fee Setups and Calculate Dynamic Dues
   const feeSetups = await prisma.feeSetup.findMany()
   const joinDate = member.membershipDate || member.createdAt
-  const dues = calculateDues(joinDate, feeSetups, member.savings)
+  const dues = calculateDues(member.id, joinDate, feeSetups, member.savings)
 
   // Calculate Financials
   const totalDeposit = member.savings.filter(s => s.type !== "WITHDRAWAL").reduce((acc, s) => acc + Number(s.amount), 0)

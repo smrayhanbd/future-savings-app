@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useRef } from "react"
 import { registerMember } from "@/app/actions/member"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -86,6 +86,10 @@ export default function RegisterForm() {
     const [nomineeForm, setNomineeForm] = useState<Omit<Nominee, "id">>({ name: "", relation: "", share: "", phone: "", idType: "nid", idNumber: "", idDocumentFile: null, photo: null })
     const [loading, setLoading] = useState(false)
     const router = useRouter()
+    const [errors, setErrors] = useState<{ phoneNumber?: string; emailAddress?: string; idNumber?: string }>({})
+    const phoneInputRef = useRef<HTMLInputElement>(null)
+    const emailInputRef = useRef<HTMLInputElement>(null)
+    const idNumberInputRef = useRef<HTMLInputElement>(null)
 
     const steps = useMemo(() => [
         { name: "Personal Information", complete: !!(formData.firstName && formData.lastName && formData.dateOfBirth && formData.gender) },
@@ -102,6 +106,10 @@ export default function RegisterForm() {
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target
         setFormData((prev) => ({ ...prev, [name]: value }))
+        // Clear any duplicate-field error once the user edits that field
+        if (name === "phoneNumber" || name === "emailAddress" || name === "idNumber") {
+            setErrors((prev) => ({ ...prev, [name]: undefined }))
+        }
     }
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof Pick<FormData, "idDocumentFile" | "memberPhoto">) => setFormData((prev) => ({ ...prev, [field]: e.target.files?.[0] || null }))
@@ -169,15 +177,38 @@ export default function RegisterForm() {
         })
         
         try {
-            const result = await registerMember(fd)
-            
+            const result = await registerMember(fd) as
+                | { success?: true }
+                | { error: string; field?: "email" | "phone" | "both" | "idNumber" }
+
             // Check if the server returned an error object
-            if (result && result.error) {
+            if (result && "error" in result && result.error) {
+                // Determine which field(s) to flag from the server's `field` hint
+                const field = result.field
+                const fieldErrors: { phoneNumber?: string; emailAddress?: string; idNumber?: string } = {}
+                if (field === "email" || field === "both") fieldErrors.emailAddress = result.error
+                if (field === "phone" || field === "both") fieldErrors.phoneNumber = result.error
+                if (field === "idNumber") fieldErrors.idNumber = result.error
+                setErrors(fieldErrors)
+
+                // Focus the first offending field (priority: email → phone → idNumber)
+                const targetRef = fieldErrors.emailAddress
+                    ? emailInputRef
+                    : fieldErrors.phoneNumber
+                        ? phoneInputRef
+                        : fieldErrors.idNumber
+                            ? idNumberInputRef
+                            : null
+                if (targetRef?.current) {
+                    targetRef.current.focus()
+                    targetRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
+                }
+
                 toast.error("Registration Failed", {
                     description: result.error
                 })
                 setLoading(false)
-            } else if (result && result.success) {
+            } else if (result && "success" in result && result.success) {
                 // If successful, redirect to the success page
                 router.push("/register/success")
             }
@@ -187,7 +218,8 @@ export default function RegisterForm() {
                 description: "An unexpected error occurred. Please try again."
             })
             setLoading(false)
-        }    }
+        }
+    }
 
     const renderFileUpload = (file: File | null, onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void, onRemove: () => void, label: string) => {
         return (
@@ -270,13 +302,25 @@ export default function RegisterForm() {
                                 <div><label className={labelClass}>Member Photo</label>{renderFileUpload(formData.memberPhoto, (e) => handleFileChange(e, "memberPhoto"), () => setFormData((prev) => ({ ...prev, memberPhoto: null })), "Upload Photo")}</div>
                                 <div><label className={labelClass}>ID Document</label>{renderFileUpload(formData.idDocumentFile, (e) => handleFileChange(e, "idDocumentFile"), () => setFormData((prev) => ({ ...prev, idDocumentFile: null })), "Upload Document")}</div>
                             </div>
-                            <div><label className={labelClass}>Phone Number <span className="text-red-500">*</span></label><input type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} required placeholder="e.g., 01712345678" className={inputClass} /></div>
-                            <div><label className={labelClass}>Email Address <span className="text-red-500">*</span></label><input type="email" name="emailAddress" value={formData.emailAddress} onChange={handleInputChange} required placeholder="e.g., rahim@example.com" className={inputClass} /></div>
+                            <div>
+                                <label className={labelClass}>Phone Number <span className="text-red-500">*</span></label>
+                                <input ref={phoneInputRef} type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} required placeholder="e.g., 01712345678" className={errors.phoneNumber ? `${inputClass} border-red-500 focus:ring-red-500/20 focus:border-red-500` : inputClass} />
+                                {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>}
+                            </div>
+                            <div>
+                                <label className={labelClass}>Email Address <span className="text-red-500">*</span></label>
+                                <input ref={emailInputRef} type="email" name="emailAddress" value={formData.emailAddress} onChange={handleInputChange} required placeholder="e.g., rahim@example.com" className={errors.emailAddress ? `${inputClass} border-red-500 focus:ring-red-500/20 focus:border-red-500` : inputClass} />
+                                {errors.emailAddress && <p className="text-red-500 text-xs mt-1">{errors.emailAddress}</p>}
+                            </div>
                             <div><label className={labelClass}>Emergency Contact</label><input type="tel" name="emergencyContact" value={formData.emergencyContact} onChange={handleInputChange} placeholder="e.g., 01812345678" className={inputClass} /></div>
                             <div><label className={labelClass}>Emergency Contact Person Name</label><input type="text" name="emergencyContactName" value={formData.emergencyContactName} onChange={handleInputChange} placeholder="e.g., Brother" className={inputClass} /></div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div><label className={labelClass}>ID Type <span className="text-red-500">*</span></label><select name="idType" value={formData.idType} onChange={handleInputChange} required className={inputClass}><option value="">Select</option>{idTypes.map((id) => <option key={id} value={id}>{id}</option>)}</select></div>
-                                <div><label className={labelClass}>ID Number <span className="text-red-500">*</span></label><input type="text" name="idNumber" value={formData.idNumber} onChange={handleInputChange} required placeholder="e.g., 1990123456789" className={inputClass} /></div>
+                                <div>
+                                    <label className={labelClass}>ID Number <span className="text-red-500">*</span></label>
+                                    <input ref={idNumberInputRef} type="text" name="idNumber" value={formData.idNumber} onChange={handleInputChange} required placeholder="e.g., 1990123456789" className={errors.idNumber ? `${inputClass} border-red-500 focus:ring-red-500/20 focus:border-red-500` : inputClass} />
+                                    {errors.idNumber && <p className="text-red-500 text-xs mt-1">{errors.idNumber}</p>}
+                                </div>
                             </div>
                         </div>
                     </SectionCard>

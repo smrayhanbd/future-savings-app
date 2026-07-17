@@ -10,7 +10,7 @@ import {
   ArrowLeft, Edit, Printer, User, Phone, Mail, Home, Building, 
   Banknote, CreditCard, FileText, Users, Wallet, CalendarDays, 
   Heart, Globe, Droplet, Briefcase, MapPin, ExternalLink, Scale, Hash, 
-  TrendingUp, TrendingDown, Landmark, AlertTriangle
+  TrendingUp, TrendingDown, Landmark, AlertTriangle, Shield, CheckCircle2, Lock 
 } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
@@ -31,7 +31,11 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
       addresses: true,
       nominees: true,
       documents: true,
-      savings: true, 
+      savings: true,
+      loans: {
+        include: { product: true },
+        orderBy: { applicationDate: "desc" },
+      },
     },
   })
 
@@ -42,12 +46,15 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
   // 1. Calculate Financial Stats
   const totalDeposit = member.savings.filter(s => !["WITHDRAWAL", "FINE", "PENALTY", "LOAN_PAYMENT"].includes(s.type)).reduce((acc, s) => acc + Number(s.amount), 0);
   const totalWithdrawal = member.savings.filter(s => s.type === "WITHDRAWAL").reduce((acc, s) => acc + Number(s.amount), 0);
-  const loanAmount = 0; 
+  const loanAmount = member.loans
+    .filter((l) => ["DISBURSED", "DEFAULTED", "REPAID"].includes(l.status))
+    .reduce((acc, l) => acc + Number(l.principal), 0)
+  const activeLoans = member.loans.filter((l) => ["DISBURSED", "DEFAULTED"].includes(l.status))
   
   // 2. Fetch Fee Setups and Calculate Dynamic Dues
   const feeSetups = await prisma.feeSetup.findMany()
   const joinDate = member.membershipDate || member.createdAt
-  const dues = calculateDues(joinDate, feeSetups, member.savings)
+  const dues = calculateDues(member.id, joinDate, feeSetups, member.savings)
 
   const currentAddress = member.addresses.find((a) => a.addressType === "CURRENT")
   const permanentAddress = member.addresses.find((a) => a.addressType === "PERMANENT")
@@ -83,7 +90,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      {/* Financial Summary Cards (Horizontal layout for reduced height) */}
+      {/* Financial Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
           <Card key={index} className={`bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border ${stat.border} ${stat.bg} shadow-sm hover:shadow-lg hover:-translate-y-1 rounded-2xl overflow-hidden transition-all duration-300`}>
@@ -146,10 +153,18 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
               )}
               <h2 className="mt-3 text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">{member.fullName}</h2>
               <p className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">{member.memberNo}</p>
-              <div className="mt-2">
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
                 <Badge variant={member.status === "ACTIVE" ? "default" : "secondary"} className={`uppercase text-[10px] px-2.5 py-1 rounded-full font-bold ${member.status === "ACTIVE" ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-amber-500/10 text-amber-600 border border-amber-500/20"}`}>
                   {member.status}
                 </Badge>
+                
+                {/* KYC Verification Badge */}
+                <Badge variant="outline" className={`uppercase text-[10px] px-2.5 py-1 rounded-full font-bold ${member.kycVerified ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-amber-500/10 text-amber-600 border border-amber-500/20"}`}>
+                  {member.kycVerified ? <Shield className="w-3 h-3 mr-1 inline" /> : <AlertTriangle className="w-3 h-3 mr-1 inline" />}
+                  {member.kycVerified ? "KYC Verified" : "KYC Pending"}
+                </Badge>
+
+                <StatusToggleButton memberId={member.id} status={member.status} />
               </div>
             </CardContent>
             <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
@@ -161,7 +176,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
                   <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Joined</p>
                   <p className="text-slate-700 dark:text-slate-200 font-bold text-xs">{new Date(member.membershipDate).toLocaleDateString()}</p>
                 </div>
-              </div>
+                </div>
               <div className="flex items-center gap-3 text-sm">
                 <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800">
                   <CreditCard className="h-3.5 w-3.5 text-slate-500" />
@@ -214,7 +229,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
         {/* RIGHT SIDE: Middle & Right Columns (3/4 width) */}
         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
           
-          {/* MIDDLE COLUMN: Personal & Residence (Wider - 7/12) */}
+          {/* MIDDLE COLUMN: Personal & Residence */}
           <div className="md:col-span-7 flex flex-col gap-4">
             
             {/* Personal Information */}
@@ -259,10 +274,10 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
             </Card>
           </div>
 
-          {/* RIGHT COLUMN: Contact, Documents, Bank (Smaller - 5/12) */}
+          {/* RIGHT COLUMN: Contact, Documents, Bank */}
           <div className="md:col-span-5 flex flex-col gap-4">
             
-            {/* Group: Contact + Documents (to match Personal Info height) */}
+            {/* Group: Contact + Documents */}
             <div className="flex flex-col gap-4 flex-grow">
               {/* Contact Information */}
               <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden flex-grow flex flex-col">
@@ -306,7 +321,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
               </Card>
             </div>
 
-            {/* Bank Details (to match Residence Info height) */}
+            {/* Bank Details */}
             <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden flex-grow flex flex-col">
               <CardHeader className="bg-yellow-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 px-5 py-2.5">
                 <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
@@ -356,6 +371,60 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
             </CardContent>
           </Card>
         </div>
+
+        {/* Full Width: Member Loans */}
+        <div className="lg:col-span-4">
+          <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-xl rounded-2xl overflow-hidden">
+            <CardHeader className="bg-indigo-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 px-5 py-2.5">
+              <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
+                <Landmark className="h-4 w-4" /> Loans
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-3 px-5">
+              {member.loans.length > 0 ? (
+                <div className="overflow-x-auto -mx-5">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                        <th className="text-left font-bold px-5 py-2">Loan No</th>
+                        <th className="text-left font-bold px-3 py-2">Product</th>
+                        <th className="text-right font-bold px-3 py-2">Principal</th>
+                        <th className="text-right font-bold px-3 py-2">Outstanding</th>
+                        <th className="text-center font-bold px-3 py-2">Status</th>
+                        <th className="text-right font-bold px-5 py-2"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {member.loans.map((loan) => (
+                        <tr key={loan.id} className="border-b border-slate-100 dark:border-slate-800/50 last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                          <td className="px-5 py-3 font-mono text-xs text-slate-500">{loan.loanNo}</td>
+                          <td className="px-3 py-3 text-slate-700 dark:text-slate-200">{loan.product.name}</td>
+                          <td className="px-3 py-3 text-right font-semibold text-slate-900 dark:text-white">৳ {Number(loan.principal).toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right font-bold text-amber-600">৳ {Number(loan.outstandingBalance).toLocaleString()}</td>
+                          <td className="px-3 py-3 text-center">
+                            <Badge variant="outline" className={`uppercase text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                              loan.status === "DISBURSED" ? "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" :
+                              loan.status === "REPAID" || loan.status === "CLOSED" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
+                              loan.status === "PENDING" ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
+                              "bg-slate-500/10 text-slate-600 border-slate-500/20"
+                            }`}>
+                              {loan.status.replace("_", " ")}
+                            </Badge>
+                          </td>
+                          <td className="px-5 py-3 text-right">
+                            <Link href={`/dashboard/loans/${loan.id}`} className="text-xs font-semibold text-indigo-600 hover:underline">View →</Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 text-center py-6">No loans for this member.</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
@@ -378,17 +447,15 @@ function InfoItem({ icon: Icon, label, value, vertical }: { icon: any, label: st
   )
 }
 
-// Premium Reusable Address Display Component (Updated Layout)
+// Premium Reusable Address Display Component
 function AddressDisplay({ address }: { address: any }) {
   if (!address) return <p className="text-xs text-slate-500 italic">Not provided</p>;
   return (
     <div className="space-y-2 text-xs">
-      {/* Address field full width */}
       <div>
         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Address</p>
         <p className="text-slate-700 dark:text-slate-200 mt-0.5">{address.village || "N/A"}</p>
       </div>
-      {/* Post Office, District, Post Code side-by-side */}
       <div className="grid grid-cols-3 gap-2">
         <div>
           <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Post Office</p>

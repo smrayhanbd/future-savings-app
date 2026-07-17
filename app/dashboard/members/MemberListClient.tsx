@@ -1,49 +1,50 @@
-"use client";
+"use client"
 
-import { useState, useMemo, useTransition } from "react";
-import { updateMemberStatus, deleteMember } from "@/app/actions/member";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import {
-  Users, PlusCircle, Eye, MoreHorizontal, Edit, Banknote, CreditCard,
-  BookOpen, Printer, Mail, MessageSquare, PauseCircle, Trash2, Search,
-  Filter, FileText, Table as TableIcon, Upload, UserCheck, UserPlus,
-  AlertTriangle, Lock, ChevronLeft, ChevronRight, X, Check, TrendingUp,
-  TrendingDown, ArrowUpDown, Clock, Shield, Wallet, Receipt, Phone,
-  Bell, Settings, Download, RefreshCw, ChevronDown, SearchX,
-  CheckCircle2, AlertCircle
-} from "lucide-react";
+import React, { useState, useMemo, useTransition } from "react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { updateMemberStatus, deleteMember } from "@/app/actions/member"
+import { 
+  Users, PlusCircle, Eye, MoreHorizontal, Edit, Banknote, CreditCard, BookOpen, Printer, Mail, MessageSquare, PauseCircle, Trash2, PlayCircle,
+  Search, Filter, FileText, Table as TableIcon, Upload, TrendingUp, TrendingDown, UserCheck, AlertTriangle, Lock, ChevronLeft, ChevronRight, X, Check, UserX, ArrowUpDown, Clock, Shield, Wallet, Receipt, Phone, Bell, Settings, Download, RefreshCw, ChevronDown, SearchX, CheckCircle2, AlertCircle, UserPlus
+} from "lucide-react"
 
-// ─── Types ─────────────────────────────────────────────────────────
 interface Member {
-  id: string;
-  fullName: string;
-  memberNo: string;
-  phone: string;
-  email: string | null;
-  gender: "MALE" | "FEMALE" | "OTHER";
-  status: "ACTIVE" | "PENDING" | "SUSPENDED";
-  nidNumber: string | null;
-  photoUrl: string | null;
-  savings: { amount: number }[];
-  createdAt: string;
-  dueBalance: number;
-  lateFines: number; // <-- ADD THIS
+  id: string
+  fullName: string
+  memberNo: string
+  phone: string
+  email: string | null
+  gender: "MALE" | "FEMALE" | "OTHER"
+  status: "ACTIVE" | "PENDING" | "SUSPENDED" | "INACTIVE"
+  nidNumber: string | null
+  kycVerified: boolean
+  photoUrl: string | null
+  savings: { amount: number }[]
+  createdAt: string
+  membershipDate: string
+  dueBalance: number
+  lateFines: number
 }
 
 interface StatCard {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  color: string;
-  bgLight: string;
-  bgDark: string;
-  borderLight: string;
-  borderDark: string;
-  textLight: string;
-  textDark: string;
-  trend?: { value: number; isPositive: boolean };
+  label: string
+  value: number
+  icon: React.ReactNode
+  color: string
+  bgLight: string
+  bgDark: string
+  borderLight: string
+  borderDark: string
+  textLight: string
+  textDark: string
+  trend?: { value: number; isPositive: boolean }
 }
 
 // ─── Components ──────────────────────────────────────────────────────
@@ -120,6 +121,12 @@ function StatusBadge({ status }: { status: string }) {
       icon: <AlertCircle className="w-3 h-3" />,
       label: "Suspended",
     },
+    INACTIVE: {
+      bg: "bg-slate-500/10 dark:bg-slate-500/20",
+      text: "text-slate-700 dark:text-slate-300",
+      icon: <UserX className="w-3 h-3" />,
+      label: "Inactive",
+    },
   };
   const config = configs[status] || configs.PENDING;
   return (
@@ -167,6 +174,12 @@ function ActionDropdown({ member }: { member: Member }) {
   const handleSuspend = () => {
     if (confirm(`Are you sure you want to suspend ${member.fullName}? They will lose portal access.`)) {
       startTransition(() => updateMemberStatus(member.id, "SUSPENDED"));
+    }
+  };
+
+  const handleActivate = () => {
+    if (confirm(`Are you sure you want to activate ${member.fullName}?`)) {
+      startTransition(() => updateMemberStatus(member.id, "ACTIVE"));
     }
   };
 
@@ -240,8 +253,8 @@ function ActionDropdown({ member }: { member: Member }) {
             <PauseCircle className="mr-2.5 h-4 w-4" /> {isPending ? "Suspending..." : "Suspend Account"}
           </DropdownMenuItem>
         ) : (
-          <DropdownMenuItem disabled className="text-slate-400">
-            <PauseCircle className="mr-2.5 h-4 w-4" /> Already Suspended
+          <DropdownMenuItem onClick={handleActivate} disabled={isPending} className="text-emerald-600 focus:text-emerald-700 cursor-pointer">
+            <PlayCircle className="mr-2.5 h-4 w-4" /> {isPending ? "Activating..." : "Activate Account"}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={handleDelete} disabled={isPending} className="text-red-600 focus:text-red-700 cursor-pointer">
@@ -278,7 +291,7 @@ export default function MemberListClient({ members }: { members: Member[] }) {
   const [sortField, setSortField] = useState<keyof Member>("createdAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
-    const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const itemsPerPage = 8;
 
@@ -312,7 +325,7 @@ export default function MemberListClient({ members }: { members: Member[] }) {
       return ((aVal as number) - (bVal as number)) * modifier;
     });
     return result;
-  }, [searchQuery, statusFilter, typeFilter, sortField, sortDirection]);
+  }, [searchQuery, statusFilter, typeFilter, sortField, sortDirection, members]);
 
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
   const paginatedMembers = filteredMembers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -323,7 +336,7 @@ export default function MemberListClient({ members }: { members: Member[] }) {
     const pending = members.filter((m) => m.status === "PENDING").length;
     const male = members.filter((m) => m.gender === "MALE").length;
     const female = members.filter((m) => m.gender === "FEMALE").length;
-    const pendingKyc = members.filter((m) => !m.nidNumber).length;
+    const pendingKyc = members.filter((m) => !m.kycVerified).length; // Updated to use kycVerified
     const suspended = members.filter((m) => m.status === "SUSPENDED").length;
     const newThisMonth = members.filter((m) => {
       const date = new Date(m.createdAt);
@@ -341,7 +354,7 @@ export default function MemberListClient({ members }: { members: Member[] }) {
       { label: "Pending KYC", value: pendingKyc, icon: <AlertTriangle className="w-4 h-4" />, color: "yellow", bgLight: "bg-yellow-500", bgDark: "bg-yellow-500", borderLight: "border-yellow-200", borderDark: "dark:border-yellow-900", textLight: "text-yellow-600", textDark: "dark:text-yellow-300" },
       { label: "Suspended", value: suspended, icon: <Lock className="w-4 h-4" />, color: "red", bgLight: "bg-red-600", bgDark: "bg-red-600", borderLight: "border-red-200", borderDark: "dark:border-red-900", textLight: "text-red-600", textDark: "dark:text-red-300" },
     ];
-  }, []);
+  }, [members]);
 
   const toggleRow = (id: string) => {
     const next = new Set(selectedRows);
@@ -442,6 +455,7 @@ export default function MemberListClient({ members }: { members: Member[] }) {
               <option value="ACTIVE">Active</option>
               <option value="PENDING">Pending</option>
               <option value="SUSPENDED">Suspended</option>
+              <option value="INACTIVE">Inactive</option>
             </select>
             <select
               value={typeFilter}
@@ -503,9 +517,10 @@ export default function MemberListClient({ members }: { members: Member[] }) {
                   {[
                     { key: "fullName" as const, label: "Member Info" },
                     { key: "phone" as const, label: "Contact" },
+                    { key: "membershipDate" as const, label: "Join Date" },
                     { key: "savings" as const, label: "Finances" },
-                    { key: "dueBalance" as const, label: "Due Balance" }, // <-- NEW COLUMN
-                    { key: "nidNumber" as const, label: "KYC" },
+                    { key: "dueBalance" as const, label: "Due Balance" },
+                    { key: "kycVerified" as const, label: "KYC" },
                     { key: "status" as const, label: "Status", center: true },
                   ].map((col) => (
                     <th key={col.key} className={`px-4 py-3.5 ${col.center ? "text-center" : "text-left"}`}>
@@ -523,7 +538,7 @@ export default function MemberListClient({ members }: { members: Member[] }) {
               </thead>
               <tbody>
                 {paginatedMembers.length === 0 ? (
-                  <tr><td colSpan={7}><EmptyState /></td></tr>
+                  <tr><td colSpan={8}><EmptyState /></td></tr>
                 ) : (
                   paginatedMembers.map((member, index) => {
                     const totalSavings = member.savings.reduce((acc, s) => acc + Number(s.amount), 0);
@@ -565,6 +580,10 @@ export default function MemberListClient({ members }: { members: Member[] }) {
                             )}
                           </div>
                         </td>
+                        {/* Join Date Cell */}
+                        <td className="px-4 py-4 text-sm text-slate-500 whitespace-nowrap">
+                          {new Date(member.membershipDate).toLocaleDateString()}
+                        </td>
                         <td className="px-4 py-4">
                           <div className="flex flex-col gap-1">
                             <span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm flex items-center gap-1.5">
@@ -600,8 +619,9 @@ export default function MemberListClient({ members }: { members: Member[] }) {
                             </span>
                           )}
                         </td>
+                        {/* KYC Cell - Updated to use member.kycVerified */}
                         <td className="px-4 py-4">
-                          <KycBadge verified={!!member.nidNumber} />
+                          <KycBadge verified={member.kycVerified} />
                         </td>
                         <td className="px-4 py-4 text-center">
                           <StatusBadge status={member.status} />

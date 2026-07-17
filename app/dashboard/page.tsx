@@ -34,7 +34,7 @@ export default async function DashboardPage() {
 
   // Calculate Due Balance for each member using the dynamic engine
   const membersWithDues = dbMembers.map((m) => {
-    const dues = calculateDues(m.membershipDate || m.createdAt, feeSetups, m.savings)
+    const dues = calculateDues(m.id, m.membershipDate || m.createdAt, feeSetups, m.savings)
 
     return {
       id: m.id,
@@ -54,7 +54,7 @@ export default async function DashboardPage() {
 
   // Calculate Total Dynamic Due for the Stats Card
   const totalDynamicDue = dbMembers.reduce((acc, m) => {
-    const dues = calculateDues(m.membershipDate || m.createdAt, feeSetups, m.savings)
+      const dues = calculateDues(m.id, m.membershipDate || m.createdAt, feeSetups, m.savings)
     return acc + dues.totalDue
   }, 0)
 
