@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma"
 import { notFound } from "next/navigation"
-import ApprovalForm from "./ApprovalForm"
+import MemberForm from "@/components/member/MemberForm"
 
 export const dynamic = 'force-dynamic'
 
@@ -18,5 +18,5 @@ export default async function ReviewApplicationPage({ params }: { params: Promis
 
   const serializedMember = JSON.parse(JSON.stringify(member))
 
-  return <ApprovalForm member={serializedMember} />
+  return <MemberForm mode="review" member={serializedMember} />
 }

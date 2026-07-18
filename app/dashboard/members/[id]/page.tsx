@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import StatusToggleButton from "@/components/StatusToggleButton"
+import KycToggleButton from "@/components/KycToggleButton"
 import { calculateDues } from "@/lib/dueCalculator"
 import { 
   ArrowLeft, Edit, Printer, User, Phone, Mail, Home, Building, 
@@ -81,6 +82,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
             </Button>
           </Link>
           <div className="flex gap-2">
+            <KycToggleButton memberId={member.id} kycVerified={member.kycVerified} />
             <StatusToggleButton memberId={member.id} status={member.status} />
             <Button variant="outline" size="sm" className="rounded-xl shadow-sm hover:shadow-md transition-all bg-slate-50 dark:bg-slate-900"><Printer className="mr-2 h-4 w-4" /> Print</Button>
             <Link href={`/dashboard/members/${member.id}/edit`}>

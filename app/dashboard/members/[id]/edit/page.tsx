@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma"
 import { notFound } from "next/navigation"
-import EditMemberForm from "./EditMemberForm"
+import MemberForm from "@/components/member/MemberForm"
 
 export const dynamic = 'force-dynamic'
 
@@ -23,5 +23,5 @@ export default async function EditMemberPage({ params }: { params: Promise<{ id:
   // Serialize dates to strings for the client component state
   const serializedMember = JSON.parse(JSON.stringify(member))
 
-  return <EditMemberForm member={serializedMember} />
+  return <MemberForm mode="edit" member={serializedMember} />
 }

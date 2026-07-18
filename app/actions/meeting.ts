@@ -25,7 +25,7 @@ export async function createMeeting(formData: FormData) {
 
   // 2. Fetch all active members to notify them
   const members = await prisma.member.findMany({
-    where: { status: "ACTIVE", NOT: { phone: null } },
+    where: { status: "ACTIVE", phone: { not: "" } },
     select: { phone: true, email: true, fullName: true }
   })
 

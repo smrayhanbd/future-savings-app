@@ -133,7 +133,7 @@ export default function AccountModal({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<AccountFormValues>({
-    resolver: zodResolver(accountSchema),
+    resolver: zodResolver(accountSchema) as any,
     defaultValues: defaults,
   })
 
@@ -212,7 +212,7 @@ export default function AccountModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={trigger ?? defaultTrigger} />
+      <DialogTrigger render={(trigger ?? defaultTrigger) as any} />
       <DialogContent className="max-w-2xl bg-white dark:bg-slate-950 rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white">
@@ -226,7 +226,7 @@ export default function AccountModal({
         </DialogHeader>
 
         <form
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={handleSubmit(onSubmit as any)}
           className="space-y-4 max-h-[68vh] overflow-y-auto pr-1"
         >
           {/* Code + Name */}
@@ -257,7 +257,7 @@ export default function AccountModal({
             <Field label="Parent Account">
               <Select
                 value={parentAccountId ?? undefined}
-                onValueChange={(v: string) => setValue("parentAccountId", v || null)}
+                onValueChange={(v: any) => setValue("parentAccountId", v || null)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="None (Root Account)" />
@@ -287,7 +287,7 @@ export default function AccountModal({
             <Field label="Account Type" required error={errors.accountType?.message}>
               <Select
                 value={accountType}
-                onValueChange={(v: AccountType) => setValue("accountType", v)}
+                onValueChange={(v: any) => setValue("accountType", v as AccountType)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select Type" />
@@ -312,7 +312,7 @@ export default function AccountModal({
             <Field label="Nature" required error={errors.nature?.message}>
               <Select
                 value={watch("nature")}
-                onValueChange={(v: AccountNature) => setValue("nature", v)}
+                onValueChange={(v: any) => setValue("nature", v as AccountNature)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select Nature" />
@@ -343,7 +343,7 @@ export default function AccountModal({
             <Field label="Currency" error={errors.currency?.message}>
               <Select
                 value={watch("currency")}
-                onValueChange={(v: string) => setValue("currency", v)}
+                onValueChange={(v: any) => setValue("currency", v as string)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Currency" />
@@ -358,7 +358,7 @@ export default function AccountModal({
             <Field label="Status">
               <Select
                 value={watch("status")}
-                onValueChange={(v: AccountStatus) => setValue("status", v)}
+                onValueChange={(v: any) => setValue("status", v as AccountStatus)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Status" />

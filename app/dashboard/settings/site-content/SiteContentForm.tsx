@@ -121,13 +121,13 @@ export default function SiteContentForm({ content }: { content: any }) {
       </Card>
 
       {/* Dynamic Lists */}
-      <DynamicListEditor title="Management Committee" arrayName="management" items={data.management} fields={["name", "role", "photoUrl", "bio"]} labels={["Name", "Role", "Photo", "Short Bio"]} onAdd={(f) => addArrayItem("management", f)} onRemove={(i) => removeArrayItem("management", i)} onChange={(i, f, v) => handleArrayChange("management", i, f, v)} />
-      
-      <DynamicListEditor title="Projects" arrayName="projects" items={data.projects} fields={["title", "status", "photoUrl", "description"]} labels={["Project Title", "Status (e.g. Ongoing)", "Project Photo", "Description"]} onAdd={(f) => addArrayItem("projects", f)} onRemove={(i) => removeArrayItem("projects", i)} onChange={(i, f, v) => handleArrayChange("projects", i, f, v)} />
+      <DynamicListEditor title="Management Committee" arrayName="management" items={data.management} fields={["name", "role", "photoUrl", "bio"]} labels={["Name", "Role", "Photo", "Short Bio"]} onAdd={(f: string[]) => addArrayItem("management", f)} onRemove={(i: number) => removeArrayItem("management", i)} onChange={(i: number, f: string, v: any) => handleArrayChange("management", i, f, v)} />
 
-      <DynamicListEditor title="Recent Activities" arrayName="activities" items={data.activities} fields={["title", "date", "photoUrl", "description"]} labels={["Activity Title", "Date", "Activity Photo", "Description"]} onAdd={(f) => addArrayItem("activities", f)} onRemove={(i) => removeArrayItem("activities", i)} onChange={(i, f, v) => handleArrayChange("activities", i, f, v)} />
+      <DynamicListEditor title="Projects" arrayName="projects" items={data.projects} fields={["title", "status", "photoUrl", "description"]} labels={["Project Title", "Status (e.g. Ongoing)", "Project Photo", "Description"]} onAdd={(f: string[]) => addArrayItem("projects", f)} onRemove={(i: number) => removeArrayItem("projects", i)} onChange={(i: number, f: string, v: any) => handleArrayChange("projects", i, f, v)} />
 
-      <DynamicListEditor title="Facilities / Why Join Us" arrayName="facilities" items={data.facilities} fields={["title", "description"]} labels={["Facility Title", "Description"]} onAdd={(f) => addArrayItem("facilities", f)} onRemove={(i) => removeArrayItem("facilities", i)} onChange={(i, f, v) => handleArrayChange("facilities", i, f, v)} />
+      <DynamicListEditor title="Recent Activities" arrayName="activities" items={data.activities} fields={["title", "date", "photoUrl", "description"]} labels={["Activity Title", "Date", "Activity Photo", "Description"]} onAdd={(f: string[]) => addArrayItem("activities", f)} onRemove={(i: number) => removeArrayItem("activities", i)} onChange={(i: number, f: string, v: any) => handleArrayChange("activities", i, f, v)} />
+
+      <DynamicListEditor title="Facilities / Why Join Us" arrayName="facilities" items={data.facilities} fields={["title", "description"]} labels={["Facility Title", "Description"]} onAdd={(f: string[]) => addArrayItem("facilities", f)} onRemove={(i: number) => removeArrayItem("facilities", i)} onChange={(i: number, f: string, v: any) => handleArrayChange("facilities", i, f, v)} />
 
       {/* Floating Save Button */}
       <div className="fixed bottom-6 right-6 z-50">

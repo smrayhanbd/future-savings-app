@@ -3,7 +3,8 @@
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { Prisma } from "@prisma/client"
-import { nextVoucherNo, type VoucherType, type ActionResult } from "@/lib/accounting"
+import { nextVoucherNo, type VoucherType } from "@/lib/accounting"
+import type { ActionResult } from "@/app/actions/accounts"
 
 const PATHS = [
   "/dashboard/voucher-entry",

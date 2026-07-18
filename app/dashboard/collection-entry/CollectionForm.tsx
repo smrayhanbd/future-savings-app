@@ -193,7 +193,7 @@ export default function CollectionForm({ members, overview }: { members: Member[
 
             <div className="space-y-2">
               <Label>Collection Type</Label>
-              <Select value={formData.collectionType} onValueChange={(v) => handleChange("collectionType", v)}>
+              <Select value={formData.collectionType} onValueChange={(v) => handleChange("collectionType", v ?? "")}>
                 <SelectTrigger className="bg-white dark:bg-slate-950"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="MONTHLY">Monthly Savings</SelectItem>
@@ -255,7 +255,7 @@ export default function CollectionForm({ members, overview }: { members: Member[
 
             <div className="space-y-2">
               <Label>Payment Method</Label>
-              <Select value={formData.paymentMethod} onValueChange={(v) => handleChange("paymentMethod", v)}>
+              <Select value={formData.paymentMethod} onValueChange={(v) => handleChange("paymentMethod", v ?? "")}>
                 <SelectTrigger className="bg-white dark:bg-slate-950"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="CASH">Cash</SelectItem>

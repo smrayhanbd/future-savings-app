@@ -22,6 +22,10 @@ export type AccountStatus = "ACTIVE" | "INACTIVE"
 export type VoucherType = "JOURNAL" | "RECEIPT" | "PAYMENT" | "CONTRA"
 export type JournalStatus = "DRAFT" | "POSTED"
 
+// Generic server-action result so callers can react with toasts without
+// having to wrap every call in try/catch.
+export type ActionResult = { ok: true } | { ok: false; error: string }
+
 export interface AccountNode {
   id: string
   accountCode: string

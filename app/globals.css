@@ -138,3 +138,45 @@
     @apply font-sans;
   }
 }
+/* =====================================================================
+   Member Portal — Print / Statement Mode
+   Hides the app chrome and renders a clean printable statement when
+   the user prints from the savings page.
+   ===================================================================== */
+@media print {
+  /* Hide everything by default while printing the statement. */
+  .portal-no-print {
+    display: none !important;
+  }
+  /* Show the printable statement block only in print. */
+  .portal-print-area {
+    display: block !important;
+  }
+  /* Reset page background and colors for paper. */
+  body {
+    background: #ffffff !important;
+  }
+  .portal-statement {
+    color: #111 !important;
+    padding: 0 !important;
+  }
+  .portal-statement table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  .portal-statement th,
+  .portal-statement td {
+    border: 1px solid #ddd !important;
+    padding: 6px 8px !important;
+    color: #111 !important;
+    background: #fff !important;
+  }
+  .portal-statement th {
+    background: #f5f5f5 !important;
+  }
+}
+
+/* On screen, the print area is hidden until print is triggered. */
+.portal-print-area {
+  display: none;
+}

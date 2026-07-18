@@ -10,5 +10,5 @@ export default async function PolicyPage() {
     content = { policyContent: "No policy content available yet. Please check back later." } as any
   }
 
-  return <PolicyClient content={content.policyContent || ""} />
+  return <PolicyClient content={content?.policyContent || ""} />
 }

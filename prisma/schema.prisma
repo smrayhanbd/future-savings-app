@@ -43,6 +43,19 @@ enum BloodGroup {
   O_NEGATIVE
 }
 
+enum WishType {
+  BIRTHDAY
+  MARRIAGE
+  JOINING
+  FESTIVAL
+}
+
+enum WishChannel {
+  SMS
+  EMAIL
+  BOTH
+}
+
 enum MemberStatus {
   PENDING
   ACTIVE
@@ -50,6 +63,7 @@ enum MemberStatus {
   SUSPENDED
   DECEASED
   CLOSED
+  REJECTED
 }
 
 // Member Model (Society Members)
@@ -127,6 +141,12 @@ model Member {
   loans          Loan[]
   loanRepayments LoanRepayment[]
   loanGuarantors LoanGuarantor[] @relation("LoanGuarantorMember")
+
+  // Special wishes
+  wishLogs SpecialWishLog[]
+
+  // Accounting
+  journalEntries JournalEntry[]
 
   // Audit
   createdAt DateTime  @default(now())
@@ -321,6 +341,7 @@ model JournalEntry {
   narration   String
   referenceNo String?
   memberId    String?      // optional link to a member (e.g. member payment)
+  member      Member?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
   status      JournalStatus @default(DRAFT)
   totalDebit  Decimal      @default(0) @db.Decimal(14, 2)
   totalCredit Decimal      @default(0) @db.Decimal(14, 2)
@@ -381,6 +402,41 @@ model Notification {
   message   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model Festival {
+  id        String   @id @default(uuid())
+  name      String
+  month     Int // 1-12
+  day       Int // 1-31
+  message   String?  @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  wishLogs SpecialWishLog[]
+
+  @@index([month, day])
+  @@index([isActive])
+}
+
+model SpecialWishLog {
+  id         String      @id @default(uuid())
+  type       WishType
+  memberId   String?
+  member     Member?     @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  festivalId String?
+  festival   Festival?   @relation(fields: [festivalId], references: [id], onDelete: SetNull)
+  message    String      @db.Text
+  channel    WishChannel
+  status     String // SENT, FAILED
+  error      String?     @db.Text
+  sentAt     DateTime    @default(now())
+
+  @@index([type])
+  @@index([memberId])
+  @@index([festivalId])
+  @@index([sentAt])
 }
 
 model MemberRequest {

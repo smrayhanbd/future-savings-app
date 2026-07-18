@@ -54,7 +54,7 @@ export default function FeeSetupForm({ chargeTypes, members }: { chargeTypes: an
             <Label htmlFor="name">Collection Type *</Label>
             {/* Hidden input ensures the correct ID is submitted to the server */}
             <input type="hidden" name="name" value={chargeTypeId} />
-            <Select value={chargeTypeId} onValueChange={setChargeTypeId} required>
+            <Select value={chargeTypeId} onValueChange={(v) => setChargeTypeId(v ?? "")} required>
               {/* Explicitly render the Name instead of relying on SelectValue */}
               <SelectTrigger id="name" className="w-full bg-white dark:bg-slate-950">
                 {chargeTypeId ? (
@@ -89,7 +89,7 @@ export default function FeeSetupForm({ chargeTypes, members }: { chargeTypes: an
             <Label>Apply To *</Label>
             <input type="hidden" name="targetType" value={targetType} />
             <input type="hidden" name="targetMemberIds" value={JSON.stringify(selectedMembers)} />
-            <Select value={targetType} onValueChange={setTargetType}>
+            <Select value={targetType} onValueChange={(v) => setTargetType(v ?? "")}>
               <SelectTrigger className="w-full bg-white dark:bg-slate-950"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {chargeTypes.filter(t => t.isActive).map((type) => (
@@ -125,7 +125,7 @@ export default function FeeSetupForm({ chargeTypes, members }: { chargeTypes: an
             <div className="space-y-2">
               <Label>Repeat Frequency *</Label>
               <input type="hidden" name="frequency" value={frequency} />
-              <Select value={frequency} onValueChange={setFrequency}>
+              <Select value={frequency} onValueChange={(v) => setFrequency(v ?? "")}>
                 <SelectTrigger className="w-full bg-white dark:bg-slate-950"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="NA">N/A (One-time)</SelectItem>
@@ -161,7 +161,7 @@ export default function FeeSetupForm({ chargeTypes, members }: { chargeTypes: an
             <div className="space-y-2">
               <Label className="text-red-600 dark:text-red-400">Apply Fine on Late Payment?</Label>
               <input type="hidden" name="hasFine" value={hasFine} />
-              <Select value={hasFine} onValueChange={setHasFine}>
+              <Select value={hasFine} onValueChange={(v) => setHasFine(v ?? "")}>
                 <SelectTrigger className="w-full bg-white dark:bg-slate-950"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="YES">Yes</SelectItem>

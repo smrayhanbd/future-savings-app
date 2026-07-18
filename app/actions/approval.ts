@@ -102,7 +102,18 @@ export async function approveMember(memberId: string) {
 // --- Reject and Delete Action ---
 export async function rejectMember(memberId: string) {
   await prisma.member.delete({ where: { id: memberId } })
-  
+
+  revalidatePath("/dashboard/approvals")
+  redirect("/dashboard/approvals")
+}
+
+// --- Reject with Remark Action ---
+export async function rejectMemberWithRemark(memberId: string, remark: string) {
+  await prisma.member.update({
+    where: { id: memberId },
+    data: { status: "REJECTED", remarks: remark || null },
+  })
+
   revalidatePath("/dashboard/approvals")
   redirect("/dashboard/approvals")
 }

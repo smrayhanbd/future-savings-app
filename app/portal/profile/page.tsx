@@ -5,10 +5,11 @@ import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import ProfileEditDialog from "./ProfileEditDialog"
-import { 
-  User, Phone, Mail, Home, Building, Banknote, CreditCard, 
-  FileText, Users, CalendarDays, Heart, Globe, Droplet, Briefcase, 
-  MapPin, ExternalLink, Scale, Hash 
+import PhotoUploadDialog from "./PhotoUploadDialog"
+import {
+  User, Phone, Mail, Home, Building, Banknote, CreditCard,
+  FileText, Users, CalendarDays, Heart, Globe, Droplet, Briefcase,
+  MapPin, ExternalLink, Scale, Hash, Clock
 } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
@@ -35,6 +36,18 @@ export default async function PortalProfilePage() {
     redirect("/portal")
   }
 
+  // Check if there is a pending photo update request so we can badge the avatar.
+  const pendingProfileRequests = await prisma.profileUpdateRequest.findMany({
+    where: { memberId, status: "PENDING" },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, payload: true, createdAt: true },
+    take: 5,
+  })
+  const pendingPhoto = pendingProfileRequests.find((r) => {
+    const p = r.payload as Record<string, unknown> | null
+    return p && typeof p === "object" && "photoUrl" in p
+  })
+
   const currentAddress = member.addresses.find((a) => a.addressType === "CURRENT")
   const permanentAddress = member.addresses.find((a) => a.addressType === "PERMANENT")
   
@@ -50,27 +63,47 @@ export default async function PortalProfilePage() {
       </div>
 
       {/* Profile Header Card */}
-      <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl overflow-hidden">
-        <div className="h-24 bg-gradient-to-r from-indigo-600 to-purple-600"></div>
-        <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between -mt-12">
+      <Card className="bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800/70 shadow-sm rounded-2xl overflow-hidden">
+        <div className="h-28 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 relative">
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute -top-8 -right-8 h-40 w-40 rounded-full bg-white/30 blur-3xl" />
+          </div>
+        </div>
+        <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between -mt-14">
           <div className="flex items-center gap-4">
-            {member.photoUrl ? (
-              <img src={member.photoUrl} alt="Member" className="w-24 h-24 rounded-full object-cover ring-4 ring-white dark:ring-slate-900 shadow-xl" />
-            ) : (
-              <div className="w-24 h-24 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-3xl font-bold text-indigo-600 ring-4 ring-white dark:ring-slate-900 shadow-xl">
-                {member.fullName.charAt(0)}
-              </div>
-            )}
+            <div className="relative">
+              {member.photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={member.photoUrl} alt="Member" className="w-24 h-24 rounded-2xl object-cover ring-4 ring-white dark:ring-slate-900 shadow-xl" />
+              ) : (
+                <div className="w-24 h-24 rounded-2xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-3xl font-bold text-indigo-600 ring-4 ring-white dark:ring-slate-900 shadow-xl">
+                  {member.fullName.charAt(0)}
+                </div>
+              )}
+              {pendingPhoto && (
+                <span className="absolute -bottom-1 -right-1 inline-flex items-center gap-1 rounded-full bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 shadow ring-2 ring-white dark:ring-slate-900">
+                  <Clock className="h-2.5 w-2.5" /> Pending
+                </span>
+              )}
+            </div>
             <div>
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">{member.fullName}</h2>
               <p className="text-sm font-mono text-slate-500 dark:text-slate-400">{member.memberNo} • {member.phone}</p>
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Badge variant={member.status === "ACTIVE" ? "default" : "secondary"} className={`uppercase text-xs px-2.5 py-1 rounded-full ${member.status === "ACTIVE" ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-amber-500/10 text-amber-600 border border-amber-500/20"}`}>
                   {member.status}
                 </Badge>
-                <ProfileEditDialog member={JSON.parse(JSON.stringify(member))} />
+                {member.kycVerified && (
+                  <Badge variant="outline" className="bg-indigo-500/10 text-indigo-600 border-indigo-500/20 text-xs px-2.5 py-1 rounded-full">
+                    KYC Verified
+                  </Badge>
+                )}
               </div>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <PhotoUploadDialog memberId={member.id} />
+            <ProfileEditDialog member={JSON.parse(JSON.stringify(member))} />
           </div>
         </CardContent>
       </Card>

@@ -477,6 +477,58 @@ export async function deleteMember(memberId: string) {
   await prisma.member.delete({
     where: { id: memberId },
   })
-  
+
+  revalidatePath("/dashboard/members")
+}
+
+// --- Toggle KYC Verification ---
+export async function setMemberKyc(memberId: string, kycVerified: boolean) {
+  await prisma.member.update({
+    where: { id: memberId },
+    data: { kycVerified },
+  })
+
+  revalidatePath(`/dashboard/members/${memberId}`)
+  revalidatePath("/dashboard/members")
+}
+
+// --- Bulk Update Status (Activate / Suspend / Inactive) ---
+export async function bulkUpdateMemberStatus(
+  memberIds: string[],
+  status: "ACTIVE" | "SUSPENDED" | "INACTIVE"
+) {
+  if (!memberIds.length) return
+
+  await prisma.member.updateMany({
+    where: { id: { in: memberIds } },
+    data: { status },
+  })
+
+  revalidatePath("/dashboard/members")
+}
+
+// --- Bulk Delete Members ---
+export async function bulkDeleteMembers(memberIds: string[]) {
+  if (!memberIds.length) return
+
+  // Cascade rules on the Member relations handle addresses/nominees/documents/savings.
+  await prisma.member.deleteMany({
+    where: { id: { in: memberIds } },
+  })
+
+  revalidatePath("/dashboard/members")
+}
+
+// --- Reject an Application (keep record as history with remark) ---
+export async function rejectMemberWithRemark(memberId: string, remark: string) {
+  await prisma.member.update({
+    where: { id: memberId },
+    data: {
+      status: "REJECTED",
+      remarks: remark?.trim() ? remark.trim() : "Application rejected by administrator.",
+    },
+  })
+
+  revalidatePath("/dashboard/approvals")
   revalidatePath("/dashboard/members")
 }

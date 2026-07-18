@@ -20,11 +20,12 @@ import { Separator } from "@/components/ui/separator"
 
 // Lucide Icons
 import {
-  LayoutDashboard, Users, Clock, Archive, PieChart, Landmark, 
-  ArrowDownUp, Receipt, Printer, CalendarCheck, Briefcase, Gem, 
-  CheckSquare, Heart, UserCog, Settings, Cloud, LogOut, 
-  ChevronLeft, ChevronRight, ChevronDown, Building2, 
-  Banknote, SlidersHorizontal, FilePlus2, HandCoins, AlertTriangle, type LucideIcon
+  LayoutDashboard, Users, Clock, Archive, PieChart, Landmark,
+  ArrowDownUp, Receipt, Printer, CalendarCheck, Briefcase, Gem,
+  CheckSquare, Heart, UserCog, Settings, Cloud, LogOut,
+  ChevronLeft, ChevronRight, ChevronDown, Building2,
+  Banknote, SlidersHorizontal, FilePlus2, HandCoins, AlertTriangle,
+  Scale, BarChart3, FileSpreadsheet, BookOpen, type LucideIcon
 } from "lucide-react"
 
 // --- Types ---
@@ -67,9 +68,19 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
       { label: "Fees & Charge Setup", icon: SlidersHorizontal, href: "/dashboard/collection-setup" },
       { label: "Chart of Accounts", icon: PieChart, href: "/dashboard/accounts" },
       { label: "Voucher Entry", icon: FilePlus2, href: "/dashboard/voucher-entry" },
-      { 
-        label: "Reports", 
-        icon: Printer, 
+      {
+        label: "Financial Statements",
+        icon: Scale,
+        href: "#",
+        subItems: [
+          { label: "Trial Balance", href: "/dashboard/financials/trial-balance" },
+          { label: "Balance Sheet", href: "/dashboard/financials/balance-sheet" },
+          { label: "Profit & Loss", href: "/dashboard/financials/profit-loss" }
+        ]
+      },
+      {
+        label: "Reports",
+        icon: Printer,
         href: "#",
         subItems: [
           { label: "Account Ledger", href: "/dashboard/account-ledger" },
