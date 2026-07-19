@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
@@ -16,6 +15,7 @@ import {
   Menu, Moon, Sun, Bell, User, Settings as SettingsIcon, LogOut,
   AlertCircle, CalendarClock, CheckCircle2, ChevronRight,
 } from "lucide-react"
+import { useMounted } from "@/lib/useMounted"
 
 export interface PortalNotification {
   id: string
@@ -73,9 +73,8 @@ export default function PortalTopbar({
   notifications?: PortalNotification[]
 }) {
   const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
+  const mounted = useMounted()
   const pageTitle = usePageTitle()
-  useEffect(() => setMounted(true), [])
 
   const initials = (memberName || "M").trim().charAt(0).toUpperCase()
   const unread = notifications.length

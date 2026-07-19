@@ -227,7 +227,21 @@ export default async function LoansHubPage() {
   )
 }
 
-function Kpi({ label, value, icon: Icon, color, bg, border }: any) {
+function Kpi({
+  label,
+  value,
+  icon: Icon,
+  color,
+  bg,
+  border,
+}: {
+  label: string
+  value: string
+  icon: React.ComponentType<{ className?: string }>
+  color: string
+  bg: string
+  border: string
+}) {
   return (
     <Card className={`bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border ${border} ${bg} shadow-sm rounded-2xl overflow-hidden`}>
       <CardContent className="p-3 flex flex-row items-center justify-between gap-2">

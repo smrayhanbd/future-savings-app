@@ -3,6 +3,7 @@
 // data structures for Trial Balance, Balance Sheet, and Profit & Loss.
 
 import prisma from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import type { AccountType } from "@/lib/accounting"
 
 // ---------------------------------------------------------------------------
@@ -34,7 +35,7 @@ export interface StatementSection {
 export function naturalBalance(
   account: {
     nature: string
-    openingBalance: any
+    openingBalance: Prisma.Decimal | number | null
   },
   sum: { debit: number; credit: number }
 ): number {
@@ -51,7 +52,7 @@ export async function loadAccountsWithMovements(opts?: {
   fromDate?: Date
   toDate?: Date
 }) {
-  const dateFilter: any = {}
+  const dateFilter: Prisma.DateTimeFilter = {}
   if (opts?.fromDate) dateFilter.gte = opts.fromDate
   if (opts?.toDate) {
     const end = new Date(opts.toDate)
@@ -88,7 +89,7 @@ export async function loadAccountsWithMovements(opts?: {
 
   return accounts.map((a) => {
     const sum = a.journalLines.reduce(
-      (acc: { debit: number; credit: number }, l: { debit: any; credit: any }) => {
+      (acc: { debit: number; credit: number }, l: { debit: Prisma.Decimal; credit: Prisma.Decimal }) => {
         acc.debit += Number(l.debit ?? 0)
         acc.credit += Number(l.credit ?? 0)
         return acc
@@ -111,7 +112,7 @@ export async function loadAccountsWithMovements(opts?: {
 /** Fetch opening-balance-only + period movement split for P&L comparison. */
 async function loadPeriodMovements(opts: { fromDate: Date; toDate: Date }) {
   const beforeFrom = { lt: opts.fromDate }
-  const within: any = { gte: opts.fromDate, lte: opts.toDate }
+  const within: Prisma.DateTimeFilter = { gte: opts.fromDate, lte: opts.toDate }
 
   const accounts = await prisma.account.findMany({
     where: { status: "ACTIVE" },

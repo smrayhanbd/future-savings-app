@@ -1,12 +1,36 @@
 "use server"
 
 import prisma from "@/lib/prisma"
+import { Prisma, Gender, BloodGroup, MaritalStatus, MemberStatus } from "@prisma/client"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { uploadImage } from "@/lib/cloudinary"
 import { sendEmail } from "@/lib/email"
 import { sendSMS } from "@/lib/sms"
 import { recalculateTrustScore } from "@/lib/trustScore"
+
+/** Nominee payload built from form data before being written via Prisma. */
+interface NomineeInput {
+  name: string
+  relation: string
+  phone: string
+  sharePercentage: number
+  idType: string
+  nidNumber: string
+  idDocumentUrl: string | null
+  photoUrl: string | null
+}
+
+/** Narrow an unknown catch value to a Prisma-like error with `.code` / `.meta`. */
+function prismaErrorMeta(e: unknown): { code?: string; target?: string[] } {
+  if (e && typeof e === "object" && "code" in e) {
+    const code = (e as { code: unknown }).code
+    const meta = "meta" in e ? (e as { meta?: { target?: unknown } }).meta : undefined
+    const target = Array.isArray(meta?.target) ? (meta!.target as string[]) : []
+    return { code: typeof code === "string" ? code : undefined, target }
+  }
+  return {}
+}
 
 // --- Add Member Action ---
 export async function addMember(formData: FormData, isPublic: boolean = false) {
@@ -111,7 +135,7 @@ export async function addMember(formData: FormData, isPublic: boolean = false) {
   }
 
   // Upload Nominees Data
-  const nomineesData: any[] = []
+  const nomineesData: NomineeInput[] = []
   let i = 0
   while (true) {
     const nomName = formData.get(`nom_${i}_name`) as string
@@ -122,10 +146,10 @@ export async function addMember(formData: FormData, isPublic: boolean = false) {
     const nomPhone = formData.get(`nom_${i}_phone`) as string
     const nomIdType = formData.get(`nom_${i}_idType`) as string
     const nomIdNumber = formData.get(`nom_${i}_idNumber`) as string
-    
+
     const nomPhotoFile = formData.get(`nom_${i}_photo`) as File
     const nomPhotoUrl = nomPhotoFile?.size > 0 ? await uploadImage(nomPhotoFile) : null
-    
+
     const nomIdDocFile = formData.get(`nom_${i}_idDoc`) as File
     const nomIdDocUrl = nomIdDocFile?.size > 0 ? await uploadImage(nomIdDocFile) : null
 
@@ -142,17 +166,17 @@ export async function addMember(formData: FormData, isPublic: boolean = false) {
   const memberNo = `M${String(memberCount + 1).padStart(4, "0")}`
 
   // 4. Save to Database (Fast transaction with no network uploads inside)
-  let member: any
+  let member: Prisma.MemberGetPayload<Record<string, never>>
   try {
     member = await prisma.$transaction(async (tx) => {
       const newMember = await tx.member.create({
         data: {
           memberNo, firstName, lastName, fullName, fatherName, motherName, spouseName,
           dateOfBirth: dob ? new Date(dob) : null,
-          gender: gender as any, religion, nationality,
-          bloodGroup: bloodGroup as any, profession,
+          gender: gender as Gender, religion, nationality,
+          bloodGroup: bloodGroup as BloodGroup, profession,
           phone, emergencyPhone, emergencyContactName, email,
-          maritalStatus: maritalStatus as any, marriageDate: marriageDate ? new Date(marriageDate) : null,
+          maritalStatus: maritalStatus as MaritalStatus, marriageDate: marriageDate ? new Date(marriageDate) : null,
           nidNumber, passportNumber, birthCertificateNo,
           accountName, accountNumber, bankName, branch, routingNumber,
           photoUrl: memberPhotoUrl,
@@ -197,12 +221,12 @@ export async function addMember(formData: FormData, isPublic: boolean = false) {
 
       return newMember
     })
-  } catch (error: any) {
-    if (error.code === 'P2002') {
+  } catch (error) {
+    const { code, target } = prismaErrorMeta(error)
+    if (code === 'P2002') {
       // Identify the actual unique field that collided (Prisma gives it in meta.target)
-      const target: string[] = Array.isArray(error?.meta?.target) ? error.meta.target : []
-      if (target.includes("phone")) throw new Error("DUPLICATE_PHONE")
-      if (target.includes("nidNumber") || target.includes("passportNumber") || target.includes("birthCertificateNo")) {
+      if (target?.includes("phone")) throw new Error("DUPLICATE_PHONE")
+      if (target?.includes("nidNumber") || target?.includes("passportNumber") || target?.includes("birthCertificateNo")) {
         throw new Error("DUPLICATE_ID")
       }
       // memberNo collisions (or any email-constraint race) default to a clear message
@@ -254,8 +278,8 @@ export async function addMember(formData: FormData, isPublic: boolean = false) {
 export async function registerMember(formData: FormData) {
   try {
     await addMember(formData, true)
-  } catch (error: any) {
-    const code = error?.message || ""
+  } catch (error) {
+    const code = error instanceof Error ? error.message : ""
     if (code === "DUPLICATE_BOTH") {
       return {
         error: "A member with this email & phone number already exists. Please use a different email and phone number.",
@@ -281,7 +305,7 @@ export async function registerMember(formData: FormData) {
       }
     }
     // Fallback: Prisma unique-constraint violation or legacy message
-    if (error?.code === 'P2002' || code.includes('already exists') || code.includes('Unique constraint')) {
+    if (prismaErrorMeta(error).code === 'P2002' || code.includes('already exists') || code.includes('Unique constraint')) {
       return {
         error: "A member with this email already exists. Please use a different email.",
         field: "email",
@@ -373,7 +397,7 @@ export async function updateMember(memberId: string, formData: FormData) {
   }
 
   // Upload Nominees Data
-  const nomineesData: any[] = []
+  const nomineesData: NomineeInput[] = []
   let i = 0
   while (true) {
     const nomName = formData.get(`nom_${i}_name`) as string
@@ -414,15 +438,15 @@ export async function updateMember(memberId: string, formData: FormData) {
           kycVerified: kycVerified,
           dateOfBirth: dob ? new Date(dob) : null,
           // ... rest of the fields
-          gender: gender as any, religion, nationality,
-          bloodGroup: bloodGroup as any, profession,
+          gender: gender as Gender, religion, nationality,
+          bloodGroup: bloodGroup as BloodGroup, profession,
           phone, emergencyPhone, emergencyContactName, email,
-          maritalStatus: maritalStatus as any, marriageDate: marriageDate ? new Date(marriageDate) : null,
+          maritalStatus: maritalStatus as MaritalStatus, marriageDate: marriageDate ? new Date(marriageDate) : null,
           nidNumber, passportNumber, birthCertificateNo,
           accountName, accountNumber, bankName, branch, routingNumber,
           photoUrl: memberPhotoUrl,
           referredByMemberId,
-          status: ((formData.get("memberStatus") as string) || "ACTIVE").toUpperCase() as any,
+          status: ((formData.get("memberStatus") as string) || "ACTIVE").toUpperCase() as MemberStatus,
         },
       })
 
@@ -459,12 +483,12 @@ export async function updateMember(memberId: string, formData: FormData) {
         })
       }
     })
-  } catch (error: any) {
-    if (error.code === 'P2002') {
+  } catch (error) {
+    if (prismaErrorMeta(error).code === 'P2002') {
       throw new Error("A member with this email already exists. Please use a different email.")
     }
     console.error("Failed to update member:", error)
-    throw error 
+    throw error
   }
 
   revalidatePath(`/dashboard/members/${memberId}`)

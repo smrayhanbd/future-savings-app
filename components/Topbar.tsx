@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useTheme } from "next-themes"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -14,13 +13,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useMounted } from "@/lib/useMounted"
 
-export default function Topbar({ onMenuClick, notifications = [] }: { onMenuClick: () => void, notifications?: any[] }) {
+/** A topbar notification row — the subset of the Notification model we render. */
+export interface TopbarNotification {
+  id: string
+  title: string
+  message: string
+}
+
+export default function Topbar({ onMenuClick, notifications = [] }: { onMenuClick: () => void, notifications?: TopbarNotification[] }) {
+  const mounted = useMounted()
   const { data: session } = useSession()
   const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => setMounted(true), [])
 
   return (
         <header className="z-40 relative flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 dark:border-slate-800 dark:bg-slate-950">
@@ -57,7 +62,7 @@ export default function Topbar({ onMenuClick, notifications = [] }: { onMenuClic
               {notifications.length === 0 ? (
                 <p className="text-sm text-slate-500 text-center py-6">No new notifications.</p>
               ) : (
-                notifications.map((notif: any) => (
+                notifications.map((notif) => (
                   <div key={notif.id} className="flex items-start gap-3 p-3 border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                     <div className="p-1.5 rounded-full bg-red-50 dark:bg-red-950/40 mt-0.5">
                       <AlertCircle className="h-4 w-4 text-red-600" />

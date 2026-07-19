@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { Prisma } from "@prisma/client"
 import { submitWithdrawalRequest } from "@/app/actions/portal"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,7 +13,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner"
 import { HandCoins, AlertCircle, CheckCircle2, Clock, XCircle } from "lucide-react"
 
-export default function MySavingsClient({ memberId, currentBalance, requests }: { memberId: string, currentBalance: number, requests: any[] }) {
+/** A withdrawal request row — subset of the Savings model rendered here. */
+interface WithdrawalRequest {
+  id: string
+  amount: Prisma.Decimal | number | null
+  createdAt: Date | string
+  method: string | null
+  notes: string | null
+  status: string
+}
+
+export default function MySavingsClient({ memberId, currentBalance, requests }: { memberId: string, currentBalance: number, requests: WithdrawalRequest[] }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [amount, setAmount] = useState("")
@@ -32,8 +43,8 @@ export default function MySavingsClient({ memberId, currentBalance, requests }: 
       await submitWithdrawalRequest(memberId, formData)
       toast.success("Request Submitted", { description: "Your withdrawal request is pending approval." })
       setOpen(false)
-    } catch (err: any) {
-      toast.error("Failed", { description: err.message })
+    } catch (err) {
+      toast.error("Failed", { description: err instanceof Error ? err.message : "Failed" })
       setLoading(false)
     }
   }

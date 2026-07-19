@@ -10,7 +10,13 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PlusCircle } from "lucide-react"
 
-export default function FeeSetupForm({ chargeTypes, members }: { chargeTypes: any[], members: any[] }) {
+export default function FeeSetupForm({
+  chargeTypes,
+  members,
+}: {
+  chargeTypes: { id: string; name: string; isActive: boolean }[]
+  members: { id: string; fullName: string; memberNo: string }[]
+}) {
   const [frequency, setFrequency] = useState("MONTHLY")
   const [hasFine, setHasFine] = useState("NO")
   const [targetType, setTargetType] = useState("ALL")

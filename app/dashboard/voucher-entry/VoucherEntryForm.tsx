@@ -210,8 +210,8 @@ export default function VoucherEntryForm({
       } else {
         toast.error("Could not save voucher", { description: res.error })
       }
-    } catch (e: any) {
-      toast.error("Unexpected error", { description: e.message })
+    } catch (e) {
+      toast.error("Unexpected error", { description: e instanceof Error ? e.message : "Failed" })
     } finally {
       setSubmitting(false)
     }
@@ -435,7 +435,7 @@ export default function VoucherEntryForm({
               <Label htmlFor="member" className="text-xs font-semibold">
                 Member (optional)
               </Label>
-              <Select value={memberId} onValueChange={(v: any) => setMemberId(v as string)}>
+              <Select value={memberId} onValueChange={(v) => setMemberId(v ?? "")}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Link to a member" />
                 </SelectTrigger>

@@ -22,14 +22,14 @@ export default async function FeesPage() {
 
   // Serialize Decimals/Dates for the client component.
   const serialized = {
-    members: members.map((m: any) => ({ ...m })),
-    fineTypes: fineTypes.map((t: any) => ({
+    members: members.map((m) => ({ ...m })),
+    fineTypes: fineTypes.map((t) => ({
       id: t.id,
       typeName: t.typeName,
       penaltyPoints: t.penaltyPoints,
       isActive: t.isActive,
     })),
-    fines: fines.map((f: any) => ({
+    fines: fines.map((f) => ({
       id: f.id,
       status: f.status,
       amount: Number(f.amount),

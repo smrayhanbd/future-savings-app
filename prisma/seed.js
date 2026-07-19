@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
@@ -7,11 +8,12 @@ async function main() {
   
   await prisma.user.upsert({
     where: { email: 'admin@foundation.com' },
-    update: {},
+    // Promote any pre-existing seeded admin to SUPER_ADMIN as well.
+    update: { role: 'SUPER_ADMIN' },
     create: {
       email: 'admin@foundation.com',
       password: hashedPassword,
-      role: 'ADMIN'
+      role: 'SUPER_ADMIN'
     },
   });
   

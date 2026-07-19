@@ -10,34 +10,65 @@ import { Textarea } from "@/components/ui/textarea"
 import { Plus, Trash2, Save, ChevronDown } from "lucide-react"
 import RichTextEditor from "@/components/RichTextEditor"
 
-interface ArrayItem { [key: string]: any }
+/** A single dynamic-list row (management, projects, activities, facilities). */
+interface ContentItem {
+  name?: string
+  role?: string
+  title?: string
+  status?: string
+  date?: string
+  description?: string
+  bio?: string
+  photoUrl?: string
+  _file?: File | null
+  [key: string]: unknown
+}
 
-export default function SiteContentForm({ content }: { content: any }) {
-  const [data, setData] = useState(content)
+/** Full site-content document held in form state. */
+interface SiteContentData {
+  heroTitle: string
+  heroSubtitle: string
+  aboutTitle: string
+  aboutContent: string
+  visionTitle: string
+  visionContent: string
+  transparency: string
+  policyContent: string
+  whyJoinUs: ContentItem[]
+  howWeRun: ContentItem[]
+  facilities: ContentItem[]
+  management: ContentItem[]
+  activities: ContentItem[]
+  projects: ContentItem[]
+  [key: string]: unknown
+}
+
+export default function SiteContentForm({ content }: { content: SiteContentData }) {
+  const [data, setData] = useState<SiteContentData>(content)
 
   const handleChange = (name: string, value: string) => {
-    setData((prev: any) => ({ ...prev, [name]: value }))
+    setData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleArrayChange = (arrayName: string, index: number, field: string, value: any) => {
-    const newArray = [...data[arrayName]]
+  const handleArrayChange = (arrayName: string, index: number, field: string, value: unknown) => {
+    const newArray = [...(data[arrayName] as ContentItem[])]
     newArray[index] = { ...newArray[index], [field]: value }
-    setData((prev: any) => ({ ...prev, [arrayName]: newArray }))
+    setData((prev) => ({ ...prev, [arrayName]: newArray }))
   }
 
   const addArrayItem = (arrayName: string, fields: string[]) => {
-    const newItem = fields.reduce((acc, f) => { acc[f] = ""; return acc }, {} as ArrayItem)
-    const newArray = [...data[arrayName], newItem]
-    setData((prev: any) => ({ ...prev, [arrayName]: newArray }))
+    const newItem = fields.reduce((acc, f) => { acc[f] = ""; return acc }, {} as ContentItem)
+    const newArray = [...(data[arrayName] as ContentItem[]), newItem]
+    setData((prev) => ({ ...prev, [arrayName]: newArray }))
   }
 
   const removeArrayItem = (arrayName: string, index: number) => {
-    const newArray = data[arrayName].filter((_: any, i: number) => i !== index)
-    setData((prev: any) => ({ ...prev, [arrayName]: newArray }))
+    const newArray = (data[arrayName] as ContentItem[]).filter((_, i) => i !== index)
+    setData((prev) => ({ ...prev, [arrayName]: newArray }))
   }
 
   // Helper to remove the temporary _file object before saving JSON
-  const cleanArray = (arr: any[]) => arr.map(({ _file, ...rest }) => rest)
+  const cleanArray = (arr?: ContentItem[]) => (arr ?? []).map(({ _file, ...rest }) => rest)
 
   return (
     <form action={(formData) => {
@@ -60,7 +91,7 @@ export default function SiteContentForm({ content }: { content: any }) {
       formData.append("projects", JSON.stringify(cleanArray(data.projects)))
 
       // Manually append File objects from state
-      const appendFiles = (arrayName: string, arr: any[]) => {
+      const appendFiles = (arrayName: string, arr: ContentItem[]) => {
         arr.forEach((item, i) => {
           if (item._file) {
             formData.append(`${arrayName}_${i}_photoUrl`, item._file)
@@ -121,13 +152,13 @@ export default function SiteContentForm({ content }: { content: any }) {
       </Card>
 
       {/* Dynamic Lists */}
-      <DynamicListEditor title="Management Committee" arrayName="management" items={data.management} fields={["name", "role", "photoUrl", "bio"]} labels={["Name", "Role", "Photo", "Short Bio"]} onAdd={(f: string[]) => addArrayItem("management", f)} onRemove={(i: number) => removeArrayItem("management", i)} onChange={(i: number, f: string, v: any) => handleArrayChange("management", i, f, v)} />
+      <DynamicListEditor title="Management Committee" arrayName="management" items={data.management} fields={["name", "role", "photoUrl", "bio"]} labels={["Name", "Role", "Photo", "Short Bio"]} onAdd={(f) => addArrayItem("management", f)} onRemove={(i) => removeArrayItem("management", i)} onChange={(i, f, v) => handleArrayChange("management", i, f, v)} />
 
-      <DynamicListEditor title="Projects" arrayName="projects" items={data.projects} fields={["title", "status", "photoUrl", "description"]} labels={["Project Title", "Status (e.g. Ongoing)", "Project Photo", "Description"]} onAdd={(f: string[]) => addArrayItem("projects", f)} onRemove={(i: number) => removeArrayItem("projects", i)} onChange={(i: number, f: string, v: any) => handleArrayChange("projects", i, f, v)} />
+      <DynamicListEditor title="Projects" arrayName="projects" items={data.projects} fields={["title", "status", "photoUrl", "description"]} labels={["Project Title", "Status (e.g. Ongoing)", "Project Photo", "Description"]} onAdd={(f) => addArrayItem("projects", f)} onRemove={(i) => removeArrayItem("projects", i)} onChange={(i, f, v) => handleArrayChange("projects", i, f, v)} />
 
-      <DynamicListEditor title="Recent Activities" arrayName="activities" items={data.activities} fields={["title", "date", "photoUrl", "description"]} labels={["Activity Title", "Date", "Activity Photo", "Description"]} onAdd={(f: string[]) => addArrayItem("activities", f)} onRemove={(i: number) => removeArrayItem("activities", i)} onChange={(i: number, f: string, v: any) => handleArrayChange("activities", i, f, v)} />
+      <DynamicListEditor title="Recent Activities" arrayName="activities" items={data.activities} fields={["title", "date", "photoUrl", "description"]} labels={["Activity Title", "Date", "Activity Photo", "Description"]} onAdd={(f) => addArrayItem("activities", f)} onRemove={(i) => removeArrayItem("activities", i)} onChange={(i, f, v) => handleArrayChange("activities", i, f, v)} />
 
-      <DynamicListEditor title="Facilities / Why Join Us" arrayName="facilities" items={data.facilities} fields={["title", "description"]} labels={["Facility Title", "Description"]} onAdd={(f: string[]) => addArrayItem("facilities", f)} onRemove={(i: number) => removeArrayItem("facilities", i)} onChange={(i: number, f: string, v: any) => handleArrayChange("facilities", i, f, v)} />
+      <DynamicListEditor title="Facilities / Why Join Us" arrayName="facilities" items={data.facilities} fields={["title", "description"]} labels={["Facility Title", "Description"]} onAdd={(f) => addArrayItem("facilities", f)} onRemove={(i) => removeArrayItem("facilities", i)} onChange={(i, f, v) => handleArrayChange("facilities", i, f, v)} />
 
       {/* Floating Save Button */}
       <div className="fixed bottom-6 right-6 z-50">
@@ -139,8 +170,19 @@ export default function SiteContentForm({ content }: { content: any }) {
   )
 }
 
+interface DynamicListEditorProps {
+  title: string
+  arrayName: string
+  items?: ContentItem[]
+  fields: string[]
+  labels: string[]
+  onAdd: (fields: string[]) => void
+  onRemove: (index: number) => void
+  onChange: (index: number, field: string, value: unknown) => void
+}
+
 // Reusable List Editor Component with Accordion and State-Managed Files
-function DynamicListEditor({ title, arrayName, items, fields, labels, onAdd, onRemove, onChange }: any) {
+function DynamicListEditor({ title, items = [], fields, labels, onAdd, onRemove, onChange }: DynamicListEditorProps) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(0)
 
   const handleAdd = () => {
@@ -156,9 +198,9 @@ function DynamicListEditor({ title, arrayName, items, fields, labels, onAdd, onR
       </CardHeader>
       <CardContent className="space-y-3">
         {items.length === 0 && <p className="text-sm text-slate-500 text-center py-4">No items added yet.</p>}
-        {items.map((item: any, index: number) => {
+        {items.map((item, index) => {
           const isExpanded = expandedIndex === index
-          const itemTitle = item[fields[0]] || `Item ${index + 1}`
+          const itemTitle = (item[fields[0]] as string) || `Item ${index + 1}`
 
           return (
             <div key={index} className="border border-slate-200 rounded-lg overflow-hidden bg-slate-50/50 dark:bg-slate-900/50">
@@ -210,9 +252,9 @@ function DynamicListEditor({ title, arrayName, items, fields, labels, onAdd, onR
                           />
                         </div>
                       ) : field === "description" || field === "bio" ? (
-                        <RichTextEditor value={item[field] || ""} onChange={(val) => onChange(index, field, val)} />
+                        <RichTextEditor value={(item[field] as string) || ""} onChange={(val) => onChange(index, field, val)} />
                       ) : (
-                        <Input value={item[field] || ""} onChange={(e) => onChange(index, field, e.target.value)} />
+                        <Input value={(item[field] as string) || ""} onChange={(e) => onChange(index, field, e.target.value)} />
                       )}
                     </div>
                   ))}

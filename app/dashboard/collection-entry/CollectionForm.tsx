@@ -322,7 +322,7 @@ export default function CollectionForm({ members, overview }: { members: Member[
         {/* Today's Overview (Real Data) */}
         <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl overflow-hidden">
            <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2"><ListChecks className="h-4 w-4 text-indigo-600" /> Today's Overview</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2"><ListChecks className="h-4 w-4 text-indigo-600" /> Today&apos;s Overview</h3>
           </div>
           <CardContent className="p-5 grid grid-cols-2 gap-4">
             <div>

@@ -144,12 +144,10 @@ export default function ChartOfAccountsClient({
     return ids
   }, [search, typeFilter, statusFilter, natureFilter, matches, accounts, byId])
 
-  // Keep expanded set in sync: when filtering, expand everything visible.
-  useEffect(() => {
-    if (visibleIds && visibleIds.size > 0) {
-      setExpanded(new Set(visibleIds))
-    }
-  }, [visibleIds])
+  // When a filter is active, treat every visible node as expanded so matches
+  // (and their ancestors) are shown. Derived during render instead of synced
+  // through an effect to avoid cascading renders.
+  const effectiveExpanded = visibleIds ?? expanded
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
@@ -494,7 +492,7 @@ export default function ChartOfAccountsClient({
         {viewMode === "tree" ? (
           <TreeTable
             accounts={accounts}
-            expanded={expanded}
+            expanded={effectiveExpanded}
             visibleIds={visibleIds}
             onToggle={toggleExpand}
             onSelect={setSelectedId}
@@ -937,7 +935,7 @@ function AccountDetailSheet({
               <AttrTag on={account.isCash} label="Cash Account" />
               <AttrTag on={account.allowPosting} label="Posting Allowed" />
               <AttrTag on={account.allowJournal} label="Journal Allowed" />
-              <AttrTag on={(account as any).taxDeductible} label="Tax Deductible" />
+              <AttrTag on={account.taxDeductible ?? false} label="Tax Deductible" />
             </div>
           </div>
 

@@ -4,6 +4,7 @@ import { sendEmail } from "@/lib/email"
 import { sendSMS } from "@/lib/sms"
 import bcrypt from "bcryptjs"
 import prisma from "@/lib/prisma"
+import { Prisma, Gender, BloodGroup, MaritalStatus } from "@prisma/client"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { uploadImage } from "@/lib/cloudinary"
@@ -57,13 +58,13 @@ async function generateAndSendCredentials(memberId: string) {
             <p>Please change your password after logging in for the first time.</p>
           `
         )
-      } catch (emailError: any) {
+      } catch (emailError) {
         console.error("Failed to send credentials email:", emailError)
         await prisma.notification.create({
           data: {
             type: "EMAIL_ERROR",
             title: "Email Failed to Send",
-            message: `Failed to send approval email to ${member.fullName} (${member.email}). Reason: ${emailError.message || "Unknown error"}`
+            message: `Failed to send approval email to ${member.fullName} (${member.email}). Reason: ${(emailError instanceof Error ? emailError.message : "") || "Unknown error"}`
           }
         })
       }
@@ -210,7 +211,7 @@ export async function approveApplication(memberId: string, formData: FormData) {
   }
 
   // Upload Nominees Data
-  const nomineesData: any[] = []
+  const nomineesData: Prisma.MemberNomineeCreateWithoutMemberInput[] = []
   let i = 0
   while (true) {
     const nomName = formData.get(`nom_${i}_name`) as string
@@ -247,10 +248,10 @@ export async function approveApplication(memberId: string, formData: FormData) {
         data: {
           firstName, lastName, fullName, fatherName, motherName, spouseName,
           dateOfBirth: dob ? new Date(dob) : null,
-          gender: gender as any, religion, nationality,
-          bloodGroup: bloodGroup as any, profession,
+          gender: gender as Gender, religion, nationality,
+          bloodGroup: bloodGroup as BloodGroup, profession,
           phone, emergencyPhone, emergencyContactName, email,
-          maritalStatus: maritalStatus as any, marriageDate: marriageDate ? new Date(marriageDate) : null,
+          maritalStatus: maritalStatus as MaritalStatus, marriageDate: marriageDate ? new Date(marriageDate) : null,
           nidNumber, passportNumber, birthCertificateNo,
           accountName, accountNumber, bankName, branch, routingNumber,
           photoUrl: memberPhotoUrl,

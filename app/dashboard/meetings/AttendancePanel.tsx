@@ -1,16 +1,21 @@
 "use client"
 
-// Meeting Attendance panel (FRS §5.4, §8.3).
+// Meeting Attendance panel (FRS §5.4, §8.3) — rules 5 & 6.
 //
 // Renders inside each meeting card. Members are listed with a three-way
 // segmented control (PRESENT / ABSENT / EXCUSED). The whole set is saved in
 // one call to markAttendance, which fires a Trust Score recalc per member.
+//
+// When `locked` is true (and canEdit false), the control becomes read-only:
+// the member's status is shown as a colored badge and Save is disabled.
+// Submission by an authorized normal user locks the record; only the Super
+// Admin can edit it afterwards (enforced server-side in markAttendance).
 
 import { useState, useTransition, useMemo } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { markAttendance } from "@/app/actions/meeting"
-import { Check, X, Clock, Save, Loader2, Users } from "lucide-react"
+import { Check, X, Clock, Save, Loader2, Users, Lock } from "lucide-react"
 
 interface Member {
   id: string
@@ -29,10 +34,14 @@ export default function AttendancePanel({
   meetingId,
   members,
   existing,
+  locked = false,
+  canEdit = true,
 }: {
   meetingId: string
   members: Member[]
   existing: Existing[]
+  locked?: boolean
+  canEdit?: boolean
 }) {
   // Seed local state from what's already recorded.
   const initial = useMemo(() => {
@@ -67,7 +76,7 @@ export default function AttendancePanel({
     }))
     startTransition(async () => {
       try {
-        await markAttendance(meetingId, rows, "COMMITTEE")
+        await markAttendance(meetingId, rows)
         toast.success(`Attendance saved for ${members.length} member(s). Trust scores updated.`)
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : "Failed to save attendance.")
@@ -91,17 +100,23 @@ export default function AttendancePanel({
             <span>{members.length} total</span>
           </span>
         </div>
-        <button
-          onClick={markAllPresent}
-          className="text-xs font-semibold text-indigo-600 hover:text-indigo-700"
-        >
-          Mark all present
-        </button>
+        {canEdit ? (
+          <button
+            onClick={markAllPresent}
+            className="text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+          >
+            Mark all present
+          </button>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600">
+            <Lock className="h-3 w-3" /> Locked — Super Admin only
+          </span>
+        )}
       </div>
 
       <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
         {members.length === 0 ? (
-          <p className="text-xs text-slate-400 italic py-3 text-center">No active members.</p>
+          <p className="text-xs text-slate-400 italic py-3 text-center">No eligible members.</p>
         ) : (
           members.map((m) => {
             const current = state.get(m.id) ?? "ABSENT"
@@ -115,9 +130,15 @@ export default function AttendancePanel({
                   <p className="text-[11px] font-mono text-slate-400">{m.memberNo}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <SegBtn active={current === "PRESENT"} onClick={() => set(m.id, "PRESENT")} tone="emerald" icon={<Check className="w-3 h-3" />} label="P" />
-                  <SegBtn active={current === "EXCUSED"} onClick={() => set(m.id, "EXCUSED")} tone="amber" icon={<Clock className="w-3 h-3" />} label="E" />
-                  <SegBtn active={current === "ABSENT"} onClick={() => set(m.id, "ABSENT")} tone="red" icon={<X className="w-3 h-3" />} label="A" />
+                  {canEdit ? (
+                    <>
+                      <SegBtn active={current === "PRESENT"} onClick={() => set(m.id, "PRESENT")} tone="emerald" icon={<Check className="w-3 h-3" />} label="P" />
+                      <SegBtn active={current === "EXCUSED"} onClick={() => set(m.id, "EXCUSED")} tone="amber" icon={<Clock className="w-3 h-3" />} label="E" />
+                      <SegBtn active={current === "ABSENT"} onClick={() => set(m.id, "ABSENT")} tone="red" icon={<X className="w-3 h-3" />} label="A" />
+                    </>
+                  ) : (
+                    <StatusBadge status={current} />
+                  )}
                 </div>
               </div>
             )
@@ -127,12 +148,12 @@ export default function AttendancePanel({
 
       <Button
         onClick={save}
-        disabled={pending || members.length === 0}
+        disabled={pending || members.length === 0 || !canEdit}
         size="sm"
         className="mt-3 w-full bg-indigo-600 hover:bg-indigo-700"
       >
         {pending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-        Save Attendance
+        {locked ? "Locked" : "Save Attendance"}
       </Button>
     </div>
   )
@@ -164,5 +185,20 @@ function SegBtn({
     >
       {icon}
     </button>
+  )
+}
+
+// Read-only status badge shown when attendance is locked for this user.
+function StatusBadge({ status }: { status: Att }) {
+  const map: Record<Att, { text: string; cls: string; icon: React.ReactNode }> = {
+    PRESENT: { text: "Present", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300", icon: <Check className="w-3 h-3" /> },
+    EXCUSED: { text: "Excused", cls: "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300", icon: <Clock className="w-3 h-3" /> },
+    ABSENT: { text: "Absent", cls: "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300", icon: <X className="w-3 h-3" /> },
+  }
+  const s = map[status]
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${s.cls}`}>
+      {s.icon} {s.text}
+    </span>
   )
 }

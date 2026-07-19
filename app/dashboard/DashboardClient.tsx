@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import AppSidebar from "@/components/AppSidebar"
-import Topbar from "@/components/Topbar"
+import Topbar, { type TopbarNotification } from "@/components/Topbar"
 
-export default function DashboardClient({ children, notifications }: { children: React.ReactNode, notifications: any[] }) {
+export default function DashboardClient({ children, notifications }: { children: React.ReactNode, notifications: TopbarNotification[] }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
   return (

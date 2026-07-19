@@ -12,11 +12,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner"
 import { Tag, Trash2, Pencil, AlertCircle } from "lucide-react"
 
-export default function CollectionTypeManager({ chargeTypes, usedNames }: { chargeTypes: any[], usedNames: string[] }) {
+/** A charge/collection type row — subset of the ChargeType model rendered here. */
+interface ChargeType {
+  id: string
+  name: string
+  isActive: boolean
+}
+
+export default function CollectionTypeManager({ chargeTypes, usedNames }: { chargeTypes: ChargeType[], usedNames: string[] }) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState("")
 
-  const handleEdit = (type: any) => {
+  const handleEdit = (type: ChargeType) => {
     setEditingId(type.id)
     setEditName(type.name)
   }
@@ -26,19 +33,19 @@ export default function CollectionTypeManager({ chargeTypes, usedNames }: { char
       await updateCollectionType(editingId!, editName)
       toast.success("Collection Type Updated")
       setEditingId(null)
-    } catch (error: any) {
-      toast.error("Error", { description: error.message })
+    } catch (error) {
+      toast.error("Error", { description: error instanceof Error ? error.message : "Failed" })
     }
   }
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete "${name}"?`)) return
-    
+
     try {
       await deleteCollectionType(id)
       toast.success("Collection Type Deleted")
-    } catch (error: any) {
-      toast.error("Cannot Delete", { description: error.message })
+    } catch (error) {
+      toast.error("Cannot Delete", { description: error instanceof Error ? error.message : "Failed" })
     }
   }
 
@@ -46,8 +53,8 @@ export default function CollectionTypeManager({ chargeTypes, usedNames }: { char
     try {
       await toggleCollectionTypeStatus(id, !currentStatus)
       toast.success(`Collection Type ${!currentStatus ? "Activated" : "Deactivated"}`)
-    } catch (error: any) {
-      toast.error("Error", { description: error.message })
+    } catch (error) {
+      toast.error("Error", { description: error instanceof Error ? error.message : "Failed" })
     }
   }
 

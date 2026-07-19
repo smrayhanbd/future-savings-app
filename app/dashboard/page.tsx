@@ -71,7 +71,15 @@ export default async function DashboardPage() {
   const totalBalanceOfSomiti = bankBookBalance + cashInHand + fundInInvestment
 
   // Helper component for compact horizontal cards
-  const StatCard = ({ stat }: { stat: any }) => (
+  interface StatCardItem {
+    label: string
+    value: string | number
+    icon: React.ComponentType<{ className?: string }>
+    color: string
+    bg: string
+    border: string
+  }
+  const StatCard = ({ stat }: { stat: StatCardItem }) => (
     <div className={`p-3 rounded-xl border ${stat.border} ${stat.bg} shadow-sm flex items-center gap-3`}>
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${stat.bg} border ${stat.border} shrink-0`}>
         <stat.icon className={`h-4 w-4 ${stat.color}`} />

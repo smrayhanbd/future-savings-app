@@ -9,7 +9,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner"
 import { Pencil } from "lucide-react"
 
-export default function ProfileEditDialog({ member }: { member: any }) {
+/** Subset of the Member model edited in the profile-update dialog. */
+interface EditableMember {
+  id: string
+  firstName: string
+  lastName: string
+  phone: string
+  email: string | null
+  fatherName: string | null
+  motherName: string | null
+  spouseName: string | null
+  profession: string | null
+}
+
+export default function ProfileEditDialog({ member }: { member: EditableMember }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 

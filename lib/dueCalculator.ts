@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client"
 
-type FeeSetup = Prisma.FeeSetupGetPayload<{}>
+type FeeSetup = Prisma.FeeSetupGetPayload<Record<string, never>>
 
 function stripTime(date: Date): Date {
   const d = new Date(date)
@@ -8,7 +8,14 @@ function stripTime(date: Date): Date {
   return d
 }
 
-export function calculateDues(memberId: string, joinDate: Date, setups: FeeSetup[], payments: any[]) {
+/** A payment row — the subset of the Savings model calculateDues consumes. */
+export interface DuePayment {
+  type: string
+  amount: Prisma.Decimal | number
+  date: Date
+}
+
+export function calculateDues(memberId: string, joinDate: Date, setups: FeeSetup[], payments: DuePayment[]) {
   let totalExpected = 0
   let totalFines = 0
   let totalPaid = 0
@@ -43,13 +50,13 @@ export function calculateDues(memberId: string, joinDate: Date, setups: FeeSetup
         }
       }
 
-      let periodStart = stripTime(new Date(setup.effectiveDate))
-      let periodEnd = nextSetup ? stripTime(new Date(nextSetup.effectiveDate)) : now
+      const periodStart = stripTime(new Date(setup.effectiveDate))
+      const periodEnd = nextSetup ? stripTime(new Date(nextSetup.effectiveDate)) : now
 
       if (periodStart > periodEnd) continue
 
-      let currentCycle = new Date(periodStart.getTime())
-      let safetyCounter = 0 
+      const currentCycle = new Date(periodStart.getTime())
+      let safetyCounter = 0
       
       const isLastSetup = !nextSetup
       while (isLastSetup ? (currentCycle <= periodEnd) : (currentCycle < periodEnd)) {
@@ -58,7 +65,7 @@ export function calculateDues(memberId: string, joinDate: Date, setups: FeeSetup
         
         totalExpected += Number(setup.amount)
         
-        let dueDate = new Date(currentCycle.getTime())
+        const dueDate = new Date(currentCycle.getTime())
         const dueDay = Number(setup.dueDay)
         
         if (setup.frequency === "WEEKLY") {

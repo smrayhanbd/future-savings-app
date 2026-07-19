@@ -301,11 +301,16 @@ model LedgerEntry {
 }
 
 // User Model (Admins & Staff)
+// role values: SUPER_ADMIN | ADMIN | MEMBER.
+//   - SUPER_ADMIN: full override; can edit locked attendance/minutes any time.
+//   - ADMIN: dashboard staff. Needs an explicit UserPermission row to submit
+//            attendance / upload minutes; submission locks the record.
 model User {
-  id       String @id @default(uuid())
-  email    String @unique
-  password String
-  role     String @default("ADMIN") // ADMIN, MANAGER, MEMBER
+  id          String          @id @default(uuid())
+  email       String          @unique
+  password    String
+  role        String          @default("ADMIN") // SUPER_ADMIN, ADMIN, MEMBER
+  permissions UserPermission[]
 }
 
 // Enums for Accounting
@@ -494,14 +499,46 @@ model MemberRequest {
   createdAt DateTime @default(now())
 }
 
+// Meeting minutes + attendance submission lifecycle.
+//   - Attendance: an authorized user submits once -> attendanceLocked=true.
+//   - Minutes:    an authorized user uploads once -> minutesLocked=true.
+//   - After lock: only SUPER_ADMIN can edit attendance or replace minutes.
 model Meeting {
   id          String              @id @default(uuid())
   title       String
   date        DateTime
-  location    String
+  // type: ONLINE | OFFLINE. location is used for OFFLINE, link for ONLINE.
+  type        String              @default("OFFLINE")
+  location    String?
+  link        String?
   agenda      String              @db.Text
   createdAt   DateTime            @default(now())
   attendances MeetingAttendance[]
+
+  // Attendance submission lifecycle
+  attendanceLocked      Boolean    @default(false)
+  attendanceSubmittedAt DateTime?
+  attendanceSubmittedBy String?
+
+  // Meeting minutes file
+  minutesUrl          String?
+  minutesFileName     String?
+  minutesUploadedAt   DateTime?
+  minutesUploadedBy   String?
+  minutesLocked       Boolean @default(false)
+}
+
+// Per-user permission grants (the "authorized normal users" of rules 5 & 6).
+// permission values: MEETING_ATTENDANCE_MARK | MEETING_MINUTES_UPLOAD.
+model UserPermission {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission String
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, permission])
+  @@index([userId])
 }
 
 model ProfileUpdateRequest {

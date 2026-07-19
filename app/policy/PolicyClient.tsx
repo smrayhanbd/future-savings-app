@@ -1,16 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Building2, ArrowRight, Sun, Moon } from "lucide-react"
+import { useMounted } from "@/lib/useMounted"
 
 function ThemeToggle() {
-  const [mounted, setMounted] = useState(false)
+  const mounted = useMounted()
   const { theme, setTheme } = useTheme()
-
-  useEffect(() => setMounted(true), [])
 
   if (!mounted) return null
 

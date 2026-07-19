@@ -471,7 +471,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
 }
 
 // Premium Reusable Info Item Component
-function InfoItem({ icon: Icon, label, value, vertical }: { icon: any, label: string, value: string | null | undefined, vertical?: boolean }) {
+function InfoItem({ icon: Icon, label, value, vertical }: { icon: React.ComponentType<{ className?: string }>, label: string, value: string | null | undefined, vertical?: boolean }) {
   return (
     <div className={`flex ${vertical ? 'flex-col gap-1' : 'items-start gap-2.5'}`}>
       {!vertical && (
@@ -488,7 +488,7 @@ function InfoItem({ icon: Icon, label, value, vertical }: { icon: any, label: st
 }
 
 // Premium Reusable Address Display Component
-function AddressDisplay({ address }: { address: any }) {
+function AddressDisplay({ address }: { address: { village?: string | null; postOffice?: string | null; district?: string | null; postalCode?: string | null } | null | undefined }) {
   if (!address) return <p className="text-xs text-slate-500 italic">Not provided</p>;
   return (
     <div className="space-y-2 text-xs">

@@ -33,8 +33,8 @@ export default function LoanProductManager({ products }: { products: ProductRow[
     try {
       await toggleLoanProductStatus(id, !current)
       toast.success(`Product ${!current ? "activated" : "deactivated"}`)
-    } catch (e: any) {
-      toast.error("Error", { description: e.message })
+    } catch (e) {
+      toast.error("Error", { description: e instanceof Error ? e.message : "Failed" })
     }
   }
 
@@ -43,8 +43,8 @@ export default function LoanProductManager({ products }: { products: ProductRow[
     try {
       await deleteLoanProduct(id)
       toast.success("Product deleted")
-    } catch (e: any) {
-      toast.error("Cannot delete", { description: e.message })
+    } catch (e) {
+      toast.error("Cannot delete", { description: e instanceof Error ? e.message : "Failed" })
     }
   }
 

@@ -117,14 +117,14 @@ export default function LoanDetailClient({ loan }: { loan: LoanDetailData }) {
     ? Math.min(100, Math.round(((loan.principalPaid + loan.interestPaid + loan.finePaid) / loan.totalPayable) * 100))
     : 0
 
-  const wrap = async (fn: () => Promise<any>, msg: string) => {
+  const wrap = async (fn: () => Promise<unknown>, msg: string) => {
     setBusy(true)
     try {
       await fn()
       toast.success(msg)
       router.refresh()
-    } catch (e: any) {
-      toast.error("Action failed", { description: e.message })
+    } catch (e) {
+      toast.error("Action failed", { description: e instanceof Error ? e.message : "Failed" })
       setBusy(false)
     }
   }
@@ -403,7 +403,21 @@ export default function LoanDetailClient({ loan }: { loan: LoanDetailData }) {
   )
 }
 
-function SummaryCard({ label, value, icon: Icon, color, bg, border }: any) {
+function SummaryCard({
+  label,
+  value,
+  icon: Icon,
+  color,
+  bg,
+  border,
+}: {
+  label: string
+  value: string
+  icon: React.ComponentType<{ className?: string }>
+  color: string
+  bg: string
+  border: string
+}) {
   return (
     <Card className={`bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border ${border} ${bg} shadow-sm rounded-2xl overflow-hidden`}>
       <CardContent className="p-3 flex flex-row items-center justify-between gap-2">

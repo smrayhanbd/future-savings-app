@@ -43,15 +43,15 @@ export default function ApplicationsTable({ applications }: { applications: Appl
   const [rejectId, setRejectId] = useState<string | null>(null)
   const [reason, setReason] = useState("")
 
-  const run = async (id: string, fn: () => Promise<any>, msg: string, close?: () => void) => {
+  const run = async (id: string, fn: () => Promise<unknown>, msg: string, close?: () => void) => {
     setBusyId(id)
     try {
       await fn()
       toast.success(msg)
       close?.()
       router.refresh()
-    } catch (e: any) {
-      toast.error("Failed", { description: e.message })
+    } catch (e) {
+      toast.error("Failed", { description: e instanceof Error ? e.message : "Failed" })
     } finally {
       setBusyId(null)
     }

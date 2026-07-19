@@ -1,103 +1,110 @@
 import prisma from "@/lib/prisma"
-import { createMeeting } from "@/app/actions/meeting"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
-import { CalendarDays, MapPin, ClipboardList } from "lucide-react"
-import AttendancePanel from "./AttendancePanel"
+import { PERMISSIONS, isSuperAdmin } from "@/lib/permissions"
+import { resolveCurrentUser } from "@/app/actions/meeting"
+import MeetingsClient from "./MeetingsClient"
 
 export const dynamic = "force-dynamic"
 
+// Active members eligible to attend a given meeting. Rule 7:
+//   - exclude INACTIVE / SUSPENDED (only ACTIVE shown)
+//   - exclude members whose join date is after the meeting date
+//     (joiningDate falls back to membershipDate when null)
+function eligibleMembersFor(
+  members: { id: string; fullName: string; memberNo: string; joiningDate: Date | null; membershipDate: Date }[],
+  meetingDate: Date
+) {
+  return members
+    .filter((m) => {
+      const join = m.joiningDate ?? m.membershipDate
+      return join.getTime() <= meetingDate.getTime()
+    })
+    .map((m) => ({ id: m.id, fullName: m.fullName, memberNo: m.memberNo }))
+}
+
 export default async function MeetingsPage() {
-  const [meetings, members] = await Promise.all([
+  const now = new Date()
+
+  const [meetings, members, currentUser, usersWithRoles, allPermissions] = await Promise.all([
     prisma.meeting.findMany({
       orderBy: { date: "desc" },
       include: { attendances: { select: { memberId: true, status: true } } },
     }),
+    // Rule 7 part 1: only ACTIVE members are ever eligible.
     prisma.member.findMany({
-      where: { status: { in: ["ACTIVE", "SUSPENDED"] } },
-      select: { id: true, fullName: true, memberNo: true },
+      where: { status: "ACTIVE" },
+      select: { id: true, fullName: true, memberNo: true, joiningDate: true, membershipDate: true },
       orderBy: { fullName: "asc" },
     }),
+    resolveCurrentUser(),
+    prisma.user.findMany({
+      select: { id: true, email: true, role: true },
+      orderBy: { email: "asc" },
+    }),
+    prisma.userPermission.findMany({ select: { userId: true, permission: true } }),
   ])
 
-  // Serialize for the client AttendancePanel.
-  const memberList = members.map((m: any) => ({
+  const superAdmin = isSuperAdmin(currentUser)
+
+  // Permission grant lookup → userId → Set<permission>
+  const permMap = new Map<string, Set<string>>()
+  for (const p of allPermissions) {
+    if (!permMap.has(p.userId)) permMap.set(p.userId, new Set())
+    permMap.get(p.userId)!.add(p.permission)
+  }
+
+  // Split by date into Upcoming / Past (rule 3).
+  type SerializedMeeting = {
+    id: string
+    title: string
+    date: string
+    type: string
+    location: string | null
+    link: string | null
+    agenda: string
+    createdAt: string
+    attendanceLocked: boolean
+    minutesUrl: string | null
+    minutesFileName: string | null
+    minutesLocked: boolean
+    members: { id: string; fullName: string; memberNo: string }[]
+    attendances: { memberId: string; status: "PRESENT" | "ABSENT" | "EXCUSED" }[]
+  }
+
+  const serialize = (m: typeof meetings[number]): SerializedMeeting => ({
     id: m.id,
-    fullName: m.fullName,
-    memberNo: m.memberNo,
-  }))
+    title: m.title,
+    date: m.date.toISOString(),
+    type: m.type,
+    location: m.location,
+    link: m.link,
+    agenda: m.agenda,
+    createdAt: m.createdAt.toISOString(),
+    attendanceLocked: m.attendanceLocked,
+    minutesUrl: m.minutesUrl,
+    minutesFileName: m.minutesFileName,
+    minutesLocked: m.minutesLocked,
+    members: eligibleMembersFor(members, m.date),
+    attendances: m.attendances.map((a) => ({
+      memberId: a.memberId,
+      status: a.status as "PRESENT" | "ABSENT" | "EXCUSED",
+    })),
+  })
+
+  const upcoming = meetings.filter((m) => m.date.getTime() >= now.getTime()).map(serialize)
+  const past = meetings.filter((m) => m.date.getTime() < now.getTime()).map(serialize)
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Meeting Management</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">Declare meetings, notify members, and record attendance.</p>
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Declare Meeting Form */}
-        <Card className="lg:col-span-1 bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800">
-          <CardHeader><CardTitle>Declare New Meeting</CardTitle></CardHeader>
-          <CardContent>
-            <form action={createMeeting} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Meeting Title *</Label>
-                <Input id="title" name="title" required placeholder="Monthly General Meeting" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="date">Date &amp; Time *</Label>
-                <Input id="date" name="date" type="datetime-local" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="location">Location *</Label>
-                <Input id="location" name="location" required placeholder="Foundation Office, Room 101" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="agenda">Agenda</Label>
-                <Textarea id="agenda" name="agenda" rows={4} placeholder="Discuss monthly savings and upcoming projects..." />
-              </div>
-              <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700">Declare &amp; Notify Members</Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Meetings List */}
-        <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Upcoming &amp; Past Meetings</h2>
-          {meetings.length === 0 ? (
-            <Card className="bg-white dark:bg-slate-900 border-dashed border-slate-300 dark:border-slate-700">
-              <CardContent className="py-12 text-center text-slate-500">No meetings declared yet.</CardContent>
-            </Card>
-          ) : (
-            meetings.map((m: any) => (
-              <Card key={m.id} className="bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 mb-2">{m.title}</h3>
-                  <div className="flex flex-wrap gap-4 text-sm text-slate-600 dark:text-slate-300 mb-4">
-                    <span className="flex items-center gap-1.5"><CalendarDays className="h-4 w-4 text-slate-400" /> {new Date(m.date).toLocaleString()}</span>
-                    <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4 text-slate-400" /> {m.location}</span>
-                  </div>
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg text-sm text-slate-600 dark:text-slate-300 mb-2">
-                    <span className="font-bold flex items-center gap-1.5 mb-1"><ClipboardList className="h-4 w-4" /> Agenda:</span>
-                    {m.agenda}
-                  </div>
-
-                  {/* Attendance marking — always available so attendance can be
-                      recorded or amended for past meetings too. */}
-                  <AttendancePanel
-                    meetingId={m.id}
-                    members={memberList}
-                    existing={m.attendances.map((a: any) => ({ memberId: a.memberId, status: a.status }))}
-                  />
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
+    <MeetingsClient
+      upcoming={upcoming}
+      past={past}
+      isSuperAdmin={superAdmin}
+      adminUsers={usersWithRoles.map((u) => ({
+        id: u.id,
+        email: u.email,
+        role: u.role,
+        canMarkAttendance: permMap.get(u.id)?.has(PERMISSIONS.MEETING_ATTENDANCE_MARK) ?? false,
+        canUploadMinutes: permMap.get(u.id)?.has(PERMISSIONS.MEETING_MINUTES_UPLOAD) ?? false,
+      }))}
+    />
   )
 }

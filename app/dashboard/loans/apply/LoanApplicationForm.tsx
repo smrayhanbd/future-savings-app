@@ -158,8 +158,8 @@ export default function LoanApplicationForm({
     try {
       await applyLoan(fd)
       toast.success("Loan application submitted", { description: "Awaiting approval." })
-    } catch (e: any) {
-      toast.error("Could not submit", { description: e.message })
+    } catch (e) {
+      toast.error("Could not submit", { description: e instanceof Error ? e.message : "Failed" })
     }
   }
 
@@ -170,8 +170,8 @@ export default function LoanApplicationForm({
     try {
       await quickDisburseLoan(fd)
       toast.success("Loan disbursed", { description: "The loan is now active." })
-    } catch (e: any) {
-      toast.error("Could not disburse", { description: e.message })
+    } catch (e) {
+      toast.error("Could not disburse", { description: e instanceof Error ? e.message : "Failed" })
     }
   }
 

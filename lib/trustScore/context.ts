@@ -9,7 +9,7 @@ import { Prisma } from "@prisma/client"
 import { calculateDues } from "@/lib/dueCalculator"
 
 // FeeSetup payload type — matches what prisma.feeSetup.findMany returns.
-type FeeSetup = Prisma.FeeSetupGetPayload<{}>
+type FeeSetup = Prisma.FeeSetupGetPayload<Record<string, never>>
 
 /** A single deposit cycle due: when it was due and whether it was paid on time. */
 export interface DepositCycle {

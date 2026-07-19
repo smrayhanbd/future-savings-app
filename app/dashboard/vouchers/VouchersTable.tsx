@@ -183,7 +183,7 @@ export default function VouchersTable({ entries }: { entries: VoucherEntry[] }) 
           </div>
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-slate-400" />
-            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
+            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as VoucherType | "ALL")}>
               <SelectTrigger className="w-36 bg-white dark:bg-slate-950">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
@@ -195,7 +195,7 @@ export default function VouchersTable({ entries }: { entries: VoucherEntry[] }) 
                 <SelectItem value="CONTRA">Contra</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as JournalStatus | "ALL")}>
               <SelectTrigger className="w-32 bg-white dark:bg-slate-950">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>

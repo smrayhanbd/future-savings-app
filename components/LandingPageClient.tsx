@@ -1,16 +1,45 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { 
-  Building2, ShieldCheck, TrendingUp, Wallet, Users, Receipt, 
-  ArrowRight, CheckCircle2, Lock, Sun, Moon, Sparkles, ChevronDown 
+import {
+  Building2, ShieldCheck, TrendingUp, Wallet, Users, Receipt,
+  ArrowRight, CheckCircle2, Lock, Sun, Moon, Sparkles, ChevronDown
 } from "lucide-react"
+import { useMounted } from "@/lib/useMounted"
+
+/** Landing-page content item rendered in the facilities/projects/etc. lists. */
+interface LandingContentItem {
+  title?: string
+  name?: string
+  role?: string
+  status?: string
+  date?: string
+  description?: string
+  bio?: string
+  photoUrl?: string
+  icon?: string
+}
+
+/** Shape of the SiteContent document consumed by the landing page. */
+export interface LandingContent {
+  heroTitle?: string
+  heroSubtitle?: string
+  aboutTitle?: string
+  aboutContent?: string
+  visionTitle?: string
+  visionContent?: string
+  transparency?: string
+  facilities?: LandingContentItem[]
+  management?: LandingContentItem[]
+  projects?: LandingContentItem[]
+  activities?: LandingContentItem[]
+}
 
 // Premium Animation Variants
 const container = {
@@ -24,10 +53,8 @@ const item = {
 }
 
 function ThemeToggle() {
-  const [mounted, setMounted] = useState(false)
+  const mounted = useMounted()
   const { theme, setTheme } = useTheme()
-
-  useEffect(() => setMounted(true), [])
 
   if (!mounted) return null
 
@@ -42,7 +69,7 @@ function ThemeToggle() {
   )
 }
 
-export default function LandingPageClient({ content }: { content: any }) {
+export default function LandingPageClient({ content }: { content: LandingContent }) {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 transition-colors duration-300">
       
@@ -106,7 +133,7 @@ export default function LandingPageClient({ content }: { content: any }) {
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
               {content.heroTitle}
             </h1>
-            <div className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-10 leading-relaxed prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content.heroSubtitle }} />
+            <div className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-10 leading-relaxed prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content.heroSubtitle || "" }} />
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/register">
                 <Button size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-base h-12 px-8 shadow-lg shadow-indigo-500/30">
@@ -131,12 +158,12 @@ export default function LandingPageClient({ content }: { content: any }) {
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-6">{content.aboutTitle}</h2>
-            <div className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content.aboutContent }} />
+            <div className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content.aboutContent || "" }} />
             <div className="flex items-start gap-4 p-6 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl border border-indigo-100 dark:border-indigo-900/50">
               <ShieldCheck className="h-8 w-8 text-indigo-600 dark:text-indigo-400 shrink-0" />
               <div>
                 <h3 className="font-bold text-indigo-900 dark:text-indigo-300 mb-2 text-lg">{content.visionTitle}</h3>
-                <div className="text-indigo-700 dark:text-indigo-400 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content.visionContent }} />
+                <div className="text-indigo-700 dark:text-indigo-400 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content.visionContent || "" }} />
               </div>
             </div>
           </motion.div>
@@ -148,14 +175,14 @@ export default function LandingPageClient({ content }: { content: any }) {
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            {(content.facilities as any[]).map((fac, i) => (
+            {(content.facilities ?? []).map((fac, i) => (
               <Card key={i} className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden h-full">
                 <CardContent className="p-6">
                   <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center mb-4">
                     <CheckCircle2 className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                   </div>
                   <h4 className="font-bold text-slate-900 dark:text-white mb-2 text-lg">{fac.title}</h4>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: fac.description }} />
+                  <div className="text-sm text-slate-600 dark:text-slate-400 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: fac.description || "" }} />
                 </CardContent>
               </Card>
             ))}
@@ -177,7 +204,7 @@ export default function LandingPageClient({ content }: { content: any }) {
             <Lock className="h-8 w-8 text-white" />
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Transparency & Reporting</h2>
-          <div className="text-lg text-indigo-100 prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content.transparency }} />
+          <div className="text-lg text-indigo-100 prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content.transparency || "" }} />
         </motion.div>
       </section>
 
@@ -202,7 +229,7 @@ export default function LandingPageClient({ content }: { content: any }) {
             whileInView="visible"
             viewport={{ once: true, amount: 0.1 }}
           >
-            {(content.management as any[]).map((member, i) => (
+            {(content.management ?? []).map((member, i) => (
               <motion.div
                 key={i}
                 variants={item}
@@ -215,7 +242,7 @@ export default function LandingPageClient({ content }: { content: any }) {
                     </div>
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white">{member.name}</h3>
                     <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium mb-4 mt-1">{member.role}</p>
-                    <div className="text-sm text-slate-500 dark:text-slate-400 prose dark:prose-invert max-w-none text-left" dangerouslySetInnerHTML={{ __html: member.bio }} />
+                    <div className="text-sm text-slate-500 dark:text-slate-400 prose dark:prose-invert max-w-none text-left" dangerouslySetInnerHTML={{ __html: member.bio || "" }} />
                   </CardContent>
                 </Card>
               </motion.div>
@@ -248,7 +275,7 @@ export default function LandingPageClient({ content }: { content: any }) {
             >
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-3"><TrendingUp className="h-7 w-7 text-indigo-600 dark:text-indigo-400" /> Ongoing Projects</h3>
               <div className="space-y-6">
-                {(content.projects as any[]).map((proj, i) => (
+                {(content.projects ?? []).map((proj, i) => (
                   <div key={i} className="p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl hover:shadow-lg transition-all duration-300 overflow-hidden">
                     <div className="flex flex-col sm:flex-row gap-6">
                       {proj.photoUrl && <img src={proj.photoUrl} alt={proj.title} className="w-full sm:w-28 h-28 object-cover rounded-xl shadow-sm" />}
@@ -257,7 +284,7 @@ export default function LandingPageClient({ content }: { content: any }) {
                           <h4 className="font-bold text-lg text-slate-900 dark:text-white">{proj.title}</h4>
                           <span className="text-xs font-bold px-3 py-1 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full">{proj.status}</span>
                         </div>
-                        <div className="text-sm text-slate-600 dark:text-slate-400 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: proj.description }} />
+                        <div className="text-sm text-slate-600 dark:text-slate-400 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: proj.description || "" }} />
                       </div>
                     </div>
                   </div>
@@ -274,7 +301,7 @@ export default function LandingPageClient({ content }: { content: any }) {
             >
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-3"><Receipt className="h-7 w-7 text-emerald-600 dark:text-emerald-400" /> Recent Activities</h3>
               <div className="space-y-6">
-                {(content.activities as any[]).map((act, i) => (
+                {(content.activities ?? []).map((act, i) => (
                   <div key={i} className="p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl hover:shadow-lg transition-all duration-300 overflow-hidden">
                     <div className="flex flex-col sm:flex-row gap-6">
                       {act.photoUrl && <img src={act.photoUrl} alt={act.title} className="w-full sm:w-28 h-28 object-cover rounded-xl shadow-sm" />}
@@ -283,7 +310,7 @@ export default function LandingPageClient({ content }: { content: any }) {
                           <h4 className="font-bold text-lg text-slate-900 dark:text-white">{act.title}</h4>
                           <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">{act.date}</span>
                         </div>
-                        <div className="text-sm text-slate-600 dark:text-slate-400 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: act.description }} />
+                        <div className="text-sm text-slate-600 dark:text-slate-400 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: act.description || "" }} />
                       </div>
                     </div>
                   </div>

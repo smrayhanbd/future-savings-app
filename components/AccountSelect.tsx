@@ -25,6 +25,8 @@ export interface FlatAccount {
   accountType: AccountType
   /** Optional depth used to indent nested accounts in the list. */
   depth?: number
+  /** Optional posting flag carried over from the full Account node. */
+  allowPosting?: boolean
 }
 
 interface AccountSelectProps {
@@ -66,7 +68,7 @@ export default function AccountSelect({
     if (postingOnly) {
       // Posting-only flag isn't always present on the flat type; if absent,
       // fall back to showing everything.
-      list = list.filter((a) => (a as any).allowPosting !== false)
+      list = list.filter((a) => a.allowPosting !== false)
     }
     if (query.trim()) {
       const q = query.toLowerCase()
@@ -93,7 +95,11 @@ export default function AccountSelect({
   const selected = accounts.find((a) => a.id === value)
 
   return (
-    <Select value={value} onValueChange={(v: any) => onValueChange(v as string)} items={filtered as any}>
+    <Select
+      value={value}
+      onValueChange={(v) => onValueChange(v ?? "")}
+      items={filtered.map((a) => ({ label: a.accountName, value: a.id }))}
+    >
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder}>
           {selected ? (

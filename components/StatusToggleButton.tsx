@@ -3,16 +3,17 @@
 import { Button } from "@/components/ui/button"
 import { PauseCircle, PlayCircle } from "lucide-react"
 import { updateMemberStatus } from "@/app/actions/member"
+import type { MemberStatus } from "@prisma/client"
 
 export default function StatusToggleButton({ memberId, status }: { memberId: string, status: string }) {
   const isSuspended = status === "SUSPENDED" || status === "INACTIVE"
 
   const handleClick = () => {
-    const newStatus = isSuspended ? "ACTIVE" : "SUSPENDED"
+    const newStatus: MemberStatus = isSuspended ? "ACTIVE" : "SUSPENDED"
     const actionText = isSuspended ? "activate" : "suspend"
-    
+
     if (confirm(`Are you sure you want to ${actionText} this member?`)) {
-      updateMemberStatus(memberId, newStatus as any)
+      updateMemberStatus(memberId, newStatus)
     }
   }
 

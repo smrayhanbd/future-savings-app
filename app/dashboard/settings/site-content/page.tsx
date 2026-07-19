@@ -11,10 +11,10 @@ export default async function ManageSiteContentPage() {
     content = {
       id: "singleton",
       heroTitle: "", heroSubtitle: "", aboutTitle: "", aboutContent: "",
-      visionTitle: "", visionContent: "", transparency: "",
+      visionTitle: "", visionContent: "", transparency: "", policyContent: "",
       whyJoinUs: [], howWeRun: [], facilities: [], management: [], activities: [], projects: [],
       updatedAt: new Date()
-    } as any
+    }
   }
 
   return (

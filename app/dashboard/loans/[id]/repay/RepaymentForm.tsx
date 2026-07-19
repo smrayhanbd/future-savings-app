@@ -65,8 +65,8 @@ export default function RepaymentForm({ loan }: { loan: RepaymentLoanData }) {
       })
       toast.success("Repayment recorded", { description: `Receipt for ${loan.memberName}` })
       router.push(`/dashboard/loans/${loan.id}`)
-    } catch (e: any) {
-      toast.error("Could not record repayment", { description: e.message })
+    } catch (e) {
+      toast.error("Could not record repayment", { description: e instanceof Error ? e.message : "Failed" })
       setSaving(false)
     }
   }

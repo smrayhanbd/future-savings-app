@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
@@ -95,7 +95,7 @@ export default function AccountModal({
         accountType: editing.accountType,
         category: editing.category ?? "",
         nature: editing.nature,
-        openingBalance: Number(editing.openingBalance ?? 0) as any,
+        openingBalance: Number(editing.openingBalance ?? 0),
         currency: editing.currency || "BDT",
         description: editing.description ?? "",
         status: editing.status,
@@ -103,7 +103,7 @@ export default function AccountModal({
         isCash: editing.isCash,
         allowPosting: editing.allowPosting,
         allowJournal: editing.allowJournal,
-        taxDeductible: (editing as any).taxDeductible ?? false,
+        taxDeductible: editing.taxDeductible ?? false,
       }
     }
     return {
@@ -113,7 +113,7 @@ export default function AccountModal({
       accountType: "ASSET",
       category: "",
       nature: "DEBIT",
-      openingBalance: 0 as any,
+      openingBalance: 0,
       currency: "BDT",
       description: "",
       status: "ACTIVE",
@@ -133,7 +133,7 @@ export default function AccountModal({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<AccountFormValues>({
-    resolver: zodResolver(accountSchema) as any,
+    resolver: zodResolver(accountSchema) as Resolver<AccountFormValues>,
     defaultValues: defaults,
   })
 
@@ -212,7 +212,7 @@ export default function AccountModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={(trigger ?? defaultTrigger) as any} />
+      <DialogTrigger render={(trigger ?? defaultTrigger) as React.ReactElement} />
       <DialogContent className="max-w-2xl bg-white dark:bg-slate-950 rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white">
@@ -226,7 +226,7 @@ export default function AccountModal({
         </DialogHeader>
 
         <form
-          onSubmit={handleSubmit(onSubmit as any)}
+          onSubmit={handleSubmit(onSubmit)}
           className="space-y-4 max-h-[68vh] overflow-y-auto pr-1"
         >
           {/* Code + Name */}
@@ -257,7 +257,7 @@ export default function AccountModal({
             <Field label="Parent Account">
               <Select
                 value={parentAccountId ?? undefined}
-                onValueChange={(v: any) => setValue("parentAccountId", v || null)}
+                onValueChange={(v) => setValue("parentAccountId", v || null)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="None (Root Account)" />
@@ -287,7 +287,7 @@ export default function AccountModal({
             <Field label="Account Type" required error={errors.accountType?.message}>
               <Select
                 value={accountType}
-                onValueChange={(v: any) => setValue("accountType", v as AccountType)}
+                onValueChange={(v) => setValue("accountType", v as AccountType)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select Type" />
@@ -312,7 +312,7 @@ export default function AccountModal({
             <Field label="Nature" required error={errors.nature?.message}>
               <Select
                 value={watch("nature")}
-                onValueChange={(v: any) => setValue("nature", v as AccountNature)}
+                onValueChange={(v) => setValue("nature", v as AccountNature)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select Nature" />
@@ -343,7 +343,7 @@ export default function AccountModal({
             <Field label="Currency" error={errors.currency?.message}>
               <Select
                 value={watch("currency")}
-                onValueChange={(v: any) => setValue("currency", v as string)}
+                onValueChange={(v) => setValue("currency", v ?? "")}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Currency" />
@@ -358,7 +358,7 @@ export default function AccountModal({
             <Field label="Status">
               <Select
                 value={watch("status")}
-                onValueChange={(v: any) => setValue("status", v as AccountStatus)}
+                onValueChange={(v) => setValue("status", v as AccountStatus)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Status" />

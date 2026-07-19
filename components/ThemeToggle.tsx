@@ -1,16 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { Sun, Moon } from "lucide-react"
+import { useMounted } from "@/lib/useMounted"
 
 export default function ThemeToggle() {
-  const [mounted, setMounted] = useState(false)
+  const mounted = useMounted()
   const { theme, setTheme } = useTheme()
 
   // Prevent hydration mismatch
-  useEffect(() => setMounted(true), [])
-
   if (!mounted) return null
 
   return (

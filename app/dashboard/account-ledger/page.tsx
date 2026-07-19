@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma"
 import AccountLedgerClient from "./AccountLedgerClient"
 import type { AccountType } from "@/lib/accounting"
+import type { Prisma } from "@prisma/client"
 
 export const dynamic = "force-dynamic"
 
@@ -34,13 +35,22 @@ export default async function AccountLedgerPage({
     accountName: string
     accountType: AccountType
     nature: string
-    openingBalance: any
-    currentBalance: any
+    openingBalance: Prisma.Decimal
+    currentBalance: Prisma.Decimal
     currency: string
   } | null = null
 
   let openingAtFrom: number | null = null
-  let lines: any[] = []
+  let lines: {
+    id: string
+    date: Date
+    voucherNo: string
+    narration: string
+    voucherType: string
+    debit: number
+    credit: number
+    memo: string | null
+  }[] = []
 
   if (selectedAccountId) {
     selected = await prisma.account.findUnique({
@@ -58,7 +68,7 @@ export default async function AccountLedgerPage({
     })
 
     if (selected) {
-      const dateFilter: any = {}
+      const dateFilter: Prisma.DateTimeFilter = {}
       if (from) dateFilter.gte = new Date(from)
       if (to) {
         const end = new Date(to)
@@ -92,7 +102,7 @@ export default async function AccountLedgerPage({
 
       // Compute opening balance at the start of the window = account opening
       // balance + the net effect of all postings before `from`.
-      const beforeFilter: any = from
+      const beforeFilter: Prisma.DateTimeFilter | null = from
         ? { lt: new Date(from) }
         : null
       let priorMovement = 0

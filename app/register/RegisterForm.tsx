@@ -212,7 +212,7 @@ export default function RegisterForm() {
                 // If successful, redirect to the success page
                 router.push("/register/success")
             }
-        } catch (err: any) {
+        } catch {
             // Catch any unexpected network errors
             toast.error("Registration Failed", {
                 description: "An unexpected error occurred. Please try again."

@@ -5,6 +5,14 @@ import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
+/** A parsed site-content array item (why-join, how-we-run, facilities, etc.). */
+interface SiteContentItem {
+  title?: string
+  description?: string
+  photoUrl?: string
+  [key: string]: unknown
+}
+
 export async function updateSiteContent(formData: FormData) {
   const heroTitle = formData.get("heroTitle") as string
   const heroSubtitle = formData.get("heroSubtitle") as string
@@ -16,15 +24,15 @@ export async function updateSiteContent(formData: FormData) {
   const policyContent = formData.get("policyContent") as string // <-- ADD THIS
 
   // Parse JSON arrays from hidden inputs
-  let whyJoinUs = JSON.parse(formData.get("whyJoinUs") as string || "[]")
-  let howWeRun = JSON.parse(formData.get("howWeRun") as string || "[]")
-  let facilities = JSON.parse(formData.get("facilities") as string || "[]")
-  let management = JSON.parse(formData.get("management") as string || "[]")
-  let activities = JSON.parse(formData.get("activities") as string || "[]")
-  let projects = JSON.parse(formData.get("projects") as string || "[]")
+  const whyJoinUs = JSON.parse(formData.get("whyJoinUs") as string || "[]")
+  const howWeRun = JSON.parse(formData.get("howWeRun") as string || "[]")
+  const facilities = JSON.parse(formData.get("facilities") as string || "[]")
+  const management = JSON.parse(formData.get("management") as string || "[]")
+  const activities = JSON.parse(formData.get("activities") as string || "[]")
+  const projects = JSON.parse(formData.get("projects") as string || "[]")
 
   // Helper function to handle file uploads for arrays
-  const processArrayImages = async (arrayName: string, array: any[]) => {
+  const processArrayImages = async (arrayName: string, array: SiteContentItem[]) => {
     for (let i = 0; i < array.length; i++) {
       const file = formData.get(`${arrayName}_${i}_photoUrl`) as File
       if (file && file.size > 0) {
@@ -36,10 +44,10 @@ export async function updateSiteContent(formData: FormData) {
     return array
   }
 
-  // Process images for each category
-  management = await processArrayImages("management", management)
-  activities = await processArrayImages("activities", activities)
-  projects = await processArrayImages("projects", projects)
+  // Process images for each category (mutates arrays in place)
+  await processArrayImages("management", management)
+  await processArrayImages("activities", activities)
+  await processArrayImages("projects", projects)
 
   await prisma.siteContent.upsert({
     where: { id: "singleton" },
