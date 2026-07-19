@@ -6,6 +6,7 @@ import { redirect } from "next/navigation"
 import { uploadImage } from "@/lib/cloudinary"
 import { sendEmail } from "@/lib/email"
 import { sendSMS } from "@/lib/sms"
+import { recalculateTrustScore } from "@/lib/trustScore"
 
 // --- Add Member Action ---
 export async function addMember(formData: FormData, isPublic: boolean = false) {
@@ -47,6 +48,10 @@ export async function addMember(formData: FormData, isPublic: boolean = false) {
   const nidNumber = idType === "National ID" ? idNumber : null
   const passportNumber = idType === "Passport" ? idNumber : null
   const birthCertificateNo = idType === "Birth Certificate" ? idNumber : null
+
+  // Referral: resolve the referrer's memberNo to an id (optional, best-effort).
+  const referredByMemberNo = (formData.get("referredByMemberNo") as string)?.trim() || null
+  const referredByMemberId = await resolveReferrer(referredByMemberNo)
 
   // 1b. Duplicate check BEFORE uploads/transaction.
   // `phone` is intentionally not @unique in the schema, so it is checked explicitly.
@@ -151,6 +156,7 @@ export async function addMember(formData: FormData, isPublic: boolean = false) {
           nidNumber, passportNumber, birthCertificateNo,
           accountName, accountNumber, bankName, branch, routingNumber,
           photoUrl: memberPhotoUrl,
+          referredByMemberId,
           status: "PENDING",
         },
       })
@@ -333,6 +339,10 @@ export async function updateMember(memberId: string, formData: FormData) {
   const passportNumber = idType === "Passport" ? idNumber : null
   const birthCertificateNo = idType === "Birth Certificate" ? idNumber : null
 
+  // Referral: resolve the referrer's memberNo to an id (optional, best-effort).
+  const referredByMemberNo = (formData.get("referredByMemberNo") as string)?.trim() || null
+  const referredByMemberId = await resolveReferrer(referredByMemberNo)
+
   // 2. Fetch existing to preserve files if not updated
   const existingMember = await prisma.member.findUnique({
     where: { id: memberId },
@@ -411,7 +421,8 @@ export async function updateMember(memberId: string, formData: FormData) {
           nidNumber, passportNumber, birthCertificateNo,
           accountName, accountNumber, bankName, branch, routingNumber,
           photoUrl: memberPhotoUrl,
-          status: ((formData.get("memberStatus") as string) || "ACTIVE").toUpperCase() as any, 
+          referredByMemberId,
+          status: ((formData.get("memberStatus") as string) || "ACTIVE").toUpperCase() as any,
         },
       })
 
@@ -462,11 +473,36 @@ export async function updateMember(memberId: string, formData: FormData) {
 
 // --- Update Member Status Action (Suspend/Activate) ---
 export async function updateMemberStatus(memberId: string, status: "ACTIVE" | "SUSPENDED" | "INACTIVE") {
+  // Capture the prior status so we can emit the right Trust Score event.
+  const before = await prisma.member.findUnique({
+    where: { id: memberId },
+    select: { status: true },
+  })
+
   await prisma.member.update({
     where: { id: memberId },
     data: { status },
   })
-  
+
+  // Trust Score event hooks (FRS §8.6 / §9).
+  // - Reactivation runs a full recalc and lifts suspension if score clears threshold.
+  // - Manual suspension records the event in the audit log.
+  try {
+    if (status === "ACTIVE" && before?.status === "SUSPENDED") {
+      await recalculateTrustScore(memberId, "MEMBER_REACTIVATED", {
+        referenceType: "member",
+        createdBy: "COMMITTEE",
+      })
+    } else if (status === "SUSPENDED") {
+      await recalculateTrustScore(memberId, "MEMBER_SUSPENDED", {
+        referenceType: "member",
+        createdBy: "COMMITTEE",
+      })
+    }
+  } catch (e) {
+    console.error("[trustScore] updateMemberStatus hook failed:", e)
+  }
+
   revalidatePath(`/dashboard/members/${memberId}`)
   revalidatePath("/dashboard/members")
 }
@@ -531,4 +567,18 @@ export async function rejectMemberWithRemark(memberId: string, remark: string) {
 
   revalidatePath("/dashboard/approvals")
   revalidatePath("/dashboard/members")
+}
+
+// =====================================================================
+// Referral helper — resolves a referrer's memberNo to an id (FRS §5.6).
+// Best-effort: a blank or unrecognized memberNo yields null (no referral link),
+// so a typo never blocks member creation/editing.
+// =====================================================================
+async function resolveReferrer(memberNo: string | null): Promise<string | null> {
+  if (!memberNo) return null
+  const referrer = await prisma.member.findUnique({
+    where: { memberNo },
+    select: { id: true },
+  })
+  return referrer?.id ?? null
 }

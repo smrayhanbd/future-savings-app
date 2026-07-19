@@ -34,6 +34,7 @@ function usePageTitle(): string {
   if (pathname.startsWith("/portal/loans/apply")) return "Apply for Loan"
   if (pathname.startsWith("/portal/loans/")) return "Loan Details"
   if (pathname.startsWith("/portal/loans")) return "My Loans"
+  if (pathname.startsWith("/portal/trust-score")) return "My Trust Score"
   if (pathname.startsWith("/portal/requests")) return "My Requests"
   if (pathname.startsWith("/portal/profile")) return "My Profile"
   if (pathname.startsWith("/portal/settings")) return "Settings"

@@ -66,6 +66,29 @@ enum MemberStatus {
   REJECTED
 }
 
+// ====================== TRUST SCORE SYSTEM (FRS v2.0) ======================
+
+// Achievement badge award lifecycle for the per-member badge row
+enum AchievementBadgeStatus {
+  ACTIVE
+  LOST
+}
+
+// Fine lifecycle (maps to the FINE KPI)
+enum FineStatus {
+  ISSUED
+  PAID
+  WAIVED
+}
+
+// Meeting attendance value (maps to the ATTEND KPI). EXCUSED counts as attended
+// when the admin enables "approved absences count as attended" (default on).
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  EXCUSED
+}
+
 // Member Model (Society Members)
 model Member {
   id String @id @default(uuid())
@@ -129,6 +152,17 @@ model Member {
   // Membership
   remarks String? @db.Text
 
+  // ── Trust Score (FRS v2.0) ──────────────────────────────────────────────
+  // All fields are auto-managed by the scoring engine; never edited manually.
+  trustScore       Int       @default(60) // 0–100
+  badgeLevel       String    @default("Silver Member")
+  riskLevel        String    @default("Average")
+  scoreLastUpdated DateTime?
+  // Referral: the member who referred this one. Self-referencing relation.
+  referredByMemberId String?
+  referredBy        Member?  @relation("MemberReferral", fields: [referredByMemberId], references: [id], onDelete: SetNull)
+  referrals         Member[] @relation("MemberReferral")
+
   // Relationships
   addresses     MemberAddress[]
   nominees      MemberNominee[]
@@ -148,6 +182,13 @@ model Member {
   // Accounting
   journalEntries JournalEntry[]
 
+  // Trust Score relationships (FRS v2.0)
+  scoreHistory        TrustScoreHistory[]
+  achievementBadges   AchievementBadge[]
+  fines               Fine[]
+  meetingAttendances  MeetingAttendance[]
+  memberNotifications MemberNotification[]
+
   // Audit
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -163,6 +204,7 @@ model Member {
   @@index([email])
   @@index([status])
   @@index([joiningDate])
+  @@index([trustScore])
 }
 
 model MemberAddress {
@@ -453,12 +495,13 @@ model MemberRequest {
 }
 
 model Meeting {
-  id        String   @id @default(uuid())
-  title     String
-  date      DateTime
-  location  String
-  agenda    String   @db.Text
-  createdAt DateTime @default(now())
+  id          String              @id @default(uuid())
+  title       String
+  date        DateTime
+  location    String
+  agenda      String              @db.Text
+  createdAt   DateTime            @default(now())
+  attendances MeetingAttendance[]
 }
 
 model ProfileUpdateRequest {
@@ -667,4 +710,145 @@ model LoanGuarantor {
   createdAt DateTime @default(now())
 
   @@index([loanId])
+}
+
+// ====================== TRUST SCORE SYSTEM MODELS (FRS v2.0) ======================
+// PKs are UUIDs (codebase convention). The FRS's INT/BIGINT PKs are adapted;
+// functionality is equivalent. See FRS §16.
+
+// Single active configuration row (FRS §16.4 / §12). Always one row, id = "singleton".
+// Every weight, threshold, penalty, and badge criterion is read from here at runtime
+// (FRS §23.1: "Never hardcode formulas").
+model KpiConfiguration {
+  id                     String   @id @default("singleton")
+  // KPI weights — must always sum to 100 (validated on save).
+  depositWeight          Int      @default(35)
+  loanWeight             Int      @default(25)
+  attendanceWeight       Int      @default(20)
+  fineWeight             Int      @default(10)
+  referralWeight         Int      @default(10)
+  // New-member starting score (FRS §3).
+  initialScore           Int      @default(60)
+  // Suspension / reactivation thresholds (FRS §9).
+  suspensionThreshold    Int      @default(40)
+  reactivationThreshold  Int      @default(50)
+  // Trust-score badge tier minimums (FRS §4). Non-overlapping, span 0–100.
+  badgeDiamondMin        Int      @default(90)
+  badgePlatinumMin       Int      @default(80)
+  badgeGoldMin           Int      @default(70)
+  badgeSilverMin         Int      @default(60)
+  badgeWarningMin        Int      @default(50)
+  badgeHighRiskMin       Int      @default(40)
+  // ATTEND KPI behavior (FRS §5.4).
+  approvedAbsenceCounts  Boolean  @default(true)
+  // Deposit interpolation (FRS §5.2): true = linear interpolation, false = lower threshold.
+  depositLinearInterp    Boolean  @default(true)
+  // Recovery window (months) after a loan default before the LOAN KPI can climb off zero.
+  loanRecoveryMonths     Int      @default(6)
+  updatedAt              DateTime?
+  updatedBy              String?
+}
+
+// Immutable Trust Score audit log (FRS §15). Inserted in the same $transaction
+// as the member score update (FRS §7 step 9 / §23.2).
+// IMPORTANT: there is intentionally NO update / delete path in the application.
+// For database-level hardening, run (one-time, by an admin):
+//   REVOKE UPDATE, DELETE ON "TrustScoreHistory" FROM PUBLIC;
+model TrustScoreHistory {
+  id            String   @id @default(uuid())
+  memberId      String
+  member        Member   @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  eventType     String // e.g. DEPOSIT_COLLECTED, FINE_ISSUED, LOAN_DEFAULT, MEMBER_SUSPENDED
+  referenceId   String?  // id of the triggering record (savings/fine/loan/…)
+  referenceType String?  // deposit | loan | fine | meeting | referral | member | config
+  kpiAffected   String?  // DEPOSIT | LOAN | ATTEND | FINE | REFERRAL | ALL | NONE
+  scoreBefore   Int
+  scoreChange   Int // signed (+/-)
+  scoreAfter    Int
+  remarks       String?  @db.Text
+  createdAt     DateTime @default(now())
+  createdBy     String   @default("SYSTEM") // SYSTEM or a user id
+
+  @@index([memberId, createdAt(sort: Desc)])
+  @@index([eventType])
+}
+
+// Achievement badges (FRS §10). Independent of the Trust Score badge tier.
+// A member may hold many at once. Lost badges are kept for history.
+model AchievementBadge {
+  id         String                 @id @default(uuid())
+  memberId   String
+  member     Member                 @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  badgeCode  String // e.g. DIAMOND_SAVER, PERFECT_PAYER, …
+  badgeName  String
+  earnedDate DateTime               @default(now())
+  lostDate   DateTime?
+  status     AchievementBadgeStatus @default(ACTIVE)
+
+  @@unique([memberId, badgeCode, status])
+  @@index([memberId, status])
+  @@index([badgeCode, status])
+}
+
+// Configurable fine categories (FRS §12.3). The penaltyPoints feed the FINE KPI.
+model FineType {
+  id            String   @id @default(uuid())
+  typeName      String   @unique
+  penaltyPoints Int // must be > 0
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  fines         Fine[]
+}
+
+// A fine issued to a member. Only ISSUED (unresolved) fines deduct from the
+// FINE KPI; PAID/WAIVED reverse the penalty (FRS §5.5).
+model Fine {
+  id            String     @id @default(uuid())
+  memberId      String
+  member        Member     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  fineTypeId    String
+  fineType      FineType   @relation(fields: [fineTypeId], references: [id], onDelete: Restrict)
+  amount        Decimal    @default(0) @db.Decimal(12, 2)
+  status        FineStatus @default(ISSUED)
+  issuedDate    DateTime   @default(now())
+  resolvedDate  DateTime?
+  referenceType String?    // savings | manual | fee
+  referenceId   String?
+  notes         String?    @db.Text
+  createdBy     String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([memberId, status])
+  @@index([fineTypeId])
+}
+
+// Per-member attendance for a meeting (FRS §5.4).
+model MeetingAttendance {
+  id        String           @id @default(uuid())
+  meetingId String
+  meeting   Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  memberId  String
+  member    Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  status    AttendanceStatus @default(PRESENT)
+  markedAt  DateTime         @default(now())
+  markedBy  String?
+
+  @@unique([meetingId, memberId])
+  @@index([memberId])
+}
+
+// Persistent per-member notifications (FRS §14). Async, non-blocking.
+model MemberNotification {
+  id        String   @id @default(uuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  type      String // SCORE_DECREASED | SCORE_INCREASED | BADGE_UPGRADED | BADGE_DOWNGRADED | ACHIEVEMENT_EARNED | ACHIEVEMENT_LOST | AUTO_SUSPENDED | REACTIVATED
+  title     String
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([memberId, isRead, createdAt(sort: Desc)])
 }

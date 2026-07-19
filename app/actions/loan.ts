@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { generateSchedule, expectedCloseFromSchedule, type InterestType, type RepaymentFreq } from "@/lib/loanSchedule"
 import { Prisma } from "@prisma/client"
+import { recalculateTrustScore } from "@/lib/trustScore"
 
 const LOANS_PATH = "/dashboard/loans"
 
@@ -334,6 +335,18 @@ export async function disburseLoan(id: string, method: string, date?: string) {
       nextDueDate: firstDue,
     },
   })
+
+  // Trust Score: disbursement activates the LOAN KPI and (on the member's first
+  // loan) triggers weight redistribution (FRS §6.3, §8.2).
+  try {
+    await recalculateTrustScore(loan.memberId, "LOAN_DISBURSED", {
+      referenceId: id,
+      referenceType: "loan",
+    })
+  } catch (e) {
+    console.error("[trustScore] disburseLoan hook failed:", e)
+  }
+
   revalidatePath(`/dashboard/loans/${id}`)
   revalidatePath(LOANS_PATH)
 }
@@ -349,6 +362,18 @@ export async function writeOffLoan(id: string) {
     where: { id },
     data: { status: "WRITTEN_OFF", closedDate: new Date() },
   })
+
+  // Trust Score: write-off re-evaluates the LOAN KPI (loan no longer counts as
+  // active repayment discipline).
+  try {
+    await recalculateTrustScore(loan.memberId, "LOAN_CLOSED", {
+      referenceId: id,
+      referenceType: "loan",
+    })
+  } catch (e) {
+    console.error("[trustScore] writeOffLoan hook failed:", e)
+  }
+
   revalidatePath(`/dashboard/loans/${id}`)
   revalidatePath(LOANS_PATH)
 }
@@ -494,6 +519,17 @@ export async function recordRepayment(loanId: string, input: RepaymentInput) {
 
     return repayment
   })
+
+  // Trust Score: repayment updates the LOAN KPI on-time rate. Fires after the
+  // transaction commits so it never blocks or rolls back the repayment.
+  try {
+    await recalculateTrustScore(loan.memberId, "LOAN_INSTALLMENT_PAID", {
+      referenceId: loanId,
+      referenceType: "loan",
+    })
+  } catch (e) {
+    console.error("[trustScore] recordRepayment hook failed:", e)
+  }
 
   revalidatePath(`/dashboard/loans/${loanId}`)
   revalidatePath(`/dashboard/members/${loan.memberId}`)

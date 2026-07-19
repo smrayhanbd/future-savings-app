@@ -25,7 +25,8 @@ import {
   CheckSquare, Heart, UserCog, Settings, Cloud, LogOut,
   ChevronLeft, ChevronRight, ChevronDown, Building2,
   Banknote, SlidersHorizontal, FilePlus2, HandCoins, AlertTriangle,
-  Scale, BarChart3, FileSpreadsheet, BookOpen, type LucideIcon
+  Scale, BarChart3, FileSpreadsheet, BookOpen, Award, Medal,
+  type LucideIcon
 } from "lucide-react"
 
 // --- Types ---
@@ -52,7 +53,17 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
     title: "Member Management",
     items: [
       { label: "Member Panel", icon: Users, href: "/dashboard/members" },
-      { label: "Pending Approvals", icon: Clock, href: "/dashboard/approvals" }
+      { label: "Pending Approvals", icon: Clock, href: "/dashboard/approvals" },
+      {
+        label: "Trust Score & Badges",
+        icon: Award,
+        href: "#",
+        subItems: [
+          { label: "Trust Leaderboard", href: "/dashboard/trust-score" },
+          { label: "Achievement Badges", href: "/dashboard/trust-score/badges" },
+          { label: "Score Settings", href: "/dashboard/trust-score/config" }
+        ]
+      }
       // "Old Member DB" removed here
     ]
   },

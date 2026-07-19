@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { uploadImage } from "@/lib/cloudinary"
+import { recalculateTrustScore } from "@/lib/trustScore"
 
 // --- Helper Function to Generate Credentials & Send Email/SMS ---
 async function generateAndSendCredentials(memberId: string) {
@@ -92,6 +93,25 @@ export async function approveMember(memberId: string) {
     where: { id: memberId },
     data: { status: "ACTIVE" },
   })
+
+  // Trust Score: initialize on first activation (FRS §8.6). Also fires a
+  // REFERRAL_APPROVED recalc on this member's referrer, if any, so the
+  // referrer's REFERRAL KPI picks up the new active referral.
+  try {
+    await recalculateTrustScore(memberId, "MEMBER_ACTIVATED", { referenceType: "member" })
+    const m = await prisma.member.findUnique({
+      where: { id: memberId },
+      select: { referredByMemberId: true },
+    })
+    if (m?.referredByMemberId) {
+      await recalculateTrustScore(m.referredByMemberId, "REFERRAL_APPROVED", {
+        referenceId: memberId,
+        referenceType: "referral",
+      })
+    }
+  } catch (e) {
+    console.error("[trustScore] approveMember hook failed:", e)
+  }
 
   await generateAndSendCredentials(memberId)
 

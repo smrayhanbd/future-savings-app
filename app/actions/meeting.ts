@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { sendEmail } from "@/lib/email"
 import { sendSMS } from "@/lib/sms"
+import { recalculateTrustScore } from "@/lib/trustScore"
 
 export async function createMeeting(formData: FormData) {
   const title = formData.get("title") as string
@@ -56,4 +57,45 @@ export async function createMeeting(formData: FormData) {
 
   revalidatePath("/dashboard/meetings")
   redirect("/dashboard/meetings")
+}
+
+// =====================================================================
+// MEETING ATTENDANCE (FRS §5.4, §8.3)
+// Marks each member PRESENT / ABSENT / EXCUSED for a meeting, then fires a
+// Trust Score recalc per affected member so the ATTEND KPI updates live.
+// =====================================================================
+
+export interface AttendanceRow {
+  memberId: string
+  status: "PRESENT" | "ABSENT" | "EXCUSED"
+}
+
+export async function markAttendance(meetingId: string, rows: AttendanceRow[], markedBy?: string) {
+  if (!meetingId || !rows.length) return
+
+  // Upsert each attendance row (compound unique [meetingId, memberId]).
+  await Promise.all(
+    rows.map((row) =>
+      prisma.meetingAttendance.upsert({
+        where: { meetingId_memberId: { meetingId, memberId: row.memberId } },
+        create: { meetingId, memberId: row.memberId, status: row.status, markedBy },
+        update: { status: row.status, markedBy, markedAt: new Date() },
+      })
+    )
+  )
+
+  // Recalculate the ATTEND KPI for every affected member (non-blocking).
+  const memberIds = Array.from(new Set(rows.map((r) => r.memberId)))
+  for (const memberId of memberIds) {
+    try {
+      await recalculateTrustScore(memberId, "MEETING_ATTENDANCE_MARKED", {
+        referenceId: meetingId,
+        referenceType: "meeting",
+      })
+    } catch (e) {
+      console.error(`[trustScore] attendance recalc failed for ${memberId}:`, e)
+    }
+  }
+
+  revalidatePath("/dashboard/meetings")
 }

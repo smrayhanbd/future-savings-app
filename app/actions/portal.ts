@@ -374,6 +374,39 @@ export async function getMemberNotifications(memberId: string): Promise<PortalNo
     })
   })
 
+  // 4. Trust Score notifications (FRS §14) — score changes, badge awards,
+  // suspensions, etc. Surface the most recent few from the persistent table.
+  try {
+    const scoreNotes = await prisma.memberNotification.findMany({
+      where: { memberId },
+      orderBy: { createdAt: "desc" },
+      take: 4,
+    })
+    scoreNotes.forEach((n: { id: string; type: string; title: string; message: string; createdAt: Date }) => {
+      const tone =
+        n.type === "SCORE_INCREASED" ||
+        n.type === "ACHIEVEMENT_EARNED" ||
+        n.type === "BADGE_UPGRADED" ||
+        n.type === "REACTIVATED"
+          ? "request"
+          : n.type === "AUTO_SUSPENDED" ||
+            n.type === "ACHIEVEMENT_LOST" ||
+            n.type === "BADGE_DOWNGRADED"
+          ? "due"
+          : "info"
+      out.push({
+        id: `score-${n.id}`,
+        type: tone as "due" | "meeting" | "request" | "info",
+        title: n.title,
+        message: n.message,
+        href: "/portal/trust-score",
+        createdAt: n.createdAt.toISOString(),
+      })
+    })
+  } catch {
+    // best-effort; never block the portal over it.
+  }
+
   // Most relevant first; cap at 8.
   return out.slice(0, 8)
 }

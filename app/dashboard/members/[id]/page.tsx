@@ -113,6 +113,44 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
         ))}
       </div>
 
+      {/* Trust Score summary (FRS v2.0) */}
+      <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-indigo-200/50 dark:border-indigo-900/50 shadow-sm rounded-2xl overflow-hidden">
+        <div className="p-5 border-b border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 flex items-center justify-between">
+          <h3 className="font-bold text-indigo-800 dark:text-indigo-400 flex items-center gap-2">
+            <Shield className="h-5 w-5" /> Trust Score &amp; Achievement
+          </h3>
+          <Link href={`/dashboard/trust-score/${member.id}`} className="text-xs font-semibold text-indigo-600 hover:underline">
+            View full dashboard →
+          </Link>
+        </div>
+        <CardContent className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6 items-center">
+          <div className="flex flex-col items-center justify-center md:col-span-1">
+            <span className={`text-4xl font-extrabold ${
+              member.trustScore >= 80 ? "text-emerald-600" :
+              member.trustScore >= 60 ? "text-indigo-600" :
+              member.trustScore >= 40 ? "text-amber-600" : "text-red-600"
+            }`}>
+              {member.trustScore}
+            </span>
+            <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">/ 100</span>
+          </div>
+          <div>
+            <p className="text-xs uppercase font-bold text-slate-400 tracking-wider">Badge Level</p>
+            <p className="text-base font-bold text-slate-800 dark:text-slate-100 mt-1">{member.badgeLevel}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase font-bold text-slate-400 tracking-wider">Risk Level</p>
+            <p className="text-base font-bold text-slate-800 dark:text-slate-100 mt-1">{member.riskLevel}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase font-bold text-slate-400 tracking-wider">Last Updated</p>
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-1">
+              {member.scoreLastUpdated ? new Date(member.scoreLastUpdated).toLocaleString() : "Not yet calculated"}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Due Breakdown Card */}
       <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-amber-200/50 dark:border-amber-900/50 shadow-sm rounded-2xl overflow-hidden">
         <div className="p-5 border-b border-amber-100 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20">

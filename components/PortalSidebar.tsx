@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import {
   LayoutDashboard, Wallet, HandCoins, FilePlus2, User,
   Inbox, Settings as SettingsIcon, LogOut, ChevronLeft, ChevronRight,
-  Building2, type LucideIcon,
+  Building2, ShieldCheck, type LucideIcon,
 } from "lucide-react"
 
 interface NavItem {
@@ -39,6 +39,7 @@ function buildMenu(pendingRequests = 0): MenuGroup[] {
         { label: "My Savings", icon: Wallet, href: "/portal/savings" },
         { label: "My Loans", icon: HandCoins, href: "/portal/loans" },
         { label: "Apply for Loan", icon: FilePlus2, href: "/portal/loans/apply" },
+        { label: "My Trust Score", icon: ShieldCheck, href: "/portal/trust-score" },
       ],
     },
     {

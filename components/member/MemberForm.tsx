@@ -37,6 +37,7 @@ type FormData = {
     firstName: string; lastName: string; fatherName: string; motherName: string; spouseName: string
     dateOfBirth: string; gender: "male" | "female" | "other"; religion: string; nationality: string
     bloodGroup: string; profession: string
+    referredByMemberNo: string
     maritalStatus: "married" | "unmarried" | "divorced" | "widowed"; marriageDate: string
     phoneNumber: string; emailAddress: string; emergencyContact: string; emergencyContactName: string
     idType: string; idNumber: string; idDocumentFile: File | null; memberPhoto: File | null
@@ -146,6 +147,8 @@ function memberToFormData(member: any): FormData {
         gender: ((member.gender || "male")).toLowerCase() as any,
         religion: member.religion || "", nationality: member.nationality || "Bangladeshi",
         bloodGroup: member.bloodGroup || "", profession: member.profession || "",
+        // referredByMemberId is resolved server-side; the form shows the referrer's memberNo.
+        referredByMemberNo: member.referredByMemberNo || "",
         maritalStatus: ((member.maritalStatus || "unmarried")).toLowerCase() as any,
         marriageDate: member.marriageDate ? new Date(member.marriageDate).toISOString().split("T")[0] : "",
         phoneNumber: member.phone || "", emailAddress: member.email || "",
@@ -173,7 +176,7 @@ const emptyFormData: FormData = {
     memberStatus: "active", memberNo: "", joinedDate: "", kycVerified: false,
     firstName: "", lastName: "", fatherName: "", motherName: "", spouseName: "",
     dateOfBirth: "", gender: "male", religion: "", nationality: "Bangladeshi",
-    bloodGroup: "", profession: "", maritalStatus: "unmarried", marriageDate: "",
+    bloodGroup: "", profession: "", referredByMemberNo: "", maritalStatus: "unmarried", marriageDate: "",
     phoneNumber: "", emailAddress: "", emergencyContact: "", emergencyContactName: "",
     idType: "", idNumber: "", idDocumentFile: null, memberPhoto: null,
     accountName: "", accountNumber: "", bankName: "", branch: "", routingNumber: "",
@@ -416,7 +419,22 @@ export default function MemberForm({ mode, member }: MemberFormProps) {
                 toast.success("Application approved", { description: "Member activated and credentials sent." })
             }
         } catch (err: any) {
-            // Server actions redirect on success, so reaching here = failure.
+            // Server actions reach navigation by calling redirect(), which
+            // throws a NEXT_REDIRECT control-flow error. The action only gets
+            // that far after the DB write succeeds, so reaching redirect ==
+            // success. Surface the success toast and re-throw so Next.js can
+            // perform the navigation; swallowing it would both break navigation
+            // and wrongly report a save failure.
+            if (err?.message === "NEXT_REDIRECT" || err?.digest?.startsWith("NEXT_REDIRECT")) {
+                if (mode === "add") {
+                    toast.success("Member registered", { description: "Application submitted successfully." })
+                } else if (mode === "edit") {
+                    toast.success("Member updated", { description: "Changes saved successfully." })
+                } else if (mode === "review") {
+                    toast.success("Application approved", { description: "Member activated and credentials sent." })
+                }
+                throw err
+            }
             const code = err?.message || ""
             const map: Record<string, string> = {
                 DUPLICATE_BOTH: "A member with this email & phone already exists.",
@@ -438,6 +456,12 @@ export default function MemberForm({ mode, member }: MemberFormProps) {
             toast.success("Application rejected", { description: "The record has been marked as rejected." })
             router.push("/dashboard/approvals")
         } catch (err: any) {
+            // rejectMemberWithRemark also calls redirect() on success, which
+            // throws NEXT_REDIRECT — treat that as success, not a failure.
+            if (err?.message === "NEXT_REDIRECT" || err?.digest?.startsWith("NEXT_REDIRECT")) {
+                toast.success("Application rejected", { description: "The record has been marked as rejected." })
+                throw err
+            }
             toast.error("Could not reject application", { description: err?.message || "Please try again." })
             setRejectPending(false)
         }
@@ -674,6 +698,11 @@ export default function MemberForm({ mode, member }: MemberFormProps) {
                                         <div>
                                             <Label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Profession</Label>
                                             <input type="text" name="profession" value={formData.profession} onChange={handleInputChange} placeholder="e.g. Engineer" className={fieldClass("profession")} />
+                                        </div>
+                                        <div>
+                                            <Label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Referred By (Member No)</Label>
+                                            <input type="text" name="referredByMemberNo" value={formData.referredByMemberNo} onChange={handleInputChange} placeholder="e.g. M0007 (optional)" className={fieldClass("referredByMemberNo")} />
+                                            <p className="text-[11px] text-slate-400 mt-1">The existing member who referred this applicant. Feeds the referrer&apos;s Referral Trust Score.</p>
                                         </div>
                                     </div>
                                 </div>

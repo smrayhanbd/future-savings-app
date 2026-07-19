@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { recalculateTrustScore } from "@/lib/trustScore"
 
 export async function addCollection(formData: FormData) {
   const memberId = formData.get("memberId") as string
@@ -19,7 +20,7 @@ export async function addCollection(formData: FormData) {
   const collectionCount = await prisma.savings.count()
   const receiptNo = `R${String(collectionCount + 1).padStart(4, "0")}`
 
-  await prisma.savings.create({
+  const savings = await prisma.savings.create({
     data: {
       receiptNo,
       memberId,
@@ -29,6 +30,18 @@ export async function addCollection(formData: FormData) {
       date: new Date(date),
     },
   })
+
+  // Trust Score event hook (FRS §8.1/§8.4). Must run before redirect() throws.
+  // A scoring failure must never break the parent business operation.
+  try {
+    const eventType = type === "FINE" ? "FINE_ISSUED" : "DEPOSIT_COLLECTED"
+    await recalculateTrustScore(memberId, eventType, {
+      referenceId: savings.id,
+      referenceType: type === "FINE" ? "fine" : "deposit",
+    })
+  } catch (e) {
+    console.error("[trustScore] addCollection hook failed:", e)
+  }
 
   revalidatePath("/dashboard/collection-entry")
   redirect("/dashboard/collection-entry")
