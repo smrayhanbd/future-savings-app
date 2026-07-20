@@ -180,3 +180,63 @@
 .portal-print-area {
   display: none;
 }
+
+/* =====================================================================
+   Admin Money Receipt — Print Mode
+   Hides the on-screen toolbar and app shell, renders a clean voucher on
+   paper. Used by /dashboard/receipts/[transactionId].
+   ===================================================================== */
+@media print {
+  /* Hide everything except the receipt while printing. */
+  body * {
+    visibility: hidden;
+  }
+  .receipt-print-area,
+  .receipt-print-area * {
+    visibility: visible;
+  }
+  /* Pin the receipt to the top-left of the page. */
+  .receipt-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    display: block !important;
+  }
+  /* The on-screen toolbar (Back / Print buttons) is never printed. */
+  .receipt-no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+  }
+  /* Reset the voucher card for paper — no rounded corners / shadow. */
+  .money-receipt {
+    color: #111 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+  .money-receipt table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  .money-receipt th,
+  .money-receipt td {
+    border: 1px solid #ddd !important;
+    padding: 6px 8px !important;
+    color: #111 !important;
+    background: #fff !important;
+  }
+  .money-receipt th {
+    background: #f5f5f5 !important;
+  }
+  /* Avoid splitting the voucher or signature row across pages. */
+  .money-receipt,
+  .money-receipt .signature-row {
+    break-inside: avoid;
+  }
+  @page {
+    margin: 12mm;
+  }
+}

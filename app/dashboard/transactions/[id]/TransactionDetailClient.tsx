@@ -178,9 +178,13 @@ export default function TransactionDetailClient({
         </div>
 
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => window.print()}>
-            <Printer className="h-4 w-4 mr-2" /> Print Voucher
-          </Button>
+          {txn.status === "APPROVED" && (txn.transactionType === "DEPOSIT" || txn.transactionType === "WITHDRAWAL") && (
+            <Link href={`/dashboard/receipts/${txn.id}`}>
+              <Button variant="outline">
+                <Printer className="h-4 w-4 mr-2" /> Print Money Receipt
+              </Button>
+            </Link>
+          )}
           {canSubmit && (
             <Button
               className="bg-amber-600 hover:bg-amber-700"

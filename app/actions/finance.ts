@@ -173,6 +173,131 @@ export async function createFeeSetup(formData: FormData) {
 import { sendEmail } from "@/lib/email"
 import { sendSMS } from "@/lib/sms"
 import { calculateDues } from "@/lib/dueCalculator"
+import type { PaymentMethod } from "@/lib/transactions/types"
+
+// --- Bank Account Actions (Somiti Settings → Active Bank Accounts) ---
+// Each BankAccount maps a PaymentMethod to the COA Account that should receive
+// deposits made via that method. The Deposit form reads the default for the
+// chosen method to auto-select the "Received COA".
+
+/** Payment-method groups used by the UI. Methods in the same group share one
+ *  default BankAccount — e.g. BANK_TRANSFER & CHEQUE both fall back to the same
+ *  bank COA. We track the default at the group level so the user picks one
+ *  "default bank account" rather than one per payment method. */
+const METHOD_GROUPS: Record<PaymentMethod, "CASH" | "BANK" | "MOBILE"> = {
+  CASH: "CASH",
+  BANK_TRANSFER: "BANK",
+  CHEQUE: "BANK",
+  BKASH: "MOBILE",
+  NAGAD: "MOBILE",
+  ROCKET: "MOBILE",
+}
+
+/** All granular PaymentMethod values that belong to a group.
+ *  Not exported: a "use server" module may only export async functions. */
+const METHODS_BY_GROUP: Record<"CASH" | "BANK" | "MOBILE", PaymentMethod[]> = {
+  CASH: ["CASH"],
+  BANK: ["BANK_TRANSFER", "CHEQUE"],
+  MOBILE: ["BKASH", "NAGAD", "ROCKET"],
+}
+
+/**
+ * Set this BankAccount as the default for its payment-method group, unsetting
+ * the previous default in the same group. Runs as one transaction so there is
+ * never a window where a group has zero or two defaults.
+ */
+export async function setDefaultBankAccount(id: string, paymentMethod: PaymentMethod) {
+  const group = METHOD_GROUPS[paymentMethod]
+  const groupMethods = METHODS_BY_GROUP[group]
+
+  await prisma.$transaction([
+    prisma.bankAccount.updateMany({
+      where: { paymentMethod: { in: groupMethods } },
+      data: { isDefault: false },
+    }),
+    prisma.bankAccount.update({ where: { id }, data: { isDefault: true } }),
+  ])
+
+  revalidatePath("/dashboard/settings/bank")
+  revalidatePath("/dashboard/transactions/deposits")
+}
+
+export async function createBankAccount(formData: FormData) {
+  const accountName = (formData.get("accountName") as string)?.trim()
+  const paymentMethod = formData.get("paymentMethod") as PaymentMethod
+  const coaAccountId = formData.get("coaAccountId") as string
+  const bankName = ((formData.get("bankName") as string) || "").trim() || null
+  const accountNumber = ((formData.get("accountNumber") as string) || "").trim() || null
+  const branch = ((formData.get("branch") as string) || "").trim() || null
+  const isDefault = formData.get("isDefault") === "YES"
+
+  if (!accountName) throw new Error("Account name is required.")
+  if (!paymentMethod) throw new Error("Collection method is required.")
+  if (!coaAccountId) throw new Error("A Chart-of-Accounts account must be linked.")
+
+  // Validate the linked COA exists and is an active, postable account.
+  const coa = await prisma.account.findUnique({
+    where: { id: coaAccountId },
+    select: { id: true, status: true, allowPosting: true, accountName: true },
+  })
+  if (!coa) throw new Error("Linked account not found.")
+  if (coa.status !== "ACTIVE" || !coa.allowPosting) {
+    throw new Error(`Account "${coa.accountName}" is not active/postable.`)
+  }
+
+  const created = await prisma.bankAccount.create({
+    data: { accountName, bankName, accountNumber, branch, paymentMethod, coaAccountId, isDefault },
+  })
+
+  // If marked default, demote siblings in the same group.
+  if (isDefault) {
+    await setDefaultBankAccount(created.id, paymentMethod)
+  }
+
+  revalidatePath("/dashboard/settings/bank")
+  revalidatePath("/dashboard/transactions/deposits")
+  redirect("/dashboard/settings/bank")
+}
+
+export async function updateBankAccount(id: string, formData: FormData) {
+  const accountName = (formData.get("accountName") as string)?.trim()
+  const paymentMethod = formData.get("paymentMethod") as PaymentMethod
+  const coaAccountId = formData.get("coaAccountId") as string
+  const bankName = ((formData.get("bankName") as string) || "").trim() || null
+  const accountNumber = ((formData.get("accountNumber") as string) || "").trim() || null
+  const branch = ((formData.get("branch") as string) || "").trim() || null
+  const isDefault = formData.get("isDefault") === "YES"
+
+  if (!accountName || !paymentMethod || !coaAccountId) {
+    throw new Error("Account name, method, and linked COA are required.")
+  }
+
+  await prisma.bankAccount.update({
+    where: { id },
+    data: { accountName, bankName, accountNumber, branch, paymentMethod, coaAccountId },
+  })
+
+  if (isDefault) {
+    await setDefaultBankAccount(id, paymentMethod)
+  } else {
+    await prisma.bankAccount.update({ where: { id }, data: { isDefault: false } })
+  }
+
+  revalidatePath("/dashboard/settings/bank")
+  revalidatePath("/dashboard/transactions/deposits")
+}
+
+export async function deleteBankAccount(id: string) {
+  await prisma.bankAccount.delete({ where: { id } })
+  revalidatePath("/dashboard/settings/bank")
+  revalidatePath("/dashboard/transactions/deposits")
+}
+
+export async function toggleBankAccountStatus(id: string, isActive: boolean) {
+  await prisma.bankAccount.update({ where: { id }, data: { isActive } })
+  revalidatePath("/dashboard/settings/bank")
+  revalidatePath("/dashboard/transactions/deposits")
+}
 
 export async function sendDueReminders() {
   const feeSetups = await prisma.feeSetup.findMany()

@@ -30,8 +30,8 @@ import {
   resetUserPassword,
   grantPermission,
   revokePermission,
-  PERMISSION_GROUPS,
 } from "@/app/actions/users"
+import { PERMISSION_GROUPS } from "@/lib/permissions"
 import { formatDate } from "@/lib/accounting"
 import {
   ArrowLeft,

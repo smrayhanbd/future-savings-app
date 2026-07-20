@@ -14,6 +14,8 @@ import {
 import { recalculateTrustScore } from "@/lib/trustScore"
 import { nextTransactionNo } from "@/lib/transactions/voucher"
 import { postTransactionEffects } from "@/lib/transactions/posting"
+import { sendSMS } from "@/lib/sms"
+import { sendEmail } from "@/lib/email"
 import {
   loadApprovalLimits,
   resolveLevelForAmount,
@@ -66,6 +68,9 @@ export interface CreateTransactionInput {
   breakdown?: TransactionBreakdown | null
   attachments?: TransactionAttachment[]
   remarks?: string | null
+  // Effective date of the transaction (when the money moved). Defaults to now
+  // on the model, so omitting it keeps existing callers unchanged.
+  transactionDate?: string | Date | null
   // For income distribution — the per-member split.
   distribution?: DistributionShare[] | null
   // For portal-originated requests.
@@ -100,6 +105,7 @@ export async function createTransaction(
           breakdown: (input.breakdown as Prisma.JsonObject) ?? undefined,
           attachments: (input.attachments ?? []) as unknown as Prisma.InputJsonValue,
           remarks: input.remarks || null,
+          transactionDate: input.transactionDate ? new Date(input.transactionDate) : undefined,
           status: "DRAFT",
           memberSubmitted: false,
           memberRequestId: input.memberRequestId || null,
@@ -311,6 +317,9 @@ export async function approveTransaction(
     }) // end $transaction
 
     // ── 9. Non-blocking side effects (trust score + notifications, spec §16) ─
+    // These run after the DB transaction commits and must never roll back the
+    // approval. Errors are logged inside notifyMember (via Notification rows)
+    // and here to the console, then swallowed.
     if (result.updated.memberId) {
       const eventType = trustEventForType(result.updated.transactionType as TransactionType)
       if (eventType) {
@@ -318,9 +327,11 @@ export async function approveTransaction(
           createdBy: user.email,
           referenceId: result.updated.id,
           referenceType: "deposit",
-        }).catch(() => {})
+        }).catch((e) => console.error("[approveTransaction] trustScore failed:", e))
       }
-      notifyMember(result.updated, user).catch(() => {})
+      notifyMember(result.updated, user).catch((e) =>
+        console.error("[approveTransaction] notifyMember failed:", e)
+      )
     }
 
     revalidateAll()
@@ -494,7 +505,9 @@ export async function reverseTransaction(id: string, reason: string): Promise<Ac
 
     // Non-blocking trust score + notification.
     if (result.original.memberId) {
-      notifyMemberReversed(result.original, user).catch(() => {})
+      notifyMemberReversed(result.original, user).catch((e) =>
+        console.error("[reverseTransaction] notifyMemberReversed failed:", e)
+      )
     }
 
     revalidateAll()
@@ -597,16 +610,71 @@ async function notifyMember(
   if (!txn.memberId) return
   const template = notificationTemplateFor(txn.transactionType)
   if (!template) return
+
+  const amount = Number(txn.amount)
+  const messageBody = template.message(amount, txn.voucherNo)
+
+  // 1. In-app notification (always written).
   await prisma.memberNotification.create({
     data: {
       memberId: txn.memberId,
       type: "TRANSACTION_APPROVED",
       title: template.title,
-      message: template.message(Number(txn.amount), txn.voucherNo),
+      message: messageBody,
     },
   })
-  // SMS / email hooks live in lib/sms.ts and lib/email.ts; wiring them here
-  // keeps notifications fire-and-forget per the established convention.
+
+  // 2. Fetch the member's contact channels for SMS / Email delivery.
+  const member = await prisma.member.findUnique({
+    where: { id: txn.memberId },
+    select: { fullName: true, phone: true, email: true },
+  })
+  if (!member) return
+
+  // 3. SMS — short plain-text message.
+  if (member.phone) {
+    const smsMsg = `${template.title}: ${messageBody} - Future Savings Foundation`
+    try {
+      const res = await sendSMS(member.phone, smsMsg)
+      if (res.status !== "OK") {
+        await prisma.notification.create({
+          data: {
+            type: "SMS_ERROR",
+            title: "Transaction SMS Failed",
+            message: `Failed to send ${txn.transactionType} SMS to ${member.fullName} (${member.phone}). Reason: ${res.response ?? "Unknown"}`,
+          },
+        })
+      }
+    } catch (e) {
+      console.error("[notifyMember] SMS send failed:", e)
+    }
+  }
+
+  // 4. Email — richer HTML body.
+  if (member.email) {
+    try {
+      await sendEmail(
+        member.email,
+        template.title,
+        `
+          <p>Dear ${member.fullName},</p>
+          <p><strong>${template.title}.</strong></p>
+          <p>${messageBody}</p>
+          <p style="color:#64748b;font-size:13px;margin-top:16px">
+            This is an automated message from Future Savings Foundation. Please do not reply.
+          </p>
+        `
+      )
+    } catch (emailError) {
+      await prisma.notification.create({
+        data: {
+          type: "EMAIL_ERROR",
+          title: "Transaction Email Failed",
+          message: `Failed to send ${txn.transactionType} email to ${member.fullName} (${member.email}). Reason: ${(emailError instanceof Error ? emailError.message : "") || "Unknown error"}`,
+        },
+      })
+    }
+  }
 }
 
 async function notifyMemberReversed(
@@ -614,14 +682,67 @@ async function notifyMemberReversed(
   _user: CurrentUser
 ): Promise<void> {
   if (!txn.memberId) return
+  const title = "Transaction Reversed"
+  const messageBody = `Transaction ${txn.voucherNo} has been reversed. Please contact the Somiti office if you have questions.`
+
+  // 1. In-app notification.
   await prisma.memberNotification.create({
     data: {
       memberId: txn.memberId,
       type: "TRANSACTION_REVERSED",
-      title: "Transaction Reversed",
-      message: `Transaction ${txn.voucherNo} has been reversed. Please contact the Somiti office if you have questions.`,
+      title,
+      message: messageBody,
     },
   })
+
+  // 2. SMS / Email delivery.
+  const member = await prisma.member.findUnique({
+    where: { id: txn.memberId },
+    select: { fullName: true, phone: true, email: true },
+  })
+  if (!member) return
+
+  if (member.phone) {
+    try {
+      const res = await sendSMS(member.phone, `${title}: ${messageBody} - Future Savings Foundation`)
+      if (res.status !== "OK") {
+        await prisma.notification.create({
+          data: {
+            type: "SMS_ERROR",
+            title: "Reversal SMS Failed",
+            message: `Failed to send reversal SMS to ${member.fullName} (${member.phone}). Reason: ${res.response ?? "Unknown"}`,
+          },
+        })
+      }
+    } catch (e) {
+      console.error("[notifyMemberReversed] SMS send failed:", e)
+    }
+  }
+
+  if (member.email) {
+    try {
+      await sendEmail(
+        member.email,
+        title,
+        `
+          <p>Dear ${member.fullName},</p>
+          <p><strong>${title}.</strong></p>
+          <p>${messageBody}</p>
+          <p style="color:#64748b;font-size:13px;margin-top:16px">
+            This is an automated message from Future Savings Foundation. Please do not reply.
+          </p>
+        `
+      )
+    } catch (emailError) {
+      await prisma.notification.create({
+        data: {
+          type: "EMAIL_ERROR",
+          title: "Reversal Email Failed",
+          message: `Failed to send reversal email to ${member.fullName} (${member.email}). Reason: ${(emailError instanceof Error ? emailError.message : "") || "Unknown error"}`,
+        },
+      })
+    }
+  }
 }
 
 function notificationTemplateFor(type: string): {

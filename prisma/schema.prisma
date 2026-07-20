@@ -11,10 +11,32 @@ datasource db {
 
 // Organization Model (For Multi-Tenant SaaS)
 model Organization {
-  id        String   @id @default(uuid())
-  name      String
-  logo      String?
+  id            String   @id @default("singleton") // singleton — one row holds our org info
+  // ── Identity ──────────────────────────────────────────────────────────────
+  name          String
+  logo          String? // Cloudinary URL (uploaded via settings page)
+  tagline       String?
+  description   String? @db.Text
+  // ── Contact + Address ─────────────────────────────────────────────────────
+  email         String?
+  phone         String?
+  website       String?
+  addressLine   String?
+  city          String?
+  district      String?
+  postalCode    String?
+  // ── Legal / Registration ──────────────────────────────────────────────────
+  regNo          String? // society/cooperative registration no.
+  licenseNo      String?
+  tradeLicenseNo String?
+  establishedYear String?
+  // ── Social (rendered as small links on the receipt footer) ────────────────
+  facebook String?
+  whatsapp String?
+  youtube  String?
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   members   Member[]
 }
 
@@ -396,6 +418,9 @@ model Account {
   // Transactions Module — the cash/bank/wallet side of transactions
   cashTransactions Transaction[]
 
+  // Somiti Settings → Active Bank Accounts (default COA per payment method)
+  bankAccounts BankAccount[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -572,6 +597,9 @@ model Transaction {
   createdBy        String
   createdById      String
   createdAt        DateTime  @default(now())
+  // Effective date of the transaction (when the money moved), separate from the
+  // system createdAt. Lets collectors back-date entries recorded after the fact.
+  transactionDate  DateTime  @default(now())
   submittedBy      String?
   submittedById    String?
   submittedAt      DateTime?
@@ -783,6 +811,40 @@ model ChargeType {
   name      String   @unique
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+}
+
+// ====================== SOMITI SETTINGS — BANK ACCOUNTS ======================
+// Backs the "Somiti Settings → Active Bank Accounts" page. Each row maps a
+// payment method (Cash / Bank / Mobile) to a Chart-of-Accounts (COA) Account
+// that should receive deposits made via that method. The Deposit form reads
+// the default BankAccount for the chosen method to auto-select the COA.
+
+model BankAccount {
+  id            String        @id @default(uuid())
+  accountName   String                        // e.g. "Cash Drawer — Counter 1"
+  bankName      String?                       // e.g. "City Bank" (null for cash/mobile)
+  accountNumber String?                       // masked account / wallet number
+  branch        String?
+
+  // Granular PaymentMethod (kept consistent with Transaction.paymentMethod so
+  // the same enum drives both the deposit form and the default-COA lookup).
+  paymentMethod PaymentMethod
+
+  // The Chart-of-Accounts account that receives the deposit (Dr side).
+  coaAccountId String
+  coaAccount   Account @relation(fields: [coaAccountId], references: [id], onDelete: Restrict)
+
+  isActive  Boolean @default(true)
+  // Only one BankAccount should be the default per paymentMethod group
+  // (CASH / BANK_TRANSFER+CHEQUE / BKASH+NAGAD+ROCKET). Enforced by the
+  // server actions via setDefaultBankAccount().
+  isDefault Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([paymentMethod, isActive])
+  @@index([coaAccountId])
 }
 
 // ====================== LOAN MANAGEMENT ======================

@@ -5,7 +5,6 @@ import bcrypt from "bcryptjs"
 import { revalidatePath } from "next/cache"
 import {
   getCurrentUser,
-  isSuperAdmin,
   requireSuperAdmin,
   PERMISSIONS,
   ROLE,
@@ -17,30 +16,9 @@ export type ActionResult = { ok: true } | { ok: false; error: string }
 
 const USERS_PATH = "/dashboard/users"
 
-// Full permission catalogue shown in the matrix — grouped by module so the
-// UI can render labelled sections.
-export const PERMISSION_GROUPS: { group: string; keys: PermissionKey[] }[] = [
-  {
-    group: "Meetings",
-    keys: [PERMISSIONS.MEETING_ATTENDANCE_MARK, PERMISSIONS.MEETING_MINUTES_UPLOAD],
-  },
-  {
-    group: "Transactions",
-    keys: [
-      PERMISSIONS.TRANSACTION_CREATE,
-      PERMISSIONS.TRANSACTION_SUBMIT,
-      PERMISSIONS.TRANSACTION_APPROVE,
-      PERMISSIONS.TRANSACTION_REVERSE,
-    ],
-  },
-  {
-    group: "User Management",
-    keys: [PERMISSIONS.USER_MANAGE],
-  },
-]
-
-/** Read-only list of all permission keys for clients (e.g. import into forms). */
-export const ALL_PERMISSIONS = ALL_PERMISSION_KEYS
+// PERMISSION_GROUPS and ALL_PERMISSIONS live in @/lib/permissions — a "use
+// server" module may only export async functions, so non-function values are
+// kept there and imported by client components directly.
 
 // ---------------------------------------------------------------------------
 // CREATE
@@ -270,6 +248,3 @@ async function guardLastSuperAdmin(keepId: string): Promise<void> {
   const target = await prisma.user.findUnique({ where: { id: keepId } })
   if (target?.role !== ROLE.SUPER_ADMIN) return
 }
-
-// Re-exported for the meeting module so existing imports keep working.
-export { isSuperAdmin }

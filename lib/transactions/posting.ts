@@ -95,7 +95,9 @@ export async function postTransactionEffects(
       : "JOURNAL"
 
   // Create the JournalEntry + lines and apply balance effects in one tx.
-  const voucherNo = await nextVoucherNo(voucherType)
+  // Pass `tx` so the count read runs inside this interactive transaction —
+  // calling the global prisma client here breaks Supabase pooled transactions.
+  const voucherNo = await nextVoucherNo(voucherType, tx)
   const entry = await tx.journalEntry.create({
     data: {
       voucherNo,

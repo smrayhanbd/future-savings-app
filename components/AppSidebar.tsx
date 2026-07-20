@@ -75,6 +75,8 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
       { label: "Withdrawal Transactions", icon: ArrowUpFromLine, href: "/dashboard/transactions/withdrawals" },
       { label: "Income Distribution", icon: PieChart, href: "/dashboard/transactions/income-distribution" },
       { label: "Charge Management", icon: Receipt, href: "/dashboard/transactions/charges" },
+      { label: "Fees & Charge Setup", icon: SlidersHorizontal, href: "/dashboard/collection-setup" },
+      { label: "Members Due List", icon: AlertTriangle, href: "/dashboard/due-list" },
       {
         label: "Transaction Approvals",
         icon: CheckCheck,
@@ -91,9 +93,7 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
    {
     title: "Finance & Accounting",
     items: [
-      { label: "Members Due List", icon: AlertTriangle, href: "/dashboard/due-list" },
       { label: "Loan Management", icon: HandCoins, href: "/dashboard/loans" },
-      { label: "Fees & Charge Setup", icon: SlidersHorizontal, href: "/dashboard/collection-setup" },
       { label: "Chart of Accounts", icon: PieChart, href: "/dashboard/accounts" },
       { label: "Voucher Entry", icon: FilePlus2, href: "/dashboard/voucher-entry" },
       {

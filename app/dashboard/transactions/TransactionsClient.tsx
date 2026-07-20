@@ -42,6 +42,7 @@ import {
   PieChart,
   FileText,
   Eye,
+  Printer,
 } from "lucide-react"
 
 interface Row {
@@ -311,11 +312,20 @@ export default function TransactionsClient({ rows }: Props) {
                       {formatDate(r.createdAt)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Link href={`/dashboard/transactions/${r.id}`}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" title="View details">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </Link>
+                      <div className="flex items-center justify-end gap-1">
+                        <Link href={`/dashboard/transactions/${r.id}`}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="View details">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        {r.status === "APPROVED" && (r.transactionType === "DEPOSIT" || r.transactionType === "WITHDRAWAL") && (
+                          <Link href={`/dashboard/receipts/${r.id}`}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30" title="Print money receipt">
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 )

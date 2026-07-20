@@ -3,6 +3,7 @@
 // consistent currency formatting, type colour-coding, and tree math.
 
 import prisma from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import {
   Wallet,
   Landmark,
@@ -174,9 +175,18 @@ export function voucherPrefix(type: VoucherType): string {
 }
 
 /** Generate the next sequential voucher number for a given type. */
-export async function nextVoucherNo(type: VoucherType): Promise<string> {
+export async function nextVoucherNo(
+  type: VoucherType,
+  tx?: Prisma.TransactionClient
+): Promise<string> {
   const prefix = voucherPrefix(type)
-  const count = await prisma.journalEntry.count({
+  // When called inside a `prisma.$transaction`, use the passed-in client so the
+  // count read participates in the interactive transaction. Running it on the
+  // global client alongside an outer Supabase pooled transaction can invalidate
+  // the transaction ("Transaction ID is invalid, refers to an old closed
+  // transaction") before subsequent writes run.
+  const client = tx ?? prisma
+  const count = await client.journalEntry.count({
     where: { voucherType: type },
   })
   return `${prefix}-${String(count + 1).padStart(4, "0")}`

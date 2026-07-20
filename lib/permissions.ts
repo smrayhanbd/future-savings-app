@@ -119,6 +119,33 @@ export async function requireActiveUser(): Promise<CurrentUser> {
 /** All permission keys for display in a UI (matrix / grant forms). */
 export const ALL_PERMISSION_KEYS: PermissionKey[] = Object.values(PERMISSIONS)
 
+/**
+ * Permission catalogue shown in the management matrix — grouped by module so
+ * the UI can render labelled sections.
+ */
+export const PERMISSION_GROUPS: { group: string; keys: PermissionKey[] }[] = [
+  {
+    group: "Meetings",
+    keys: [PERMISSIONS.MEETING_ATTENDANCE_MARK, PERMISSIONS.MEETING_MINUTES_UPLOAD],
+  },
+  {
+    group: "Transactions",
+    keys: [
+      PERMISSIONS.TRANSACTION_CREATE,
+      PERMISSIONS.TRANSACTION_SUBMIT,
+      PERMISSIONS.TRANSACTION_APPROVE,
+      PERMISSIONS.TRANSACTION_REVERSE,
+    ],
+  },
+  {
+    group: "User Management",
+    keys: [PERMISSIONS.USER_MANAGE],
+  },
+]
+
+/** Read-only list of all permission keys for clients (e.g. import into forms). */
+export const ALL_PERMISSIONS = ALL_PERMISSION_KEYS
+
 // ── Meeting-specific authorization helpers (rules 5 & 6) ──────────────────────
 
 /**
