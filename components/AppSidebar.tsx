@@ -26,6 +26,7 @@ import {
   ChevronLeft, ChevronRight, ChevronDown, Building2,
   Banknote, SlidersHorizontal, FilePlus2, HandCoins, AlertTriangle,
   Scale, BarChart3, FileSpreadsheet, BookOpen, Award, Medal,
+  ArrowDownToLine, ArrowUpFromLine, CheckCheck, Wallet, History,
   type LucideIcon
 } from "lucide-react"
 
@@ -67,15 +68,31 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
       // "Old Member DB" removed here
     ]
   },
+  {
+    title: "Transactions",
+    items: [
+      { label: "Deposit Transactions", icon: ArrowDownToLine, href: "/dashboard/transactions/deposits" },
+      { label: "Withdrawal Transactions", icon: ArrowUpFromLine, href: "/dashboard/transactions/withdrawals" },
+      { label: "Income Distribution", icon: PieChart, href: "/dashboard/transactions/income-distribution" },
+      { label: "Charge Management", icon: Receipt, href: "/dashboard/transactions/charges" },
+      {
+        label: "Transaction Approvals",
+        icon: CheckCheck,
+        href: "#",
+        subItems: [
+          { label: "Admin Submitted", href: "/dashboard/transaction-approvals" },
+          { label: "Member Requests", href: "/dashboard/transaction-approvals?tab=member" }
+        ]
+      },
+      { label: "Cash Closing", icon: Wallet, href: "/dashboard/cash-closing" },
+      { label: "Transaction History", icon: History, href: "/dashboard/transactions" }
+    ]
+  },
    {
     title: "Finance & Accounting",
     items: [
-      { label: "Due List", icon: AlertTriangle, href: "/dashboard/due-list" },
-      { label: "Collection Entry", icon: Banknote, href: "/dashboard/collection-entry" },
-      { label: "Withdrawal Entry", icon: Landmark, href: "/dashboard/deposits" },
-      { label: "Income Distribution", icon: ArrowDownUp, href: "/dashboard/income-distribution" },
-      { label: "Loan Management", icon: HandCoins, href: "/dashboard/loans" }, // <-- NEW MENU ADDED HERE
-      { label: "Apply Fees / Charges", icon: Receipt, href: "/dashboard/fees" },
+      { label: "Members Due List", icon: AlertTriangle, href: "/dashboard/due-list" },
+      { label: "Loan Management", icon: HandCoins, href: "/dashboard/loans" },
       { label: "Fees & Charge Setup", icon: SlidersHorizontal, href: "/dashboard/collection-setup" },
       { label: "Chart of Accounts", icon: PieChart, href: "/dashboard/accounts" },
       { label: "Voucher Entry", icon: FilePlus2, href: "/dashboard/voucher-entry" },
@@ -117,16 +134,17 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
     title: "System & Settings",
     items: [
       { label: "User Control", icon: UserCog, href: "/dashboard/users" },
-      { 
-        label: "Somiti Settings", 
-        icon: Settings, 
+      {
+        label: "Somiti Settings",
+        icon: Settings,
         href: "#",
         subItems: [
           { label: "Organization Info", href: "/dashboard/settings/organization" },
-          { label: "Landing Page Content", href: "/dashboard/settings/site-content" }, // <-- ADD THIS
+          { label: "Landing Page Content", href: "/dashboard/settings/site-content" },
           { label: "Active Bank Accounts", href: "/dashboard/settings/bank" },
           { label: "Mail Server Setup", href: "/dashboard/settings/mail" },
-          { label: "SMS Service API", href: "/dashboard/settings/sms" }
+          { label: "SMS Service API", href: "/dashboard/settings/sms" },
+          { label: "Approval Limits", href: "/dashboard/settings/approval-limits" }
         ]
       },
       { label: "Cloud Backup", icon: Cloud, href: "/dashboard/backup" }

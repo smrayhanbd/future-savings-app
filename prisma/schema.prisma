@@ -154,14 +154,14 @@ model Member {
 
   // ── Trust Score (FRS v2.0) ──────────────────────────────────────────────
   // All fields are auto-managed by the scoring engine; never edited manually.
-  trustScore       Int       @default(60) // 0–100
-  badgeLevel       String    @default("Silver Member")
-  riskLevel        String    @default("Average")
-  scoreLastUpdated DateTime?
+  trustScore         Int       @default(60) // 0–100
+  badgeLevel         String    @default("Silver Member")
+  riskLevel          String    @default("Average")
+  scoreLastUpdated   DateTime?
   // Referral: the member who referred this one. Self-referencing relation.
   referredByMemberId String?
-  referredBy        Member?  @relation("MemberReferral", fields: [referredByMemberId], references: [id], onDelete: SetNull)
-  referrals         Member[] @relation("MemberReferral")
+  referredBy         Member?   @relation("MemberReferral", fields: [referredByMemberId], references: [id], onDelete: SetNull)
+  referrals          Member[]  @relation("MemberReferral")
 
   // Relationships
   addresses     MemberAddress[]
@@ -181,6 +181,9 @@ model Member {
 
   // Accounting
   journalEntries JournalEntry[]
+
+  // Transactions Module
+  transactions Transaction[]
 
   // Trust Score relationships (FRS v2.0)
   scoreHistory        TrustScoreHistory[]
@@ -288,6 +291,9 @@ model Savings {
   date      DateTime @default(now())
   createdAt DateTime @default(now())
 
+  // Transactions Module — the member-facing mirror of an approved Transaction.
+  transactionMirror Transaction?
+
   @@index([memberId])
 }
 
@@ -306,11 +312,23 @@ model LedgerEntry {
 //   - ADMIN: dashboard staff. Needs an explicit UserPermission row to submit
 //            attendance / upload minutes; submission locks the record.
 model User {
-  id          String          @id @default(uuid())
-  email       String          @unique
+  id          String           @id @default(uuid())
+  email       String           @unique
   password    String
-  role        String          @default("ADMIN") // SUPER_ADMIN, ADMIN, MEMBER
+  role        String           @default("ADMIN") // SUPER_ADMIN, ADMIN, MEMBER
+  name        String?
+  phone       String?
+  isActive    Boolean          @default(true)
+  lastLogin   DateTime?
+  createdBy   String?
   permissions UserPermission[]
+
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([isActive])
+  @@index([role])
 }
 
 // Enums for Accounting
@@ -334,16 +352,16 @@ enum AccountStatus {
 
 // Voucher / journal-entry type for double-entry bookkeeping
 enum VoucherType {
-  JOURNAL   // General journal entry
-  RECEIPT   // Money received (cash/bank debit)
-  PAYMENT   // Money paid out (cash/bank credit)
-  CONTRA    // Between two asset accounts (e.g. bank <-> cash)
+  JOURNAL // General journal entry
+  RECEIPT // Money received (cash/bank debit)
+  PAYMENT // Money paid out (cash/bank credit)
+  CONTRA // Between two asset accounts (e.g. bank <-> cash)
 }
 
 // Lifecycle of a journal entry
 enum JournalStatus {
-  DRAFT   // Editable, not yet affecting balances
-  POSTED  // Posted to the ledger; balances updated
+  DRAFT // Editable, not yet affecting balances
+  POSTED // Posted to the ledger; balances updated
 }
 
 model Account {
@@ -369,11 +387,14 @@ model Account {
   status       AccountStatus @default(ACTIVE)
 
   // Extension fields for enterprise use
-  taxDeductible     Boolean       @default(false)
-  reconciledBalance Decimal?      @db.Decimal(12, 2)
+  taxDeductible     Boolean  @default(false)
+  reconciledBalance Decimal? @db.Decimal(12, 2)
 
   // Double-entry postings
   journalLines JournalLine[]
+
+  // Transactions Module — the cash/bank/wallet side of transactions
+  cashTransactions Transaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -381,19 +402,22 @@ model Account {
 
 // Journal Entry = the voucher header (one document, many lines)
 model JournalEntry {
-  id          String       @id @default(uuid())
-  voucherNo   String       @unique // e.g. JV-0001, RV-0001, PV-0001, CV-0001
-  voucherType VoucherType  @default(JOURNAL)
-  entryDate   DateTime     @default(now())
+  id          String        @id @default(uuid())
+  voucherNo   String        @unique // e.g. JV-0001, RV-0001, PV-0001, CV-0001
+  voucherType VoucherType   @default(JOURNAL)
+  entryDate   DateTime      @default(now())
   narration   String
   referenceNo String?
-  memberId    String?      // optional link to a member (e.g. member payment)
-  member      Member?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  memberId    String? // optional link to a member (e.g. member payment)
+  member      Member?       @relation(fields: [memberId], references: [id], onDelete: SetNull)
   status      JournalStatus @default(DRAFT)
-  totalDebit  Decimal      @default(0) @db.Decimal(14, 2)
-  totalCredit Decimal      @default(0) @db.Decimal(14, 2)
+  totalDebit  Decimal       @default(0) @db.Decimal(14, 2)
+  totalCredit Decimal       @default(0) @db.Decimal(14, 2)
 
   lines JournalLine[]
+
+  // Transactions Module — the posting created when a transaction is approved
+  transactions Transaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -401,7 +425,7 @@ model JournalEntry {
 
 // Journal Line = a single posting (debit OR credit) to one account
 model JournalLine {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   journalEntryId String
   journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
 
@@ -413,6 +437,192 @@ model JournalLine {
   memo   String?
 
   createdAt DateTime @default(now())
+}
+
+// ====================== TRANSACTIONS MODULE ======================
+// Unified financial engine with Maker-Checker approval workflow and full
+// double-entry accounting integration. Every approved transaction writes to
+// BOTH the member-facing Savings ledger AND the General Ledger
+// (JournalEntry + JournalLine) atomically, linked by shared ids.
+// Approved transactions are immutable — corrections require a Reversal.
+
+// The 4 top-level transaction categories (spec §3).
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  CHARGE
+  INCOME_DISTRIBUTION
+}
+
+// Detailed sub-types. Member-side and Future-side entries share this enum
+// for forward compatibility (loan disbursement, admission fee, shares, etc.
+// are stubbed TODO(PHASE 2)).
+enum TransactionSubType {
+  // Member deposits
+  SAVINGS_DEPOSIT
+  ADVANCE
+  DUE_PAYMENT
+  // Charges
+  SERVICE_CHARGE
+  BANK_CHARGE
+  ANNUAL_FEE
+  ADMIN_CHARGE
+  FINE_PENALTY
+  OTHER_CHARGE
+  // Income distribution sources
+  PROJECT_PROFIT
+  BANK_INTEREST
+  INVESTMENT_INCOME
+  DIVIDEND
+  OTHER_INCOME
+  // Future (Phase 2 stubs)
+  LOAN_DISBURSEMENT
+  LOAN_INSTALLMENT
+  ADMISSION_FEE
+  MEMBERSHIP_FEE
+  SHARE_PURCHASE
+  SHARE_REFUND
+}
+
+// Which ledger this transaction touches.
+enum TransactionCategory {
+  MEMBER
+  FUTURE
+}
+
+// Payment / collection method (spec §6).
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHEQUE
+  BKASH
+  NAGAD
+  ROCKET
+}
+
+// Approval workflow status (spec §5).
+enum TransactionStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  RETURNED
+  REJECTED
+  REVERSED
+}
+
+// Approval tier resolved at submit time from ApprovalLimit by amount (spec §13).
+enum ApprovalLevel {
+  L1
+  L2
+  L3
+}
+
+model Transaction {
+  id              String              @id @default(uuid())
+  voucherNo       String              @unique // TR-DEP-000001 etc. (atomic via Counter)
+  transactionType TransactionType
+  subType         TransactionSubType
+  category        TransactionCategory @default(MEMBER)
+
+  // Member this transaction affects (optional for some charges / distributions).
+  memberId String?
+  member   Member? @relation(fields: [memberId], references: [id], onDelete: Restrict)
+
+  // Money & payment
+  amount        Decimal        @db.Decimal(14, 2)
+  paymentMethod PaymentMethod?
+  cashAccountId String? // Cash Drawer / Bank / Mobile Wallet (Account)
+  cashAccount   Account?       @relation(fields: [cashAccountId], references: [id], onDelete: Restrict)
+  referenceNo   String?
+
+  // Structured payload preserving the collection breakdown (deposit, principal,
+  // interest, fine, other, discount) or member-wise income-distribution split.
+  breakdown   Json?
+  attachments Json    @default("[]") // [{type, name, url}]
+  remarks     String? @db.Text
+
+  // ── Status workflow ────────────────────────────────────────────────────
+  status          TransactionStatus @default(DRAFT)
+  approvalLevel   ApprovalLevel?
+  returnReason    String?           @db.Text
+  rejectionReason String?           @db.Text
+
+  // ── Reversal linkage (spec §19/§29) ────────────────────────────────────
+  // reversalOfId: if set, THIS row reverses the referenced transaction.
+  // reversedById: set on the original when a reversal is created against it.
+  // Self-relation: only one side owns the foreign key.
+  reversalOfId   String?      @unique
+  reversalOf     Transaction? @relation("TransactionReversal", fields: [reversalOfId], references: [id], onDelete: Restrict)
+  reversedById   String?      @unique
+  reversedBy     Transaction? @relation("TransactionReversal")
+  reversalReason String?      @db.Text
+
+  // ── Posting links (filled atomically on approval) ─────────────────────
+  journalEntryId  String?
+  journalEntry    JournalEntry? @relation(fields: [journalEntryId], references: [id], onDelete: Restrict)
+  savingsMirrorId String?       @unique
+  savingsMirror   Savings?      @relation(fields: [savingsMirrorId], references: [id], onDelete: Restrict)
+
+  // ── Member-portal request origin ──────────────────────────────────────
+  memberSubmitted Boolean        @default(false)
+  memberRequestId String?
+  memberRequest   MemberRequest? @relation(fields: [memberRequestId], references: [id], onDelete: SetNull)
+
+  // ── Full audit trail (spec §18) ────────────────────────────────────────
+  createdBy        String
+  createdById      String
+  createdAt        DateTime  @default(now())
+  submittedBy      String?
+  submittedById    String?
+  submittedAt      DateTime?
+  approvedBy       String?
+  approvedById     String?
+  approvedAt       DateTime?
+  returnedBy       String?
+  returnedById     String?
+  returnedAt       DateTime?
+  rejectedBy       String?
+  rejectedById     String?
+  rejectedAt       DateTime?
+  reversedByUser   String?
+  reversedByUserId String?
+  reversedAt       DateTime?
+  ipAddress        String?
+  deviceInfo       String?
+
+  @@index([status])
+  @@index([transactionType, status])
+  @@index([memberId])
+  @@index([approvedAt])
+  @@index([reversalOfId])
+  @@index([cashAccountId])
+}
+
+// Approval tier configuration (spec §13). Resolved at submit time by amount.
+// role values: SUPER_ADMIN | ADMIN. ADMIN rows additionally require the named
+// permission key on the UserPermission table.
+model ApprovalLimit {
+  id         String   @id @default(uuid())
+  level      Int // 1, 2, 3
+  label      String // "Branch Manager", "Regional Manager", "Super Admin"
+  role       String // SUPER_ADMIN | ADMIN
+  // When role=ADMIN, this permission key (on UserPermission) is also required.
+  permission String?
+  minAmount  Decimal  @default(0) @db.Decimal(14, 2)
+  maxAmount  Decimal  @db.Decimal(14, 2)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([level, isActive])
+}
+
+// Atomic monotonic sequence counters — fixes the race-prone `count+1` voucher
+// generation. Each id (e.g. "transaction", "TR-DEP") is incremented inside a
+// `prisma.$transaction` with the row locked for update.
+model Counter {
+  id    String @id
+  value Int    @default(0)
 }
 
 model SiteContent {
@@ -497,6 +707,9 @@ model MemberRequest {
   notes     String?
   status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
   createdAt DateTime @default(now())
+
+  // Transactions Module — a portal request may be approved into a Transaction.
+  transactions Transaction[]
 }
 
 // Meeting minutes + attendance submission lifecycle.
@@ -516,16 +729,16 @@ model Meeting {
   attendances MeetingAttendance[]
 
   // Attendance submission lifecycle
-  attendanceLocked      Boolean    @default(false)
+  attendanceLocked      Boolean   @default(false)
   attendanceSubmittedAt DateTime?
   attendanceSubmittedBy String?
 
   // Meeting minutes file
-  minutesUrl          String?
-  minutesFileName     String?
-  minutesUploadedAt   DateTime?
-  minutesUploadedBy   String?
-  minutesLocked       Boolean @default(false)
+  minutesUrl        String?
+  minutesFileName   String?
+  minutesUploadedAt DateTime?
+  minutesUploadedBy String?
+  minutesLocked     Boolean   @default(false)
 }
 
 // Per-user permission grants (the "authorized normal users" of rules 5 & 6).
@@ -757,33 +970,33 @@ model LoanGuarantor {
 // Every weight, threshold, penalty, and badge criterion is read from here at runtime
 // (FRS §23.1: "Never hardcode formulas").
 model KpiConfiguration {
-  id                     String   @id @default("singleton")
+  id                    String    @id @default("singleton")
   // KPI weights — must always sum to 100 (validated on save).
-  depositWeight          Int      @default(35)
-  loanWeight             Int      @default(25)
-  attendanceWeight       Int      @default(20)
-  fineWeight             Int      @default(10)
-  referralWeight         Int      @default(10)
+  depositWeight         Int       @default(35)
+  loanWeight            Int       @default(25)
+  attendanceWeight      Int       @default(20)
+  fineWeight            Int       @default(10)
+  referralWeight        Int       @default(10)
   // New-member starting score (FRS §3).
-  initialScore           Int      @default(60)
+  initialScore          Int       @default(60)
   // Suspension / reactivation thresholds (FRS §9).
-  suspensionThreshold    Int      @default(40)
-  reactivationThreshold  Int      @default(50)
+  suspensionThreshold   Int       @default(40)
+  reactivationThreshold Int       @default(50)
   // Trust-score badge tier minimums (FRS §4). Non-overlapping, span 0–100.
-  badgeDiamondMin        Int      @default(90)
-  badgePlatinumMin       Int      @default(80)
-  badgeGoldMin           Int      @default(70)
-  badgeSilverMin         Int      @default(60)
-  badgeWarningMin        Int      @default(50)
-  badgeHighRiskMin       Int      @default(40)
+  badgeDiamondMin       Int       @default(90)
+  badgePlatinumMin      Int       @default(80)
+  badgeGoldMin          Int       @default(70)
+  badgeSilverMin        Int       @default(60)
+  badgeWarningMin       Int       @default(50)
+  badgeHighRiskMin      Int       @default(40)
   // ATTEND KPI behavior (FRS §5.4).
-  approvedAbsenceCounts  Boolean  @default(true)
+  approvedAbsenceCounts Boolean   @default(true)
   // Deposit interpolation (FRS §5.2): true = linear interpolation, false = lower threshold.
-  depositLinearInterp    Boolean  @default(true)
+  depositLinearInterp   Boolean   @default(true)
   // Recovery window (months) after a loan default before the LOAN KPI can climb off zero.
-  loanRecoveryMonths     Int      @default(6)
-  updatedAt              DateTime?
-  updatedBy              String?
+  loanRecoveryMonths    Int       @default(6)
+  updatedAt             DateTime?
+  updatedBy             String?
 }
 
 // Immutable Trust Score audit log (FRS §15). Inserted in the same $transaction
@@ -796,9 +1009,9 @@ model TrustScoreHistory {
   memberId      String
   member        Member   @relation(fields: [memberId], references: [id], onDelete: Restrict)
   eventType     String // e.g. DEPOSIT_COLLECTED, FINE_ISSUED, LOAN_DEFAULT, MEMBER_SUSPENDED
-  referenceId   String?  // id of the triggering record (savings/fine/loan/…)
-  referenceType String?  // deposit | loan | fine | meeting | referral | member | config
-  kpiAffected   String?  // DEPOSIT | LOAN | ATTEND | FINE | REFERRAL | ALL | NONE
+  referenceId   String? // id of the triggering record (savings/fine/loan/…)
+  referenceType String? // deposit | loan | fine | meeting | referral | member | config
+  kpiAffected   String? // DEPOSIT | LOAN | ATTEND | FINE | REFERRAL | ALL | NONE
   scoreBefore   Int
   scoreChange   Int // signed (+/-)
   scoreAfter    Int
@@ -850,7 +1063,7 @@ model Fine {
   status        FineStatus @default(ISSUED)
   issuedDate    DateTime   @default(now())
   resolvedDate  DateTime?
-  referenceType String?    // savings | manual | fee
+  referenceType String? // savings | manual | fee
   referenceId   String?
   notes         String?    @db.Text
   createdBy     String?

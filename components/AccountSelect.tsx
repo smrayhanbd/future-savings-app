@@ -27,6 +27,12 @@ export interface FlatAccount {
   depth?: number
   /** Optional posting flag carried over from the full Account node. */
   allowPosting?: boolean
+  /** Marks a Cash Drawer / Main Cash / Petty Cash account. */
+  isCash?: boolean
+  /** Marks a Bank account. */
+  isBank?: boolean
+  /** Optional current balance for display in selectors. */
+  currentBalance?: number | string
 }
 
 interface AccountSelectProps {

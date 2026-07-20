@@ -14,9 +14,14 @@ export async function proxy(req: NextRequest) {
   }
 
   // 3. Role-based routing (Only runs if the user IS logged in)
-  
-  // If a MEMBER tries to access the Admin Dashboard, redirect to Member Portal
-  if (path.startsWith("/dashboard") && token.role !== "ADMIN") {
+
+  // If a MEMBER tries to access the Admin Dashboard, redirect to Member Portal.
+  // Both ADMIN and SUPER_ADMIN may enter the dashboard.
+  if (
+    path.startsWith("/dashboard") &&
+    token.role !== "ADMIN" &&
+    token.role !== "SUPER_ADMIN"
+  ) {
     return NextResponse.redirect(new URL("/portal", req.url))
   }
 

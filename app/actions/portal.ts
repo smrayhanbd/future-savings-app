@@ -479,3 +479,50 @@ export async function rejectProfileUpdateRequest(requestId: string) {
   await prisma.profileUpdateRequest.update({ where: { id: requestId }, data: { status: "REJECTED" } })
   revalidatePath("/portal/profile")
 }
+
+// ---------------------------------------------------------------------------
+// Withdrawal / Account-closure requests (MemberRequest table)
+// Approval here marks the request; the actual money movement is created as a
+// Transaction through the Transactions Module for proper Maker-Checker control.
+// ---------------------------------------------------------------------------
+export async function approveMemberRequest(
+  requestId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const req = await prisma.memberRequest.findUnique({ where: { id: requestId } })
+    if (!req) return { ok: false, error: "Request not found." }
+    if (req.status !== "PENDING")
+      return { ok: false, error: "This request has already been processed." }
+
+    await prisma.memberRequest.update({
+      where: { id: requestId },
+      data: { status: "APPROVED" },
+    })
+    revalidatePath("/dashboard/transaction-approvals")
+    revalidatePath("/portal/requests")
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+export async function rejectMemberRequest(
+  requestId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const req = await prisma.memberRequest.findUnique({ where: { id: requestId } })
+    if (!req) return { ok: false, error: "Request not found." }
+    if (req.status !== "PENDING")
+      return { ok: false, error: "This request has already been processed." }
+
+    await prisma.memberRequest.update({
+      where: { id: requestId },
+      data: { status: "REJECTED" },
+    })
+    revalidatePath("/dashboard/transaction-approvals")
+    revalidatePath("/portal/requests")
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}

@@ -4,8 +4,16 @@ import prisma from "@/lib/prisma"
 
 // Permission keys stored on the UserPermission table.
 export const PERMISSIONS = {
+  // Meeting module
   MEETING_ATTENDANCE_MARK: "MEETING_ATTENDANCE_MARK",
   MEETING_MINUTES_UPLOAD: "MEETING_MINUTES_UPLOAD",
+  // Transactions module (spec §12 / §13)
+  TRANSACTION_CREATE: "TRANSACTION_CREATE",
+  TRANSACTION_SUBMIT: "TRANSACTION_SUBMIT",
+  TRANSACTION_APPROVE: "TRANSACTION_APPROVE",
+  TRANSACTION_REVERSE: "TRANSACTION_REVERSE",
+  // User management
+  USER_MANAGE: "USER_MANAGE",
 } as const
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -15,6 +23,17 @@ export const ROLE = {
   ADMIN: "ADMIN",
   MEMBER: "MEMBER",
 } as const
+
+// Numeric rank for hierarchy comparisons (higher = more privileged).
+export const ROLE_RANK: Record<string, number> = {
+  [ROLE.MEMBER]: 0,
+  [ROLE.ADMIN]: 1,
+  [ROLE.SUPER_ADMIN]: 2,
+}
+
+export function roleRank(role: string | null | undefined): number {
+  return ROLE_RANK[role ?? ""] ?? -1
+}
 
 // A light shape returned by getCurrentUser — enough to authorize against.
 export interface CurrentUser {
@@ -55,11 +74,50 @@ export async function hasPermission(userId: string, key: PermissionKey, user?: {
 }
 
 /** SUPER_ADMIN only — throws if the caller is not a super admin. */
-export function requireSuperAdmin(user: CurrentUser | null): void {
+export function requireSuperAdmin(user: CurrentUser | null): asserts user is CurrentUser {
   if (!isSuperAdmin(user)) {
     throw new Error("Only the Super Admin can perform this action.")
   }
 }
+
+/**
+ * Resolve the dashboard user and verify they hold the given permission.
+ * SUPER_ADMIN always passes. Returns the user so callers can chain.
+ * Throws if unauthenticated or unauthorised.
+ */
+export async function requirePermission(
+  user: CurrentUser | null,
+  key: PermissionKey
+): Promise<CurrentUser> {
+  if (!user) throw new Error("You must be signed in to perform this action.")
+  if (isSuperAdmin(user)) return user
+  const granted = await hasPermission(user.id, key, user)
+  if (!granted) {
+    throw new Error(`You do not have the "${key}" permission.`)
+  }
+  return user
+}
+
+/**
+ * Resolve the current user and confirm their account is still active
+ * (not disabled by an admin). Throws if unauthenticated or disabled.
+ */
+export async function requireActiveUser(): Promise<CurrentUser> {
+  const user = await getCurrentUser()
+  if (!user) throw new Error("You must be signed in to perform this action.")
+  // Re-check isActive from the DB row we already loaded.
+  const row = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { isActive: true },
+  })
+  if (!row?.isActive) {
+    throw new Error("Your account has been disabled. Contact an administrator.")
+  }
+  return user
+}
+
+/** All permission keys for display in a UI (matrix / grant forms). */
+export const ALL_PERMISSION_KEYS: PermissionKey[] = Object.values(PERMISSIONS)
 
 // ── Meeting-specific authorization helpers (rules 5 & 6) ──────────────────────
 

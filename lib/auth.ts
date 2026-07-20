@@ -22,9 +22,21 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (adminUser) {
+          // A disabled admin cannot sign in.
+          if (adminUser.isActive === false) return null;
           const passwordMatch = await bcrypt.compare(credentials.password, adminUser.password);
           if (passwordMatch) {
-            return { id: adminUser.id, email: adminUser.email, role: "ADMIN" };
+            // Stamp lastLogin without blocking the login flow.
+            prisma.user
+              .update({
+                where: { id: adminUser.id },
+                data: { lastLogin: new Date() },
+              })
+              .catch(() => {});
+            // Carry the real persisted role (SUPER_ADMIN or ADMIN) — previously
+            // hardcoded to "ADMIN", which broke SUPER_ADMIN at the JWT/middleware
+            // layer. `getCurrentUser()` still re-reads the DB as a backstop.
+            return { id: adminUser.id, email: adminUser.email, role: adminUser.role };
           }
         }
 
@@ -38,9 +50,9 @@ export const authOptions: NextAuthOptions = {
           const passwordMatch = await bcrypt.compare(credentials.password, memberAccount.passwordHash);
           if (passwordMatch) {
             // Return member details mapped to the session
-            return { 
-              id: memberAccount.memberId, 
-              email: memberAccount.member.email || memberAccount.username, 
+            return {
+              id: memberAccount.memberId,
+              email: memberAccount.member.email || memberAccount.username,
               role: "MEMBER",
               name: memberAccount.member.fullName
             };
