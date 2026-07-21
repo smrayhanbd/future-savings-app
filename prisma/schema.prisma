@@ -1164,3 +1164,117 @@ model MemberNotification {
 
   @@index([memberId, isRead, createdAt(sort: Desc)])
 }
+
+// ── Messaging settings (Mail + SMS) ──────────────────────────────────────────
+// Singleton rows. Secrets (SMTP password, API keys, tokens) are stored as
+// AES-256-GCM ciphertext via lib/crypto.ts — never plaintext. A blank field on
+// save means "keep existing", mirroring the Organization logo-preservation
+// pattern. lib/email.ts and lib/sms.ts read the active provider from these
+// rows; when no row exists they fall back to the legacy env-based transport.
+
+model MailSettings {
+  id               String   @id @default("singleton")
+  provider         String   @default("gmail") // gmail | custom_smtp | ses | resend | mailgun | brevo | m365
+  isActive         Boolean  @default(true)
+  // common
+  displayName      String?
+  fromEmail        String?
+  replyTo          String?
+  // SMTP-capable providers (gmail, custom_smtp, m365, ses)
+  smtpHost         String?
+  smtpPort         Int?
+  encryption       String? // none | ssl | tls
+  smtpUsername     String?
+  smtpPasswordEnc  String? // AES-256-GCM ciphertext (base64)
+  // ses-specific
+  sesRegion        String?
+  sesConfigSet     String?
+  sesSandbox       Boolean  @default(false)
+  // API-key providers (resend, mailgun, brevo)
+  apiKeyEnc        String? // AES-256-GCM ciphertext
+  apiDomain        String? // resend / mailgun sender domain
+  apiRegion        String? // mailgun US | EU
+  // limits / reliability
+  maxRetry         Int      @default(3)
+  retryIntervalMin Int      @default(5)
+  timeoutSec       Int      @default(30)
+  dailyLimit       Int?     // null = unlimited
+  perMinuteLimit   Int?
+  updatedBy        String?
+  updatedAt        DateTime @updatedAt
+}
+
+model SmsSettings {
+  id                 String   @id @default("singleton")
+  provider           String   @default("bulksmsbd") // bulksmsbd | sendmysms | sslwireless | twilio | custom
+  isActive           Boolean  @default(true)
+  displayName        String?
+  // BulkSMSBD
+  bulksmsbdUrl       String? // http://bulksmsbd.net/api/smsapi
+  bulksmsbdApiKeyEnc String?
+  bulksmsbdSender    String?
+  // SendMySMS
+  sendmysmsUrl       String? // https://sendmysms.net/api.php
+  sendmysmsUser      String?
+  sendmysmsKeyEnc    String?
+  // SSLWireless
+  sslTokenEnc        String?
+  sslSender          String?
+  sslUrl             String? // https://smsplus.sslwireless.com/api/v3/send-sms
+  // Twilio
+  twilioSid          String?
+  twilioTokenEnc     String?
+  twilioFrom         String?
+  // Custom HTTP gateway
+  customUrl          String?
+  customMethod       String? // GET | POST
+  customAuthType     String? // none | bearer | basic | header
+  customAuthValueEnc String?
+  customBodyType     String? // query | json | form
+  customPhoneParam   String?
+  customMsgParam     String?
+  customSenderParam  String?
+  customApiKeyParam  String?
+  customSuccessField String?
+  customSuccessValue String?
+  // common
+  countryCode        String? // +880
+  phoneFormat        String? // 88017XXXXXXXX
+  urlEncode          Boolean  @default(true)
+  timeoutSec         Int      @default(30)
+  maxRetry           Int      @default(3)
+  dailyLimit         Int?
+  updatedBy          String?
+  updatedAt          DateTime @updatedAt
+}
+
+// Immutable audit trail of every Mail/SMS settings or template change.
+// Mirrors the TrustScoreHistory shape (append-only). `changes` holds a redacted
+// diff — secret fields are replaced with "***CHANGED***", never their values.
+model SettingsAuditLog {
+  id        String   @id @default(uuid())
+  section   String // MAIL | SMS
+  action    String // UPDATE_PROVIDER | TEST_MAIL | TEST_SMS | TEMPLATE_SAVE | TEMPLATE_DELETE
+  summary   String
+  changes   Json?
+  userId    String?
+  userEmail String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([section, createdAt(sort: Desc)])
+}
+
+// Reusable message templates (email HTML or SMS plain text) with {{variable}}
+// placeholders. Decoupled from MailSettings/SmsSettings so they can be CRUD-ed
+// independently in the template editor.
+model MessageTemplate {
+  id        String   @id @default(uuid())
+  channel   String // EMAIL | SMS
+  key       String   @unique // e.g. MEMBER_WELCOME, DEPOSIT_RECEIVED
+  name      String
+  subject   String? // email only
+  body      String   @db.Text // SMS plain text or email HTML; supports {{vars}}
+  variables String? // comma-separated list of supported vars
+  updatedAt DateTime @updatedAt
+}

@@ -149,11 +149,113 @@ async function main() {
     }
   }
 
+  // --- 5. Seed default Mail/SMS message templates ----------------------------
+  // Mirrors SEED_TEMPLATES in lib/templates.ts (the runtime source of truth).
+  // Only inserts missing rows; existing templates are never overwritten.
+  const DEFAULT_TEMPLATES = [
+    {
+      channel: 'EMAIL', key: 'MEMBER_WELCOME', name: 'Member Welcome',
+      subject: 'Membership Approved! Welcome to the Portal',
+      variables: 'memberName, username, tempPassword, loginUrl',
+      body: '<p>Dear {{memberName}},</p><p>Your membership has been approved. Member ID: <strong>{{username}}</strong></p><p>Username: {{username}}<br/>Temporary Password: {{tempPassword}}<br/>Login URL: {{loginUrl}}</p>',
+    },
+    {
+      channel: 'EMAIL', key: 'PASSWORD_RESET', name: 'Password Reset',
+      subject: 'Password Reset Request', variables: 'memberName, resetUrl',
+      body: '<p>Dear {{memberName}},</p><p>Reset your password: <a href="{{resetUrl}}">{{resetUrl}}</a></p>',
+    },
+    {
+      channel: 'EMAIL', key: 'DEPOSIT_RECEIVED', name: 'Deposit Received',
+      subject: 'Deposit Received — ৳{{amount}}', variables: 'memberName, amount, balance, transactionId',
+      body: '<p>Hello {{memberName}},</p><p>Your deposit of <strong>৳{{amount}}</strong> has been received. Transaction ID: {{transactionId}}. Balance: ৳{{balance}}</p>',
+    },
+    {
+      channel: 'EMAIL', key: 'WITHDRAWAL_APPROVED', name: 'Withdrawal Approved',
+      subject: 'Withdrawal Approved — ৳{{amount}}', variables: 'memberName, amount, balance, transactionId',
+      body: '<p>Hello {{memberName}},</p><p>Your withdrawal of <strong>৳{{amount}}</strong> has been approved. Remaining Balance: ৳{{balance}}</p>',
+    },
+    {
+      channel: 'EMAIL', key: 'LOAN_APPROVED', name: 'Loan Approved',
+      subject: 'Loan Approved — ৳{{loanAmount}}', variables: 'memberName, loanAmount',
+      body: '<p>Dear {{memberName}},</p><p>Your loan of <strong>৳{{loanAmount}}</strong> has been approved.</p>',
+    },
+    {
+      channel: 'EMAIL', key: 'MEETING_NOTICE', name: 'Meeting Notice',
+      subject: 'Meeting Notice — {{meetingTitle}}', variables: 'memberName, meetingTitle, meetingDate, meetingLink, agenda',
+      body: '<p>Dear {{memberName}},</p><p>{{meetingTitle}} on {{meetingDate}}. Venue/Link: {{meetingLink}}</p><div>{{agenda}}</div>',
+    },
+    {
+      channel: 'EMAIL', key: 'FINE_NOTICE', name: 'Fine Notice',
+      subject: 'Fine Notice', variables: 'memberName, amount, reason',
+      body: '<p>Dear {{memberName}},</p><p>A fine of <strong>৳{{amount}}</strong> has been recorded. Reason: {{reason}}</p>',
+    },
+    {
+      channel: 'EMAIL', key: 'PROFIT_DISTRIBUTION', name: 'Profit Distribution',
+      subject: 'Profit Distribution — ৳{{amount}}', variables: 'memberName, amount, balance',
+      body: '<p>Dear {{memberName}},</p><p>Profit share of <strong>৳{{amount}}</strong> credited. New Balance: ৳{{balance}}</p>',
+    },
+    {
+      channel: 'SMS', key: 'OTP_SMS', name: 'OTP', variables: 'otp',
+      body: 'Your verification code is {{otp}}. Do not share it. — Future Savings Foundation',
+    },
+    {
+      channel: 'SMS', key: 'MEMBER_WELCOME_SMS', name: 'Member Welcome', variables: 'memberName, username, tempPassword, loginUrl',
+      body: 'Welcome {{memberName}}! Account approved. Member ID: {{username}}, Password: {{tempPassword}}. Login: {{loginUrl}}',
+    },
+    {
+      channel: 'SMS', key: 'DEPOSIT_RECEIVED_SMS', name: 'Deposit Received', variables: 'memberName, amount, balance',
+      body: 'Dear {{memberName}}, deposit of ৳{{amount}} received. Balance: ৳{{balance}}. — Future Savings Foundation',
+    },
+    {
+      channel: 'SMS', key: 'WITHDRAWAL_APPROVED_SMS', name: 'Withdrawal Approved', variables: 'memberName, amount, balance',
+      body: 'Dear {{memberName}}, withdrawal of ৳{{amount}} approved. Balance: ৳{{balance}}.',
+    },
+    {
+      channel: 'SMS', key: 'LOAN_APPROVED_SMS', name: 'Loan Approved', variables: 'memberName, loanAmount',
+      body: 'Dear {{memberName}}, your loan of ৳{{loanAmount}} is approved. — Future Savings Foundation',
+    },
+    {
+      channel: 'SMS', key: 'LOAN_REMINDER_SMS', name: 'Loan Reminder', variables: 'memberName, amount, dueDate',
+      body: 'Dear {{memberName}}, your loan installment of ৳{{amount}} is due on {{dueDate}}.',
+    },
+    {
+      channel: 'SMS', key: 'MEETING_NOTICE_SMS', name: 'Meeting Notice', variables: 'meetingTitle, meetingDate, meetingLink',
+      body: 'Meeting Notice: {{meetingTitle}} on {{meetingDate}}. Venue/Link: {{meetingLink}}. — Future Savings Foundation',
+    },
+    {
+      channel: 'SMS', key: 'FINE_NOTICE_SMS', name: 'Fine Notice', variables: 'memberName, amount, reason',
+      body: 'Dear {{memberName}}, a fine of ৳{{amount}} ({{reason}}) has been recorded.',
+    },
+    {
+      channel: 'SMS', key: 'DUE_REMINDER_SMS', name: 'Due Reminder', variables: 'memberName, amount',
+      body: 'Dear {{memberName}}, your due balance is ৳{{amount}}. Please clear it soon.',
+    },
+    {
+      channel: 'SMS', key: 'PASSWORD_RESET_SMS', name: 'Password Reset OTP', variables: 'otp',
+      body: 'Your password reset code is {{otp}}. — Future Savings Foundation',
+    },
+  ];
+  for (const tpl of DEFAULT_TEMPLATES) {
+    await prisma.messageTemplate.upsert({
+      where: { key: tpl.key },
+      update: {},
+      create: {
+        channel: tpl.channel,
+        key: tpl.key,
+        name: tpl.name,
+        subject: tpl.subject || null,
+        body: tpl.body,
+        variables: tpl.variables,
+      },
+    });
+  }
+
   console.log('--------------------------------------------------');
   console.log('Seed complete.');
   console.log('Super Admin   : admin@foundation.com / Admin@123');
   console.log('Approval tiers: 3 (Branch / Regional / Super Admin)');
   console.log('System accounts: ' + TXN_SYSTEM_ACCOUNTS.length + ' ensured');
+  console.log('Message templates: ' + DEFAULT_TEMPLATES.length + ' ensured');
   console.log('--------------------------------------------------');
 }
 
