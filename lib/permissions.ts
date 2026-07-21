@@ -14,6 +14,15 @@ export const PERMISSIONS = {
   TRANSACTION_REVERSE: "TRANSACTION_REVERSE",
   // User management
   USER_MANAGE: "USER_MANAGE",
+  // Task Management module
+  TASK_CREATE: "TASK_CREATE",
+  TASK_VIEW_ALL: "TASK_VIEW_ALL",
+  TASK_ASSIGN: "TASK_ASSIGN",
+  TASK_APPROVE: "TASK_APPROVE",
+  TASK_DELETE: "TASK_DELETE",
+  TASK_MANAGE_RECURRING: "TASK_MANAGE_RECURRING",
+  // Committee Management module
+  COMMITTEE_MANAGE: "COMMITTEE_MANAGE",
 } as const
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -140,6 +149,21 @@ export const PERMISSION_GROUPS: { group: string; keys: PermissionKey[] }[] = [
   {
     group: "User Management",
     keys: [PERMISSIONS.USER_MANAGE],
+  },
+  {
+    group: "Tasks",
+    keys: [
+      PERMISSIONS.TASK_CREATE,
+      PERMISSIONS.TASK_VIEW_ALL,
+      PERMISSIONS.TASK_ASSIGN,
+      PERMISSIONS.TASK_APPROVE,
+      PERMISSIONS.TASK_DELETE,
+      PERMISSIONS.TASK_MANAGE_RECURRING,
+    ],
+  },
+  {
+    group: "Committees",
+    keys: [PERMISSIONS.COMMITTEE_MANAGE],
   },
 ]
 

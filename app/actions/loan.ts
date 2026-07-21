@@ -6,6 +6,7 @@ import { redirect } from "next/navigation"
 import { generateSchedule, expectedCloseFromSchedule, type InterestType, type RepaymentFreq } from "@/lib/loanSchedule"
 import { Prisma } from "@prisma/client"
 import { recalculateTrustScore } from "@/lib/trustScore"
+import { spawnTask } from "@/lib/tasks/spawn"
 
 const LOANS_PATH = "/dashboard/loans"
 
@@ -346,6 +347,20 @@ export async function disburseLoan(id: string, method: string, date?: string) {
   } catch (e) {
     console.error("[trustScore] disburseLoan hook failed:", e)
   }
+
+  // Task auto-spawn: disbursement follow-up (idempotent — skipped if an open
+  // task already links this loan + title). Non-blocking.
+  await spawnTask({
+    title: `Process disbursement documentation for ${loan.loanNo}`,
+    description: `Loan ${loan.loanNo} has been disbursed. Collect signed agreement, update member file, and file supporting documents.`,
+    priority: "HIGH",
+    dueInDays: 3,
+    loanId: id,
+    relatedMemberId: loan.memberId,
+    memberIds: [loan.memberId],
+    createdByLabel: "LOAN_SYSTEM",
+    checklist: ["Collect signed loan agreement", "Update member file", "File guarantor documents", "Notify member of first due date"],
+  }).catch((e) => console.error("[tasks.spawn] loan disbursement hook failed:", e))
 
   revalidatePath(`/dashboard/loans/${id}`)
   revalidatePath(LOANS_PATH)

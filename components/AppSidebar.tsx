@@ -126,7 +126,16 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
       { label: "Meeting Management", icon: CalendarCheck, href: "/dashboard/meetings" },
       { label: "Project Management", icon: Briefcase, href: "/dashboard/projects" },
       { label: "Investment Management", icon: Gem, href: "/dashboard/investments" },
-      { label: "Task Management", icon: CheckSquare, href: "/dashboard/tasks" },
+      {
+        label: "Task Management",
+        icon: CheckSquare,
+        href: "#",
+        subItems: [
+          { label: "All Tasks", href: "/dashboard/tasks" },
+          { label: "Reports", href: "/dashboard/tasks/reports" },
+          { label: "Committees", href: "/dashboard/committees" }
+        ]
+      },
       { label: "Special Wishes", icon: Heart, href: "/dashboard/wishes" }
     ]
   },

@@ -8,6 +8,13 @@ const ALLOWED = {
   "application/msword": "doc",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
   "text/plain": "txt",
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "application/zip": "zip",
 } as const
 
 const MAX_BYTES = 10 * 1024 * 1024
@@ -32,9 +39,9 @@ export async function saveUploadedFile(file: File, subdir: string): Promise<Save
     // Fall back to the original extension for mime types Node doesn't map, but
     // still block obviously dangerous file types.
     const fallback = path.extname(file.name).toLowerCase().replace(/^\./, "")
-    const safe = ["pdf", "doc", "docx", "txt"]
+    const safe = ["pdf", "doc", "docx", "txt", "png", "jpg", "jpeg", "webp", "gif", "xls", "xlsx", "zip"]
     if (!safe.includes(fallback)) {
-      throw new Error("Unsupported file type. Allowed: PDF, DOC, DOCX, TXT.")
+      throw new Error("Unsupported file type. Allowed: PDF, DOC, DOCX, TXT, images (PNG/JPG/WEBP/GIF), XLS/XLSX, ZIP.")
     }
     const id = crypto.randomUUID()
     const dir = path.join(process.cwd(), "public", "uploads", subdir)

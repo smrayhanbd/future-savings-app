@@ -11,29 +11,29 @@ datasource db {
 
 // Organization Model (For Multi-Tenant SaaS)
 model Organization {
-  id            String   @id @default("singleton") // singleton — one row holds our org info
+  id              String  @id @default("singleton") // singleton — one row holds our org info
   // ── Identity ──────────────────────────────────────────────────────────────
-  name          String
-  logo          String? // Cloudinary URL (uploaded via settings page)
-  tagline       String?
-  description   String? @db.Text
+  name            String
+  logo            String? // Cloudinary URL (uploaded via settings page)
+  tagline         String?
+  description     String? @db.Text
   // ── Contact + Address ─────────────────────────────────────────────────────
-  email         String?
-  phone         String?
-  website       String?
-  addressLine   String?
-  city          String?
-  district      String?
-  postalCode    String?
+  email           String?
+  phone           String?
+  website         String?
+  addressLine     String?
+  city            String?
+  district        String?
+  postalCode      String?
   // ── Legal / Registration ──────────────────────────────────────────────────
-  regNo          String? // society/cooperative registration no.
-  licenseNo      String?
-  tradeLicenseNo String?
+  regNo           String? // society/cooperative registration no.
+  licenseNo       String?
+  tradeLicenseNo  String?
   establishedYear String?
   // ── Social (rendered as small links on the receipt footer) ────────────────
-  facebook String?
-  whatsapp String?
-  youtube  String?
+  facebook        String?
+  whatsapp        String?
+  youtube         String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -208,11 +208,19 @@ model Member {
   transactions Transaction[]
 
   // Trust Score relationships (FRS v2.0)
-  scoreHistory        TrustScoreHistory[]
-  achievementBadges   AchievementBadge[]
-  fines               Fine[]
-  meetingAttendances  MeetingAttendance[]
-  memberNotifications MemberNotification[]
+  scoreHistory       TrustScoreHistory[]
+  achievementBadges  AchievementBadge[]
+  fines              Fine[]
+  meetingAttendances MeetingAttendance[]
+
+  // Task Management Module — relations
+  taskAssignees        TaskAssignee[]       @relation("TaskAssigneeMember")
+  relatedTasks         Task[]               @relation("TaskRelatedMember")
+  taskComments         TaskComment[]        @relation("TaskCommentAuthorMember")
+  taskTimeLogs         TaskTimeLog[]        @relation("TaskTimeLogMember")
+  taskAuditLogs        TaskAuditLog[]       @relation("TaskAuditActorMember")
+  committeeMemberships CommitteeMember[]    @relation("CommitteeMemberMember")
+  memberNotifications  MemberNotification[]
 
   // Audit
   createdAt DateTime  @default(now())
@@ -344,6 +352,21 @@ model User {
   lastLogin   DateTime?
   createdBy   String?
   permissions UserPermission[]
+
+  // Task Management Module — relations
+  taskAssignees         TaskAssignee[]        @relation("TaskAssigneeUser")
+  taskChecklistItems    TaskChecklistItem[]   @relation("TaskChecklistCompleter")
+  taskComments          TaskComment[]         @relation("TaskCommentAuthorUser")
+  taskAttachments       TaskAttachment[]      @relation("TaskAttachmentUploader")
+  taskTimeLogs          TaskTimeLog[]         @relation("TaskTimeLogUser")
+  taskAuditLogs         TaskAuditLog[]        @relation("TaskAuditActorUser")
+  tasksCreated          Task[]                @relation("TaskCreator")
+  tasksUpdated          Task[]                @relation("TaskUpdater")
+  tasksApproved         Task[]                @relation("TaskApprover")
+  taskApprovalRequests  TaskApprovalRequest[] @relation("TaskApprovalRequester")
+  taskApprovalDecisions TaskApprovalRequest[] @relation("TaskApprovalDecider")
+  committeeChairs       Committee[]           @relation("CommitteeChair")
+  committeeMemberships  CommitteeMember[]     @relation("CommitteeMemberUser")
 
   // Audit
   createdAt DateTime @default(now())
@@ -618,6 +641,9 @@ model Transaction {
   ipAddress        String?
   deviceInfo       String?
 
+  // Task Management Module — linked tasks
+  tasks Task[]
+
   @@index([status])
   @@index([transactionType, status])
   @@index([memberId])
@@ -738,6 +764,9 @@ model MemberRequest {
 
   // Transactions Module — a portal request may be approved into a Transaction.
   transactions Transaction[]
+
+  // Task Management Module — linked tasks
+  tasks Task[]
 }
 
 // Meeting minutes + attendance submission lifecycle.
@@ -767,6 +796,9 @@ model Meeting {
   minutesUploadedAt DateTime?
   minutesUploadedBy String?
   minutesLocked     Boolean   @default(false)
+
+  // Task Management Module — linked tasks
+  tasks Task[]
 }
 
 // Per-user permission grants (the "authorized normal users" of rules 5 & 6).
@@ -820,10 +852,10 @@ model ChargeType {
 // the default BankAccount for the chosen method to auto-select the COA.
 
 model BankAccount {
-  id            String        @id @default(uuid())
-  accountName   String                        // e.g. "Cash Drawer — Counter 1"
-  bankName      String?                       // e.g. "City Bank" (null for cash/mobile)
-  accountNumber String?                       // masked account / wallet number
+  id            String  @id @default(uuid())
+  accountName   String // e.g. "Cash Drawer — Counter 1"
+  bankName      String? // e.g. "City Bank" (null for cash/mobile)
+  accountNumber String? // masked account / wallet number
   branch        String?
 
   // Granular PaymentMethod (kept consistent with Transaction.paymentMethod so
@@ -953,6 +985,9 @@ model Loan {
   schedule   LoanSchedule[]
   repayments LoanRepayment[]
   guarantors LoanGuarantor[]
+
+  // Task Management Module — linked tasks
+  tasks Task[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1198,7 +1233,7 @@ model MailSettings {
   maxRetry         Int      @default(3)
   retryIntervalMin Int      @default(5)
   timeoutSec       Int      @default(30)
-  dailyLimit       Int?     // null = unlimited
+  dailyLimit       Int? // null = unlimited
   perMinuteLimit   Int?
   updatedBy        String?
   updatedAt        DateTime @updatedAt
@@ -1277,4 +1312,359 @@ model MessageTemplate {
   body      String   @db.Text // SMS plain text or email HTML; supports {{vars}}
   variables String? // comma-separated list of supported vars
   updatedAt DateTime @updatedAt
+}
+
+// =====================================================================
+// TASK MANAGEMENT MODULE (ERP-grade)
+//
+// Supports task creation, multi-target assignment (staff / members /
+// committees), priorities, due dates, recurrence, checklists, attachments,
+// comments, reminders (SMS/Email/In-App), approve-completion workflow,
+// task dependencies, progress tracking, time logs, activity history,
+// notifications, role-based permissions, dashboards, reports, audit logs,
+// and bi-directional integration with Meetings, Loans, Collections
+// (Transactions), Member Requests, and Members.
+//
+// Recurring tasks use the "template + spawned occurrences" pattern: the
+// record the user creates is the template; the cron dispatcher clones it
+// into a new occurrence row (status=TODO) linked back via recurrenceParentId.
+// =====================================================================
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  ON_HOLD
+  IN_REVIEW // completion approval requested
+  DONE // completed; auto-closed unless requiresApproval
+  APPROVED // approved by a permitted approver
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskRecurrence {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum TaskAssigneeType {
+  STAFF
+  MEMBER
+  COMMITTEE
+}
+
+enum TaskReminderChannel {
+  IN_APP
+  SMS
+  EMAIL
+}
+
+enum TaskApprovalDecision {
+  PENDING
+  APPROVED
+  REJECTED
+  RETURNED
+}
+
+// Audit action vocabulary for TaskAuditLog.action (stored as a plain string
+// to allow forward-compatible additions without a migration, mirroring the
+// SettingsAuditLog convention).
+// Values used: CREATE | UPDATE | STATUS_CHANGE | ASSIGN | UNASSIGN | COMMENT
+//   | COMMENT_DELETE | APPROVE_REQUEST | APPROVE | REJECT | RETURN
+//   | CHECKLIST_ADD | CHECKLIST_TOGGLE | CHECKLIST_REORDER | CHECKLIST_DELETE
+//   | ATTACH_ADD | ATTACH_DELETE | TIME_LOG | TIME_LOG_DELETE
+//   | DEPENDENCY_ADD | DEPENDENCY_REMOVE | REMINDER_ADD | REMINDER_REMOVE
+//   | DELETE | RECURRENCE_SPAWN | OVERDUE_ESCALATION
+
+model Task {
+  id          String  @id @default(uuid())
+  title       String
+  description String? @db.Text
+
+  status   TaskStatus   @default(TODO)
+  priority TaskPriority @default(MEDIUM)
+  order    Int          @default(0) // Kanban column sort within status
+
+  // Schedule
+  dueDate    DateTime?
+  reminderAt DateTime? // next absolute reminder time (convenience; primary source = TaskReminder)
+
+  // Recurrence (template-task pattern). recurrenceParentId links a spawned
+  // occurrence back to its template. NULL on the template itself.
+  recurrence         TaskRecurrence @default(NONE)
+  recurrenceEndDate  DateTime?
+  recurrenceParentId String?
+  recurrenceParent   Task?          @relation("TaskRecurrence", fields: [recurrenceParentId], references: [id], onDelete: SetNull)
+  spawnedTasks       Task[]         @relation("TaskRecurrence")
+
+  // Completion + approval gate
+  completionNote      String?   @db.Text
+  requiresApproval    Boolean   @default(false)
+  approvalRequestedAt DateTime?
+  approvedById        String?
+  approvedBy          User?     @relation("TaskApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt          DateTime?
+  rejectedAt          DateTime?
+  returnReason        String?   @db.Text
+
+  // Progress (manual or auto-derived from checklist completion ratio)
+  progressPct   Int     @default(0) // 0-100
+  progressDirty Boolean @default(false) // true = manually set; do not auto-derive
+
+  // Visibility
+  isPrivate Boolean @default(false) // hidden from non-assignees/non-admins
+
+  location String?
+
+  // ── Integration links (all optional). A task may reference at most one
+  //    primary record of each kind. Bi-directional display via back-relations.
+  meetingId       String?
+  meeting         Meeting?       @relation(fields: [meetingId], references: [id], onDelete: SetNull)
+  loanId          String?
+  loan            Loan?          @relation(fields: [loanId], references: [id], onDelete: SetNull)
+  memberRequestId String?
+  memberRequest   MemberRequest? @relation(fields: [memberRequestId], references: [id], onDelete: SetNull)
+  transactionId   String?
+  transaction     Transaction?   @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  relatedMemberId String?
+  relatedMember   Member?        @relation("TaskRelatedMember", fields: [relatedMemberId], references: [id], onDelete: SetNull)
+
+  // Relationships
+  assignees   TaskAssignee[]
+  checklist   TaskChecklistItem[]
+  comments    TaskComment[]
+  attachments TaskAttachment[]
+  timeLogs    TaskTimeLog[]
+  reminders   TaskReminder[]
+
+  // Dependencies — this task is blocked by blockers[], and blocks dependents[].
+  blockers   TaskDependency[] @relation("TaskBlockedBy")
+  dependents TaskDependency[] @relation("TaskBlocking")
+
+  approvals TaskApprovalRequest[]
+
+  // Audit columns (mirror Transaction pattern)
+  createdBy       String?
+  createdById     String?
+  createdByIdUser User?   @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy       String?
+  updatedById     String?
+  updatedByIdUser User?   @relation("TaskUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  TaskAuditLog TaskAuditLog[]
+
+  // Indexes tuned for the board/list filters
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+  @@index([recurrenceParentId])
+  @@index([meetingId])
+  @@index([loanId])
+  @@index([memberRequestId])
+  @@index([transactionId])
+  @@index([relatedMemberId])
+}
+
+// Polymorphic assignment resolved by assigneeType. Any one of userId /
+// memberId / committeeId is set depending on type. Multi-target assignment
+// (a task to several people, a committee, and members at once) is just
+// multiple rows.
+model TaskAssignee {
+  id           String           @id @default(uuid())
+  taskId       String
+  task         Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  assigneeType TaskAssigneeType
+  userId       String?
+  user         User?            @relation("TaskAssigneeUser", fields: [userId], references: [id], onDelete: Cascade)
+  memberId     String?
+  member       Member?          @relation("TaskAssigneeMember", fields: [memberId], references: [id], onDelete: Cascade)
+  committeeId  String?
+  committee    Committee?       @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+  createdAt    DateTime         @default(now())
+
+  @@unique([taskId, assigneeType, userId, memberId, committeeId])
+  @@index([userId])
+  @@index([memberId])
+  @@index([committeeId])
+}
+
+model TaskChecklistItem {
+  id            String    @id @default(uuid())
+  taskId        String
+  task          Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title         String
+  isDone        Boolean   @default(false)
+  order         Int       @default(0)
+  completedById String?
+  completedBy   User?     @relation("TaskChecklistCompleter", fields: [completedById], references: [id], onDelete: SetNull)
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([taskId])
+}
+
+model TaskComment {
+  id             String   @id @default(uuid())
+  taskId         String
+  task           Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorUserId   String?
+  authorUser     User?    @relation("TaskCommentAuthorUser", fields: [authorUserId], references: [id], onDelete: SetNull)
+  authorMemberId String?
+  authorMember   Member?  @relation("TaskCommentAuthorMember", fields: [authorMemberId], references: [id], onDelete: SetNull)
+  body           String   @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([taskId, createdAt(sort: Desc)])
+}
+
+model TaskAttachment {
+  id           String   @id @default(uuid())
+  taskId       String
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  url          String
+  fileName     String
+  fileType     String?
+  fileSize     Int?
+  uploadedById String?
+  uploadedBy   User?    @relation("TaskAttachmentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+
+  @@index([taskId])
+}
+
+model TaskTimeLog {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation("TaskTimeLogUser", fields: [userId], references: [id], onDelete: SetNull)
+  memberId  String?
+  member    Member?  @relation("TaskTimeLogMember", fields: [memberId], references: [id], onDelete: SetNull)
+  minutes   Int
+  note      String?  @db.Text
+  loggedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([memberId])
+}
+
+// offsetMinutes is relative to dueDate. Negative = before due (e.g. -1440 =
+// 1 day before). dispatchedAt is stamped by the cron dispatcher so a reminder
+// never fires twice. For recurring tasks, each spawned occurrence gets fresh
+// reminders with dispatchedAt=NULL.
+model TaskReminder {
+  id            String              @id @default(uuid())
+  taskId        String
+  task          Task                @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  channel       TaskReminderChannel
+  offsetMinutes Int                 @default(-1440) // minutes from dueDate
+  dispatchedAt  DateTime?
+  createdAt     DateTime            @default(now())
+
+  @@unique([taskId, channel, offsetMinutes])
+  @@index([taskId, dispatchedAt])
+}
+
+// Self-relation: a row means `taskId` cannot start until `dependsOnTaskId` is
+// APPROVED/DONE. The server action rejects cycles via DFS before insert.
+model TaskDependency {
+  id              String   @id @default(uuid())
+  taskId          String
+  task            Task     @relation("TaskBlockedBy", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOnTaskId String
+  dependsOnTask   Task     @relation("TaskBlocking", fields: [dependsOnTaskId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+
+  @@unique([taskId, dependsOnTaskId])
+  @@index([dependsOnTaskId])
+}
+
+// Append-only audit trail (mirrors SettingsAuditLog / TrustScoreHistory).
+// `changes` holds a redacted JSON diff — never secrets. Drives the task
+// detail page's activity timeline.
+model TaskAuditLog {
+  id            String   @id @default(uuid())
+  taskId        String
+  task          Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actorUserId   String?
+  actorUser     User?    @relation("TaskAuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorMemberId String?
+  actorMember   Member?  @relation("TaskAuditActorMember", fields: [actorMemberId], references: [id], onDelete: SetNull)
+  action        String // CREATE | UPDATE | STATUS_CHANGE | ...
+  summary       String
+  changes       Json?
+  createdAt     DateTime @default(now())
+
+  @@index([taskId, createdAt(sort: Desc)])
+  @@index([action])
+}
+
+// Tracks the completion-approval gate. Only one PENDING row per task at a
+// time (enforced in the action). Decided rows are retained for history.
+model TaskApprovalRequest {
+  id            String               @id @default(uuid())
+  taskId        String
+  task          Task                 @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  requestedById String
+  requestedBy   User                 @relation("TaskApprovalRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  requestedAt   DateTime             @default(now())
+  decision      TaskApprovalDecision @default(PENDING)
+  decidedById   String?
+  decidedBy     User?                @relation("TaskApprovalDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedAt     DateTime?
+  comment       String?              @db.Text
+
+  @@index([taskId, decision])
+}
+
+// ── Committees ───────────────────────────────────────────────────────────
+// Real entity backing "assign to committee". A committee is a named group of
+// staff and/or members (optionally chaired by a staff user). Tasks assigned
+// to a committee are visible to all of its members.
+model Committee {
+  id          String   @id @default(uuid())
+  name        String
+  description String?  @db.Text
+  chairUserId String?
+  chairUser   User?    @relation("CommitteeChair", fields: [chairUserId], references: [id], onDelete: SetNull)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members       CommitteeMember[]
+  taskAssignees TaskAssignee[]
+
+  @@index([isActive])
+}
+
+// Junction — a committee membership. Either memberId (Member) or userId
+// (Staff) is set per row. role is a free label (MEMBER, SECRETARY, etc.).
+model CommitteeMember {
+  id          String    @id @default(uuid())
+  committeeId String
+  committee   Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+  memberId    String?
+  member      Member?   @relation("CommitteeMemberMember", fields: [memberId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?     @relation("CommitteeMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  role        String? // MEMBER | SECRETARY | TREASURER | ...
+  joinedAt    DateTime  @default(now())
+
+  @@unique([committeeId, memberId])
+  @@unique([committeeId, userId])
+  @@index([committeeId])
 }

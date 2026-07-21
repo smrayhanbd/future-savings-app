@@ -15,6 +15,7 @@ import {
   PERMISSIONS,
   type CurrentUser,
 } from "@/lib/permissions"
+import { spawnTask } from "@/lib/tasks/spawn"
 
 // =====================================================================
 // MEETING CREATION (FRS §5.4) + notifications (rule 2)
@@ -44,7 +45,7 @@ export async function createMeeting(formData: FormData) {
   const date = new Date(dateStr)
 
   // 1. Save meeting. ONLINE stores link; OFFLINE stores location.
-  await prisma.meeting.create({
+  const meeting = await prisma.meeting.create({
     data: {
       title,
       date,
@@ -94,6 +95,17 @@ export async function createMeeting(formData: FormData) {
       }
     }
   }
+
+  // Task auto-spawn: meeting prep follow-up (idempotent). Non-blocking.
+  await spawnTask({
+    title: `Prepare for meeting: ${title}`,
+    description: `Meeting scheduled for ${date.toLocaleString()} (${type}). ${type === "ONLINE" ? `Link: ${link}` : `Location: ${location}`}. Finalize agenda, arrange logistics, and notify attendees.`,
+    priority: "MEDIUM",
+    dueDate: undefined,
+    meetingId: meeting.id,
+    createdByLabel: "MEETING_SYSTEM",
+    checklist: ["Finalize agenda", "Arrange logistics", "Notify attendees", "Prepare minutes template"],
+  }).catch(() => undefined)
 
   revalidatePath("/dashboard/meetings")
   redirect("/dashboard/meetings")

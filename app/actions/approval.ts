@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { uploadImage } from "@/lib/cloudinary"
 import { recalculateTrustScore } from "@/lib/trustScore"
+import { spawnTask } from "@/lib/tasks/spawn"
 
 // --- Helper Function to Generate Credentials & Send Email/SMS ---
 async function generateAndSendCredentials(memberId: string) {
@@ -115,6 +116,23 @@ export async function approveMember(memberId: string) {
   }
 
   await generateAndSendCredentials(memberId)
+
+  // Task auto-spawn: member onboarding follow-up (idempotent). Non-blocking.
+  const onboardMember = await prisma.member.findUnique({
+    where: { id: memberId },
+    select: { fullName: true, memberNo: true },
+  })
+  if (onboardMember) {
+    await spawnTask({
+      title: `Onboard new member: ${onboardMember.fullName} (${onboardMember.memberNo})`,
+      description: `New member approved. Complete KYC verification, deliver welcome pack, and explain savings/meeting policies.`,
+      priority: "MEDIUM",
+      dueInDays: 7,
+      relatedMemberId: memberId,
+      createdByLabel: "MEMBER_APPROVAL_SYSTEM",
+      checklist: ["Complete KYC verification", "Deliver welcome pack", "Explain savings policies", "Add to upcoming meeting invite"],
+    }).catch(() => undefined)
+  }
 
   revalidatePath("/dashboard/approvals")
   redirect("/dashboard/approvals")

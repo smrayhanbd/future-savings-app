@@ -250,12 +250,100 @@ async function main() {
     });
   }
 
+  // ---------------------------------------------------------------------
+  // Task Management module — demo data, only when SEED_TASKS=true.
+  // Creates an Executive Committee, grants the demo admin task permissions,
+  // and seeds one recurring task + one open task. Keeps the default seed
+  // deterministic otherwise.
+  // ---------------------------------------------------------------------
+  if (process.env.SEED_TASKS === 'true') {
+    const adminUser = await prisma.user.findUnique({ where: { email: 'admin@foundation.com' } });
+    if (adminUser) {
+      // Grant task permissions to the demo admin (idempotent).
+      const TASK_PERMS = [
+        'TASK_CREATE', 'TASK_VIEW_ALL', 'TASK_ASSIGN', 'TASK_APPROVE', 'TASK_DELETE',
+        'TASK_MANAGE_RECURRING', 'COMMITTEE_MANAGE',
+      ];
+      for (const p of TASK_PERMS) {
+        await prisma.userPermission.upsert({
+          where: { userId_permission: { userId: adminUser.id, permission: p } },
+          update: {},
+          create: { userId: adminUser.id, permission: p },
+        });
+      }
+    }
+
+    // Executive Committee (idempotent by name).
+    const committee = await prisma.committee.upsert({
+      where: { name: 'Executive Committee' },
+      update: {},
+      create: {
+        name: 'Executive Committee',
+        description: 'Governing body responsible for strategic decisions and approvals.',
+        chairUserId: adminUser?.id ?? null,
+        isActive: true,
+      },
+    });
+
+    // One recurring task + one open one-off task (idempotent by title).
+    const existingRecur = await prisma.task.findFirst({ where: { title: 'Monthly financial reconciliation' } });
+    if (!existingRecur) {
+      const due = new Date();
+      due.setDate(due.getDate() + 7);
+      await prisma.task.create({
+        data: {
+          title: 'Monthly financial reconciliation',
+          description: 'Reconcile savings, loans, and ledger balances for the period. Review discrepancies and post corrections.',
+          status: 'TODO',
+          priority: 'HIGH',
+          dueDate: due,
+          recurrence: 'MONTHLY',
+          requiresApproval: true,
+          createdBy: 'SEED',
+          createdById: adminUser?.id ?? null,
+          assignees: { create: [{ assigneeType: 'COMMITTEE', committeeId: committee.id }] },
+          checklist: {
+            create: [
+              { title: 'Reconcile savings ledger', order: 0 },
+              { title: 'Reconcile loan balances', order: 1 },
+              { title: 'Review discrepancies', order: 2 },
+              { title: 'Post corrections', order: 3 },
+            ],
+          },
+          reminders: { create: [{ channel: 'IN_APP', offsetMinutes: -1440 }] },
+        },
+      });
+    }
+
+    const existingOpen = await prisma.task.findFirst({ where: { title: 'Welcome new applicants this week' } });
+    if (!existingOpen) {
+      const soon = new Date();
+      soon.setDate(soon.getDate() + 2);
+      await prisma.task.create({
+        data: {
+          title: 'Welcome new applicants this week',
+          description: 'Review pending member applications and complete onboarding for approved members.',
+          status: 'IN_PROGRESS',
+          priority: 'MEDIUM',
+          dueDate: soon,
+          recurrence: 'NONE',
+          createdBy: 'SEED',
+          createdById: adminUser?.id ?? null,
+          assignees: adminUser ? { create: [{ assigneeType: 'STAFF', userId: adminUser.id }] } : undefined,
+        },
+      });
+    }
+
+    console.log('Task demo data: committee + 2 tasks seeded (SEED_TASKS=true).');
+  }
+
   console.log('--------------------------------------------------');
   console.log('Seed complete.');
   console.log('Super Admin   : admin@foundation.com / Admin@123');
   console.log('Approval tiers: 3 (Branch / Regional / Super Admin)');
   console.log('System accounts: ' + TXN_SYSTEM_ACCOUNTS.length + ' ensured');
   console.log('Message templates: ' + DEFAULT_TEMPLATES.length + ' ensured');
+  if (process.env.SEED_TASKS === 'true') console.log('Task module  : demo data seeded');
   console.log('--------------------------------------------------');
 }
 

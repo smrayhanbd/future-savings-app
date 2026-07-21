@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs"
 import { Prisma } from "@prisma/client"
 import { generateSchedule, expectedCloseFromSchedule, type InterestType, type RepaymentFreq } from "@/lib/loanSchedule"
 import { uploadImage } from "@/lib/cloudinary"
+import { spawnTask } from "@/lib/tasks/spawn"
 
 export interface PortalNotificationItem {
   id: string
@@ -62,7 +63,7 @@ export async function submitWithdrawalRequest(memberId: string, formData: FormDa
     return { error: "Please enter a valid amount." }
   }
 
-  await prisma.memberRequest.create({
+  const request = await prisma.memberRequest.create({
     data: {
       memberId,
       type: "WITHDRAWAL",
@@ -72,6 +73,17 @@ export async function submitWithdrawalRequest(memberId: string, formData: FormDa
       status: "PENDING",
     },
   })
+
+  // Task auto-spawn: review the withdrawal request (idempotent). Non-blocking.
+  await spawnTask({
+    title: `Review withdrawal request: ${amount} BDT`,
+    description: `Member submitted a ${method ?? ""} withdrawal request of ${amount} BDT.${notes ? ` Notes: ${notes}` : ""} Review and approve or reject in the Transaction Approvals queue.`,
+    priority: "HIGH",
+    dueInDays: 2,
+    memberRequestId: request.id,
+    relatedMemberId: memberId,
+    createdByLabel: "MEMBER_REQUEST_SYSTEM",
+  }).catch(() => undefined)
 
   revalidatePath("/portal/savings")
   redirect("/portal/savings")
@@ -89,7 +101,7 @@ export async function submitClosingRequest(memberId: string, formData: FormData)
     return { error: "You already have a pending account closing request." }
   }
 
-  await prisma.memberRequest.create({
+  const request = await prisma.memberRequest.create({
     data: {
       memberId,
       type: "CLOSING",
@@ -97,6 +109,18 @@ export async function submitClosingRequest(memberId: string, formData: FormData)
       status: "PENDING",
     },
   })
+
+  // Task auto-spawn: review the account-closing request. Non-blocking.
+  await spawnTask({
+    title: `Review account-closing request`,
+    description: `A member requested account closure.${reason ? ` Reason: ${reason}` : ""} Verify outstanding balances, settle dues, and process the closure.`,
+    priority: "HIGH",
+    dueInDays: 5,
+    memberRequestId: request.id,
+    relatedMemberId: memberId,
+    createdByLabel: "MEMBER_REQUEST_SYSTEM",
+    checklist: ["Verify outstanding balances", "Settle outstanding dues", "Process account closure", "Notify member of outcome"],
+  }).catch(() => undefined)
 
   revalidatePath("/portal/settings")
   redirect("/portal/settings")

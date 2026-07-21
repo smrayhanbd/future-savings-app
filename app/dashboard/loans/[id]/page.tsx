@@ -1,6 +1,8 @@
 import prisma from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import LoanDetailClient, { type LoanDetailData } from "./LoanDetailClient"
+import LinkedTasksPanel from "@/components/tasks/LinkedTasksPanel"
+import { listTasks } from "@/app/actions/tasks"
 
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +21,9 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
   })
 
   if (!loan) notFound()
+
+  // Tasks linked to this loan (bi-directional integration).
+  const linkedTasks = await listTasks({ loanId: id, limit: 10 })
 
   const data: LoanDetailData = {
     id: loan.id,
@@ -90,5 +95,14 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
     })),
   }
 
-  return <LoanDetailClient loan={data} />
+  return (
+    <div className="space-y-4">
+      <LoanDetailClient loan={data} />
+      <LinkedTasksPanel
+        tasks={linkedTasks}
+        createHref={`/dashboard/tasks/new?link=loanId&id=${loan.id}&label=${encodeURIComponent(loan.loanNo)}`}
+        title={`Tasks for Loan ${loan.loanNo}`}
+      />
+    </div>
+  )
 }
