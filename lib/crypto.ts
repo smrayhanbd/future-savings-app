@@ -7,10 +7,14 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:
  * Algorithm: AES-256-GCM with a random 12-byte IV per value. The output is
  * `base64(iv) : base64(ciphertext) : base64(tag)`.
  *
- * Key source: `ENCRYPTION_KEY` env var, derived to 32 bytes via scrypt. Falls
- * back to `NEXTAUTH_SECRET` (with a console warning) so the feature is usable
- * before a dedicated key is set, but a dedicated `ENCRYPTION_KEY` is strongly
- * recommended — rotating it invalidates all stored ciphertext.
+ * Key source: `ENCRYPTION_KEY` env var, derived to 32 bytes via scrypt.
+ *
+ * IMPORTANT: `ENCRYPTION_KEY` MUST be identical across every environment
+ * (local, staging, production). Secrets encrypted in one environment must
+ * decrypt in all others — they all share one database. There is intentionally
+ * NO fallback to another env var: a fallback would silently use a different
+ * key and produce "Unsupported state or unable to authenticate data" errors
+ * the moment a secret saved under one key is read under another.
  */
 
 const ALGO = "aes-256-gcm"
@@ -21,15 +25,13 @@ let cachedKey: Buffer | null = null
 
 function getKey(): Buffer {
   if (cachedKey) return cachedKey
-  const raw = process.env.ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET
+  const raw = process.env.ENCRYPTION_KEY
   if (!raw) {
     throw new Error(
-      "ENCRYPTION_KEY is not set. Add a 32+ char random string to .env to store mail/SMS secrets encrypted."
-    )
-  }
-  if (!process.env.ENCRYPTION_KEY) {
-    console.warn(
-      "[crypto] ENCRYPTION_KEY missing — falling back to NEXTAUTH_SECRET. Set a dedicated ENCRYPTION_KEY for mail/SMS secret storage."
+      "ENCRYPTION_KEY is not set. Mail/SMS secrets cannot be encrypted or decrypted without it. " +
+        "Set ENCRYPTION_KEY in your environment (a 32+ char random string) — it MUST be identical " +
+        "across local, staging, and production, since secrets encrypted in one environment must " +
+        "decrypt in all others."
     )
   }
   cachedKey = scryptSync(raw, SALT, 32)
@@ -46,15 +48,28 @@ export function encrypt(plain: string): string {
   return [iv.toString("base64"), ciphertext.toString("base64"), tag.toString("base64")].join(":")
 }
 
-/** Decrypt a value produced by {@link encrypt}. Throws on tampering / wrong key. */
+/**
+ * Decrypt a value produced by {@link encrypt}. Throws a descriptive error on
+ * auth-tag mismatch — the most common cause is `ENCRYPTION_KEY` differing
+ * between the environment that saved the secret and the one reading it.
+ */
 export function decrypt(payload: string): string {
   if (!payload) return ""
   const parts = payload.split(":")
   if (parts.length !== 3) throw new Error("Invalid ciphertext payload (expected iv:ct:tag).")
   const [ivB64, ctB64, tagB64] = parts
-  const decipher = createDecipheriv(ALGO, getKey(), Buffer.from(ivB64, "base64"))
-  decipher.setAuthTag(Buffer.from(tagB64, "base64"))
-  return Buffer.concat([decipher.update(Buffer.from(ctB64, "base64")), decipher.final()]).toString("utf8")
+  try {
+    const decipher = createDecipheriv(ALGO, getKey(), Buffer.from(ivB64, "base64"))
+    decipher.setAuthTag(Buffer.from(tagB64, "base64"))
+    return Buffer.concat([decipher.update(Buffer.from(ctB64, "base64")), decipher.final()]).toString("utf8")
+  } catch {
+    throw new Error(
+      "Failed to decrypt a stored secret. This almost always means ENCRYPTION_KEY differs from the " +
+        "value used when the secret was saved (for example: secret saved on localhost, then read on " +
+        "Vercel which has a different or missing ENCRYPTION_KEY). Set the SAME ENCRYPTION_KEY on " +
+        "every environment, then re-save the mail/SMS credentials."
+    )
+  }
 }
 
 /**
