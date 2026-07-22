@@ -6,10 +6,11 @@ import { registerMember } from "@/app/actions/member"
 import Link from "next/link"
 import { toast } from "sonner"
 import {
-    User, Calendar as CalendarIcon, Phone, Mail, MapPin, Home, Building,
-    Banknote, CreditCard, FileText, Users, Upload, X, Plus, Trash2,
-    CheckCircle, Info, Circle
+    User, Phone, Home, CreditCard, FileText, Users, Upload, X, Plus, Trash2,
+    CheckCircle, Info, Circle,
 } from "lucide-react"
+
+import SectionCard from "@/components/somiti/SectionCard"
 
 type Nominee = { id: string; name: string; relation: string; share: string; phone: string; idType: "nid" | "birthCert" | "passport"; idNumber: string; idDocumentFile: File | null; photo: File | null; }
 type AdditionalDocument = { id: string; name: string; file: File | null; }
@@ -32,35 +33,28 @@ const genders = ["Male", "Female", "Other"]
 const maritalStatuses = ["Married", "Unmarried", "Divorced", "Widowed"]
 const idTypes = ["National ID", "Passport", "Birth Certificate", "Driving License"]
 
-const sectionColors = {
-    personal: { bg: "bg-blue-50 dark:bg-slate-900/40", border: "border-blue-200 dark:border-slate-700/50", header: "bg-blue-600", text: "text-white", topBorder: "border-t-blue-600" },
-    contact: { bg: "bg-green-50 dark:bg-slate-900/40", border: "border-green-200 dark:border-slate-700/50", header: "bg-green-600", text: "text-white", topBorder: "border-t-green-600" },
-    bank: { bg: "bg-yellow-50 dark:bg-slate-900/40", border: "border-yellow-200 dark:border-slate-700/50", header: "bg-yellow-600", text: "text-white", topBorder: "border-t-yellow-600" },
-    residence: { bg: "bg-gray-50 dark:bg-slate-900/40", border: "border-gray-300 dark:border-slate-700/50", header: "bg-gray-600", text: "text-white", topBorder: "border-t-gray-600" },
-    docs: { bg: "bg-blue-50 dark:bg-slate-900/40", border: "border-blue-200 dark:border-slate-700/50", header: "bg-blue-500", text: "text-white", topBorder: "border-t-blue-500" },
-    nominees: { bg: "bg-green-50 dark:bg-slate-900/40", border: "border-green-200 dark:border-slate-700/50", header: "bg-green-500", text: "text-white", topBorder: "border-t-green-500" },
-}
+// Shared token-driven input / label styles
+const inputClass = "w-full rounded-lg border border-[var(--border-base)] bg-[var(--control-bg)] px-3 py-2 t-body text-primary-ink placeholder:text-muted-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklch,var(--brand-primary)_25%,transparent)] transition-colors"
+const labelClass = "block t-body font-medium text-secondary-ink mb-1"
+const subLabelClass = "block t-caption font-medium text-muted-ink mb-1"
 
-const inputClass = "w-full border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:ring-indigo-500/30 dark:focus:border-indigo-500 outline-none bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors"
-const labelClass = "block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-const subLabelClass = "block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1"
-
-function SectionCard({ color, children, title, icon }: { color: typeof sectionColors.personal, children: React.ReactNode, title: string, icon: React.ReactNode }) {
+function FormSection({ accent, children, title, icon }: { accent: "blue" | "emerald" | "gold" | "violet", children: React.ReactNode, title: string, icon: React.ReactNode }) {
     return (
-        <div className={`rounded-xl shadow-md border ${color.bg} ${color.border} border-t-4 ${color.topBorder} h-full flex flex-col`}>
-            <div className={`${color.header} ${color.text} px-5 py-3 rounded-t-xl flex items-center gap-2 shrink-0`}>
-                {icon}<h2 className="text-lg font-semibold">{title}</h2>
+        <SectionCard title={title} icon={undefined} accent={accent} className="h-full" bodyClassName="p-5">
+            <div className="mb-3 flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-gradient-soft text-brand">{icon}</span>
+                <h2 className="t-h3 text-primary-ink">{title}</h2>
             </div>
-            <div className="p-5 flex-grow">{children}</div>
-        </div>
+            {children}
+        </SectionCard>
     )
 }
 
 function EnterpriseDatePicker({ value, onChange }: { value: string, onChange: (val: string) => void }) {
     return (
-        <input 
-            type="date" 
-            value={value} 
+        <input
+            type="date"
+            value={value}
             onChange={(e) => onChange(e.target.value)}
             className={`${inputClass} [color-scheme:light dark:[color-scheme:dark]`}
         />
@@ -104,9 +98,8 @@ export default function RegisterForm() {
     const progress = Math.round((completedSteps / steps.length) * 100)
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value, type } = e.target
+        const { name, value } = e.target
         setFormData((prev) => ({ ...prev, [name]: value }))
-        // Clear any duplicate-field error once the user edits that field
         if (name === "phoneNumber" || name === "emailAddress" || name === "idNumber") {
             setErrors((prev) => ({ ...prev, [name]: undefined }))
         }
@@ -162,12 +155,12 @@ export default function RegisterForm() {
         fd.append("c_district", formData.currentDistrict); fd.append("c_postalCode", formData.currentPostCode)
         fd.append("p_village", formData.permanentAddress); fd.append("p_postOffice", formData.permanentPostOffice)
         fd.append("p_district", formData.permanentDistrict); fd.append("p_postalCode", formData.permanentPostCode)
-        
+
         if (formData.memberPhoto) fd.append("memberPhoto", formData.memberPhoto)
         if (formData.idDocumentFile) fd.append("idDocument", formData.idDocumentFile)
-        
+
         formData.additionalDocuments.forEach((doc, i) => { if (doc.name) fd.append(`doc_${i}_name`, doc.name); if (doc.file) fd.append(`doc_${i}_file`, doc.file); })
-        
+
         formData.nominees.forEach((nom, i) => {
             fd.append(`nom_${i}_name`, nom.name); fd.append(`nom_${i}_relation`, nom.relation)
             fd.append(`nom_${i}_share`, nom.share); fd.append(`nom_${i}_phone`, nom.phone || "")
@@ -175,15 +168,13 @@ export default function RegisterForm() {
             if (nom.idDocumentFile) fd.append(`nom_${i}_idDoc`, nom.idDocumentFile)
             if (nom.photo) fd.append(`nom_${i}_photo`, nom.photo)
         })
-        
+
         try {
             const result = await registerMember(fd) as
                 | { success?: true }
                 | { error: string; field?: "email" | "phone" | "both" | "idNumber" }
 
-            // Check if the server returned an error object
             if (result && "error" in result && result.error) {
-                // Determine which field(s) to flag from the server's `field` hint
                 const field = result.field
                 const fieldErrors: { phoneNumber?: string; emailAddress?: string; idNumber?: string } = {}
                 if (field === "email" || field === "both") fieldErrors.emailAddress = result.error
@@ -191,7 +182,6 @@ export default function RegisterForm() {
                 if (field === "idNumber") fieldErrors.idNumber = result.error
                 setErrors(fieldErrors)
 
-                // Focus the first offending field (priority: email → phone → idNumber)
                 const targetRef = fieldErrors.emailAddress
                     ? emailInputRef
                     : fieldErrors.phoneNumber
@@ -204,38 +194,32 @@ export default function RegisterForm() {
                     targetRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
                 }
 
-                toast.error("Registration Failed", {
-                    description: result.error
-                })
+                toast.error("Registration Failed", { description: result.error })
                 setLoading(false)
             } else if (result && "success" in result && result.success) {
-                // If successful, redirect to the success page
                 router.push("/register/success")
             }
         } catch {
-            // Catch any unexpected network errors
-            toast.error("Registration Failed", {
-                description: "An unexpected error occurred. Please try again."
-            })
+            toast.error("Registration Failed", { description: "An unexpected error occurred. Please try again." })
             setLoading(false)
         }
     }
 
     const renderFileUpload = (file: File | null, onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void, onRemove: () => void, label: string) => {
         return (
-            <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-4 hover:border-indigo-600 dark:hover:border-indigo-500 transition-colors bg-white dark:bg-slate-950">
+            <div className="rounded-lg border-2 border-dashed border-[var(--border-strong)] bg-[var(--control-bg)] p-4 transition-colors hover:border-brand">
                 {file ? (
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                            <span className="text-sm text-slate-700 dark:text-slate-200 truncate max-w-[150px]">{file.name}</span>
+                            <FileText className="h-5 w-5 text-brand" />
+                            <span className="t-body truncate max-w-[150px] text-secondary-ink">{file.name}</span>
                         </div>
-                        <button type="button" onClick={onRemove} className="text-red-500 hover:text-red-700"><X className="w-4 h-4" /></button>
+                        <button type="button" onClick={onRemove} className="text-debit hover:opacity-70"><X className="h-4 w-4" /></button>
                     </div>
                 ) : (
-                    <label className="flex flex-col items-center justify-center cursor-pointer">
-                        <Upload className="w-8 h-8 text-slate-400 dark:text-slate-500 mb-1" />
-                        <span className="text-sm text-slate-500 dark:text-slate-400">{label}</span>
+                    <label className="flex cursor-pointer flex-col items-center justify-center">
+                        <Upload className="mb-1 h-8 w-8 text-faint-ink" />
+                        <span className="t-caption text-muted-ink">{label}</span>
                         <input type="file" className="hidden" accept="image/*,.pdf" onChange={onFileChange} />
                     </label>
                 )}
@@ -244,17 +228,17 @@ export default function RegisterForm() {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-5 gap-x-6 gap-y-5">
-            
-            {/* Left & Middle: Form Sections (4/5 width - Wider) */}
-            <div className="lg:col-span-4 space-y-5">
-                
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-5">
+
+            {/* Left & Middle: Form Sections (4/5 width) */}
+            <div className="space-y-5 lg:col-span-4">
+
                 {/* Instruction Guide */}
-                <div className="p-5 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 rounded-xl text-sm text-indigo-800 dark:text-indigo-300 flex gap-4">
-                    <Info className="h-5 w-5 shrink-0 mt-0.5" />
+                <div className="flex gap-4 rounded-xl border border-[var(--border-base)] bg-brand-gradient-soft p-5 t-body text-brand">
+                    <Info className="mt-0.5 h-5 w-5 shrink-0" />
                     <div>
-                        <p className="font-bold mb-2">Registration Guide</p>
-                        <ul className="list-disc list-inside space-y-1">
+                        <p className="t-subheading mb-2">Registration Guide</p>
+                        <ul className="list-disc space-y-1 pl-5">
                             <li>Please use your exact name as it appears on your National ID (NID).</li>
                             <li>Ensure the phone number and email are active for portal login and notifications.</li>
                             <li>Upload a clear photo and a readable copy of your ID document.</li>
@@ -263,13 +247,12 @@ export default function RegisterForm() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-5 items-stretch">
-                    {/* Personal Information */}
-                    <SectionCard color={sectionColors.personal} title="Personal Information" icon={<User className="w-5 h-5" />}>
+                <div className="grid grid-cols-1 items-stretch gap-x-6 gap-y-5 lg:grid-cols-2">
+                    <FormSection accent="blue" title="Personal Information" icon={<User className="h-4 w-4" />}>
                         <div className="space-y-3">
                             <div className="grid grid-cols-2 gap-3">
-                                <div><label className={labelClass}>First Name <span className="text-red-500">*</span></label><input type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} required placeholder="e.g., Md. Rahim" className={inputClass} /></div>
-                                <div><label className={labelClass}>Last Name <span className="text-red-500">*</span></label><input type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} required placeholder="e.g., Uddin" className={inputClass} /></div>
+                                <div><label className={labelClass}>First Name <span className="text-debit">*</span></label><input type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} required placeholder="e.g., Md. Rahim" className={inputClass} /></div>
+                                <div><label className={labelClass}>Last Name <span className="text-debit">*</span></label><input type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} required placeholder="e.g., Uddin" className={inputClass} /></div>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div><label className={labelClass}>Father&apos;s Name</label><input type="text" name="fatherName" value={formData.fatherName} onChange={handleInputChange} placeholder="e.g., Md. Karim" className={inputClass} /></div>
@@ -293,41 +276,40 @@ export default function RegisterForm() {
                                 <div><label className={labelClass}>Profession</label><input type="text" name="profession" value={formData.profession} onChange={handleInputChange} placeholder="e.g., Teacher" className={inputClass} /></div>
                             </div>
                         </div>
-                    </SectionCard>
+                    </FormSection>
 
-                    {/* Contact, Photo & ID */}
-                    <SectionCard color={sectionColors.contact} title="Contact, Photo & ID" icon={<Phone className="w-5 h-5" />}>
+                    <FormSection accent="emerald" title="Contact, Photo & ID" icon={<Phone className="h-4 w-4" />}>
                         <div className="space-y-3">
                             <div className="grid grid-cols-2 gap-3">
                                 <div><label className={labelClass}>Member Photo</label>{renderFileUpload(formData.memberPhoto, (e) => handleFileChange(e, "memberPhoto"), () => setFormData((prev) => ({ ...prev, memberPhoto: null })), "Upload Photo")}</div>
                                 <div><label className={labelClass}>ID Document</label>{renderFileUpload(formData.idDocumentFile, (e) => handleFileChange(e, "idDocumentFile"), () => setFormData((prev) => ({ ...prev, idDocumentFile: null })), "Upload Document")}</div>
                             </div>
                             <div>
-                                <label className={labelClass}>Phone Number <span className="text-red-500">*</span></label>
-                                <input ref={phoneInputRef} type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} required placeholder="e.g., 01712345678" className={errors.phoneNumber ? `${inputClass} border-red-500 focus:ring-red-500/20 focus:border-red-500` : inputClass} />
-                                {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>}
+                                <label className={labelClass}>Phone Number <span className="text-debit">*</span></label>
+                                <input ref={phoneInputRef} type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} required placeholder="e.g., 01712345678" className={errors.phoneNumber ? `${inputClass} border-debit focus:ring-[color-mix(in_oklch,var(--status-debit)_25%,transparent)] focus:border-[var(--status-debit)]` : inputClass} />
+                                {errors.phoneNumber && <p className="mt-1 t-caption text-debit">{errors.phoneNumber}</p>}
                             </div>
                             <div>
-                                <label className={labelClass}>Email Address <span className="text-red-500">*</span></label>
-                                <input ref={emailInputRef} type="email" name="emailAddress" value={formData.emailAddress} onChange={handleInputChange} required placeholder="e.g., rahim@example.com" className={errors.emailAddress ? `${inputClass} border-red-500 focus:ring-red-500/20 focus:border-red-500` : inputClass} />
-                                {errors.emailAddress && <p className="text-red-500 text-xs mt-1">{errors.emailAddress}</p>}
+                                <label className={labelClass}>Email Address <span className="text-debit">*</span></label>
+                                <input ref={emailInputRef} type="email" name="emailAddress" value={formData.emailAddress} onChange={handleInputChange} required placeholder="e.g., rahim@example.com" className={errors.emailAddress ? `${inputClass} border-debit focus:ring-[color-mix(in_oklch,var(--status-debit)_25%,transparent)] focus:border-[var(--status-debit)]` : inputClass} />
+                                {errors.emailAddress && <p className="mt-1 t-caption text-debit">{errors.emailAddress}</p>}
                             </div>
                             <div><label className={labelClass}>Emergency Contact</label><input type="tel" name="emergencyContact" value={formData.emergencyContact} onChange={handleInputChange} placeholder="e.g., 01812345678" className={inputClass} /></div>
                             <div><label className={labelClass}>Emergency Contact Person Name</label><input type="text" name="emergencyContactName" value={formData.emergencyContactName} onChange={handleInputChange} placeholder="e.g., Brother" className={inputClass} /></div>
                             <div className="grid grid-cols-2 gap-3">
-                                <div><label className={labelClass}>ID Type <span className="text-red-500">*</span></label><select name="idType" value={formData.idType} onChange={handleInputChange} required className={inputClass}><option value="">Select</option>{idTypes.map((id) => <option key={id} value={id}>{id}</option>)}</select></div>
+                                <div><label className={labelClass}>ID Type <span className="text-debit">*</span></label><select name="idType" value={formData.idType} onChange={handleInputChange} required className={inputClass}><option value="">Select</option>{idTypes.map((id) => <option key={id} value={id}>{id}</option>)}</select></div>
                                 <div>
-                                    <label className={labelClass}>ID Number <span className="text-red-500">*</span></label>
-                                    <input ref={idNumberInputRef} type="text" name="idNumber" value={formData.idNumber} onChange={handleInputChange} required placeholder="e.g., 1990123456789" className={errors.idNumber ? `${inputClass} border-red-500 focus:ring-red-500/20 focus:border-red-500` : inputClass} />
-                                    {errors.idNumber && <p className="text-red-500 text-xs mt-1">{errors.idNumber}</p>}
+                                    <label className={labelClass}>ID Number <span className="text-debit">*</span></label>
+                                    <input ref={idNumberInputRef} type="text" name="idNumber" value={formData.idNumber} onChange={handleInputChange} required placeholder="e.g., 1990123456789" className={errors.idNumber ? `${inputClass} border-debit focus:ring-[color-mix(in_oklch,var(--status-debit)_25%,transparent)] focus:border-[var(--status-debit)]` : inputClass} />
+                                    {errors.idNumber && <p className="mt-1 t-caption text-debit">{errors.idNumber}</p>}
                                 </div>
                             </div>
                         </div>
-                    </SectionCard>
+                    </FormSection>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-5 items-stretch">
-                    <SectionCard color={sectionColors.bank} title="Bank Information" icon={<CreditCard className="w-5 h-5" />}>
+                <div className="grid grid-cols-1 items-stretch gap-x-6 gap-y-5 lg:grid-cols-2">
+                    <FormSection accent="gold" title="Bank Information" icon={<CreditCard className="h-4 w-4" />}>
                         <div className="space-y-3">
                             <div><label className={labelClass}>Account Name</label><input type="text" name="accountName" value={formData.accountName} onChange={handleInputChange} placeholder="e.g., Md. Rahim Uddin" className={inputClass} /></div>
                             <div><label className={labelClass}>Account Number</label><input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleInputChange} placeholder="e.g., 1234567890123" className={inputClass} /></div>
@@ -337,12 +319,12 @@ export default function RegisterForm() {
                             </div>
                             <div><label className={labelClass}>Routing Number</label><input type="text" name="routingNumber" value={formData.routingNumber} onChange={handleInputChange} placeholder="e.g., 090123456" className={inputClass} /></div>
                         </div>
-                    </SectionCard>
+                    </FormSection>
 
-                    <SectionCard color={sectionColors.residence} title="Residence Information" icon={<Home className="w-5 h-5" />}>
+                    <FormSection accent="violet" title="Residence Information" icon={<Home className="h-4 w-4" />}>
                         <div className="space-y-4">
-                            <div className="border-b border-slate-200 dark:border-slate-700 pb-3 space-y-2">
-                                <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">Current Residence</h3>
+                            <div className="space-y-2 border-b border-[var(--border-base)] pb-3">
+                                <h3 className="t-body font-medium text-secondary-ink">Current Residence</h3>
                                 <div>
                                     <label className={subLabelClass}>Address</label>
                                     <input type="text" name="currentAddress" value={formData.currentAddress} onChange={handleInputChange} placeholder="e.g., House 12, Road 5" className={inputClass} />
@@ -354,7 +336,7 @@ export default function RegisterForm() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">Permanent Residence</h3>
+                                <h3 className="t-body font-medium text-secondary-ink">Permanent Residence</h3>
                                 <div>
                                     <label className={subLabelClass}>Address</label>
                                     <input type="text" name="permanentAddress" value={formData.permanentAddress} onChange={handleInputChange} placeholder="e.g., Village: Rampur" className={inputClass} />
@@ -366,100 +348,96 @@ export default function RegisterForm() {
                                 </div>
                             </div>
                         </div>
-                    </SectionCard>
+                    </FormSection>
                 </div>
 
-                {/* Additional Documents Section (Full Width) */}
-                <div className="grid grid-cols-1 gap-x-6 gap-y-5 items-stretch">
-                    <SectionCard color={sectionColors.docs} title="Additional Documents" icon={<FileText className="w-5 h-5" />}>
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-sm text-slate-500 dark:text-slate-400">Upload supporting documents (e.g., TIN Certificate, Trade License)</span>
-                            <button type="button" onClick={addAdditionalDocument} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"><Plus className="w-4 h-4" /> Add Document</button>
-                        </div>
-                        {formData.additionalDocuments.length === 0 ? (
-                            <div className="text-center py-8 text-slate-400 dark:text-slate-500"><FileText className="w-12 h-12 mx-auto mb-2 opacity-50" /><p>No additional documents added</p></div>
-                        ) : (
-                            <div className="space-y-3">
-                                {formData.additionalDocuments.map((doc) => (
-                                    <div key={doc.id} className="flex flex-wrap items-end gap-3 border-b border-slate-200 dark:border-slate-700 pb-3">
-                                        <div className="flex-1 min-w-[150px]">
-                                            <label className={labelClass}>Document Name</label>
-                                            <input type="text" value={doc.name} onChange={(e) => updateAdditionalDocument(doc.id, "name", e.target.value)} placeholder="e.g., TIN Certificate" className={inputClass} />
-                                        </div>
-                                        <div className="flex-1 min-w-[200px]">
-                                            <label className={labelClass}>File</label>
-                                            {renderFileUpload(doc.file, (e) => updateAdditionalDocument(doc.id, "file", e.target.files?.[0] || null), () => updateAdditionalDocument(doc.id, "file", null), "Upload File")}
-                                        </div>
-                                        <button type="button" onClick={() => removeAdditionalDocument(doc.id)} className="text-red-500 p-1 mt-1"><Trash2 className="w-5 h-5" /></button>
+                {/* Additional Documents */}
+                <FormSection accent="blue" title="Additional Documents" icon={<FileText className="h-4 w-4" />}>
+                    <div className="mb-4 flex items-center justify-between">
+                        <span className="t-body text-muted-ink">Upload supporting documents (e.g., TIN Certificate, Trade Licence)</span>
+                        <button type="button" onClick={addAdditionalDocument} className="brand-gradient flex items-center gap-1 rounded-lg px-3 py-1.5 t-body text-white transition-transform hover:-translate-y-0.5"><Plus className="h-4 w-4" /> Add Document</button>
+                    </div>
+                    {formData.additionalDocuments.length === 0 ? (
+                        <div className="py-8 text-center text-faint-ink"><FileText className="mx-auto mb-2 h-12 w-12 opacity-50" /><p className="t-body">No additional documents added</p></div>
+                    ) : (
+                        <div className="space-y-3">
+                            {formData.additionalDocuments.map((doc) => (
+                                <div key={doc.id} className="flex flex-wrap items-end gap-3 border-b border-[var(--border-base)] pb-3">
+                                    <div className="min-w-[150px] flex-1">
+                                        <label className={labelClass}>Document Name</label>
+                                        <input type="text" value={doc.name} onChange={(e) => updateAdditionalDocument(doc.id, "name", e.target.value)} placeholder="e.g., TIN Certificate" className={inputClass} />
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </SectionCard>
-                </div>
-
-                {/* Nominees Section (Full Width - Same as Additional Docs) */}
-                <div className="grid grid-cols-1 gap-x-6 gap-y-5 items-stretch">
-                    <SectionCard color={sectionColors.nominees} title="Registered Nominees" icon={<Users className="w-5 h-5" />}>
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-sm text-slate-500 dark:text-slate-400">Add your nominees</span>
-                            <button type="button" onClick={() => setShowNomineeModal(true)} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"><Plus className="w-4 h-4" /> Add Nominee</button>
-                        </div>
-                        {formData.nominees.length === 0 ? (
-                            <div className="text-center py-8 text-slate-400 dark:text-slate-500"><Users className="w-12 h-12 mx-auto mb-2 opacity-50" /><p>No nominees registered</p></div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {formData.nominees.map((nominee) => (
-                                    <div key={nominee.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 bg-white dark:bg-slate-950">
-                                        <div className="flex items-start justify-between">
-                                            <div>
-                                                <h4 className="font-medium text-slate-900 dark:text-white">{nominee.name}</h4>
-                                                <p className="text-sm text-slate-500 dark:text-slate-400">{nominee.relation} ({nominee.share}%)</p>
-                                            </div>
-                                            <button type="button" onClick={() => deleteNominee(nominee.id)} className="text-slate-400 hover:text-red-500 p-1"><Trash2 className="w-4 h-4" /></button>
-                                        </div>
+                                    <div className="min-w-[200px] flex-1">
+                                        <label className={labelClass}>File</label>
+                                        {renderFileUpload(doc.file, (e) => updateAdditionalDocument(doc.id, "file", e.target.files?.[0] || null), () => updateAdditionalDocument(doc.id, "file", null), "Upload File")}
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </SectionCard>
-                </div>
+                                    <button type="button" onClick={() => removeAdditionalDocument(doc.id)} className="mt-1 p-1 text-debit"><Trash2 className="h-5 w-5" /></button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </FormSection>
 
-                <div className="mt-8 flex flex-col sm:flex-row sm:justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
+                {/* Nominees */}
+                <FormSection accent="emerald" title="Registered Nominees" icon={<Users className="h-4 w-4" />}>
+                    <div className="mb-4 flex items-center justify-between">
+                        <span className="t-body text-muted-ink">Add your nominees</span>
+                        <button type="button" onClick={() => setShowNomineeModal(true)} className="flex items-center gap-1 rounded-lg bg-[var(--status-success)] px-3 py-1.5 t-body text-white transition-transform hover:-translate-y-0.5"><Plus className="h-4 w-4" /> Add Nominee</button>
+                    </div>
+                    {formData.nominees.length === 0 ? (
+                        <div className="py-8 text-center text-faint-ink"><Users className="mx-auto mb-2 h-12 w-12 opacity-50" /><p className="t-body">No nominees registered</p></div>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            {formData.nominees.map((nominee) => (
+                                <div key={nominee.id} className="rounded-lg border border-[var(--border-base)] bg-surface p-4">
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <h4 className="t-body font-medium text-primary-ink">{nominee.name}</h4>
+                                            <p className="t-caption text-muted-ink">{nominee.relation} ({nominee.share}%)</p>
+                                        </div>
+                                        <button type="button" onClick={() => deleteNominee(nominee.id)} className="p-1 text-faint-ink hover:text-debit"><Trash2 className="h-4 w-4" /></button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </FormSection>
+
+                <div className="mt-8 flex flex-col gap-3 border-t border-[var(--border-base)] pt-6 sm:flex-row sm:justify-end">
                     <Link href="/login" className="w-full sm:w-auto">
-                        <button type="button" className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium">Cancel</button>
+                        <button type="button" className="w-full rounded-lg border border-[var(--border-base)] px-4 py-2.5 t-body font-medium text-secondary-ink transition-colors hover:bg-subtle hover:text-primary-ink sm:w-auto">Cancel</button>
                     </Link>
-                    <button type="submit" disabled={loading} className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium shadow-md disabled:opacity-50">
-                        {loading ? "Submitting..." : <><CheckCircle className="w-4 h-4" /> Submit Application</>}
+                    <button type="submit" disabled={loading} className="brand-gradient flex w-full items-center justify-center gap-2 rounded-lg px-6 py-2.5 t-body font-medium text-white shadow-brand-glow disabled:opacity-50 sm:w-auto">
+                        {loading ? "Submitting..." : <><CheckCircle className="h-4 w-4" /> Submit Application</>}
                     </button>
                 </div>
             </div>
 
-            {/* Right Column: Completion Status (1/5 width - Narrower) */}
+            {/* Right Column: Completion Status */}
             <div className="lg:col-span-1">
-                <div className="sticky top-8 bg-white dark:bg-slate-900 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-6">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Completion Status</h3>
-                    <div className="flex flex-col items-center justify-center mb-6">
-                        <div className="relative w-24 h-24">
-                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                                <path className="text-slate-200 dark:text-slate-700" stroke="currentColor" strokeWidth="3" fill="none" d="M18 2.5a15.5 15.5 0 1 1 0 31 15.5 15.5 0 0 1 0-31" />
-                                <path className="text-indigo-600 dark:text-indigo-400 transition-all duration-500" stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none" strokeDasharray={`${progress}, 100`} d="M18 2.5a15.5 15.5 0 1 1 0 31 15.5 15.5 0 0 1 0-31" />
+                <div className="card-premium sticky top-8 p-6">
+                    <h3 className="t-h3 mb-4 text-primary-ink">Completion Status</h3>
+                    <div className="mb-6 flex flex-col items-center justify-center">
+                        <div className="relative h-24 w-24">
+                            <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
+                                <path className="text-[var(--border-strong)]" stroke="currentColor" strokeWidth="3" fill="none" d="M18 2.5a15.5 15.5 0 1 1 0 31 15.5 15.5 0 0 1 0-31" />
+                                <path className="text-brand transition-all duration-500" stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none" strokeDasharray={`${progress}, 100`} d="M18 2.5a15.5 15.5 0 1 1 0 31 15.5 15.5 0 0 1 0-31" />
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-xl font-bold text-slate-900 dark:text-white">{progress}%</span>
+                                <span className="t-h2 t-num text-primary-ink">{progress}%</span>
                             </div>
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">{completedSteps} of {steps.length} steps completed</p>
+                        <p className="t-caption mt-2 text-muted-ink">{completedSteps} of {steps.length} steps completed</p>
                     </div>
                     <div className="space-y-3">
                         {steps.map((step, index) => (
                             <div key={index} className="flex items-center gap-3">
                                 {step.complete ? (
-                                    <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+                                    <CheckCircle className="h-5 w-5 shrink-0 text-success" />
                                 ) : (
-                                    <Circle className="w-5 h-5 text-slate-300 dark:text-slate-600 shrink-0" />
+                                    <Circle className="h-5 w-5 shrink-0 text-faint-ink" />
                                 )}
-                                <span className={`text-sm ${step.complete ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-500 dark:text-slate-400'}`}>{step.name}</span>
+                                <span className={`t-body ${step.complete ? 'font-medium text-primary-ink' : 'text-muted-ink'}`}>{step.name}</span>
                             </div>
                         ))}
                     </div>
@@ -467,11 +445,11 @@ export default function RegisterForm() {
             </div>
 
             {showNomineeModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Add Nominee</h3>
-                            <button type="button" onClick={() => setShowNomineeModal(false)} className="text-slate-400 dark:text-slate-500"><X className="w-5 h-5" /></button>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="card-premium w-full max-w-md p-6 shadow-pop">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h3 className="t-h3 text-primary-ink">Add Nominee</h3>
+                            <button type="button" onClick={() => setShowNomineeModal(false)} className="text-muted-ink hover:text-primary-ink"><X className="h-5 w-5" /></button>
                         </div>
                         <div className="space-y-3">
                             <div><label className={labelClass}>Full Name *</label><input type="text" name="name" value={nomineeForm.name} onChange={handleNomineeInputChange} placeholder="e.g., Mrs. Salma" className={inputClass} /></div>
@@ -487,9 +465,9 @@ export default function RegisterForm() {
                             </div>
                             <div><label className={labelClass}>ID Document (Upload)</label>{renderFileUpload(nomineeForm.idDocumentFile, (e) => handleNomineeFileChange(e, "idDocumentFile"), () => setNomineeForm((prev) => ({ ...prev, idDocumentFile: null })), "Upload Nominee ID Document")}</div>
                         </div>
-                        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
-                            <button type="button" onClick={() => setShowNomineeModal(false)} className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-200">Cancel</button>
-                            <button type="button" onClick={addNominee} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">Add Nominee</button>
+                        <div className="mt-6 flex justify-end gap-3 border-t border-[var(--border-base)] pt-4">
+                            <button type="button" onClick={() => setShowNomineeModal(false)} className="rounded-lg border border-[var(--border-base)] px-4 py-2 t-body text-secondary-ink">Cancel</button>
+                            <button type="button" onClick={addNominee} className="brand-gradient rounded-lg px-4 py-2 t-body text-white">Add Nominee</button>
                         </div>
                     </div>
                 </div>

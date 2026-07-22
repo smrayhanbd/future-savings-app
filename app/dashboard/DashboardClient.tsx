@@ -3,24 +3,28 @@
 import { useState } from "react"
 import AppSidebar from "@/components/AppSidebar"
 import Topbar, { type TopbarNotification } from "@/components/Topbar"
+import TrustRibbon from "@/components/somiti/TrustRibbon"
 
 export default function DashboardClient({ children, notifications }: { children: React.ReactNode, notifications: TopbarNotification[] }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
   return (
-    // h-screen and overflow-hidden on the root prevents the whole window from scrolling
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-900">
-      <AppSidebar isOpen={isMobileOpen} onClose={() => setIsMobileOpen(false)} />
-      
-      {/* flex-col makes the Topbar and Main stack vertically */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Topbar is shrink-0 so it never collapses */}
-        <Topbar onMenuClick={() => setIsMobileOpen(true)} notifications={notifications} />
-        
-        {/* Only the main content area scrolls (overflow-y-auto) */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {children}
-        </main>
+    // h-screen + overflow-hidden keeps only the main scroll area scrolling.
+    <div className="flex h-screen flex-col overflow-hidden bg-base">
+      {/* Signature brand element — always at the very top */}
+      <TrustRibbon />
+      <div className="flex min-h-0 flex-1">
+        <AppSidebar isOpen={isMobileOpen} onClose={() => setIsMobileOpen(false)} />
+
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <Topbar onMenuClick={() => setIsMobileOpen(true)} notifications={notifications} />
+
+          <main className="flex-1 overflow-y-auto">
+            <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   )

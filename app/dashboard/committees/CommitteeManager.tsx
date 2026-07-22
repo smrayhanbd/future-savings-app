@@ -204,7 +204,7 @@ function MembersTable({ committee, staff }: { committee: CommitteeRow; staff: St
     if (!res.ok) toast.error("Failed", { description: res.error })
   }
 
-  const availableStaff = staff.filter((s) => !committee.members.some((m) => m.userId === s.id))
+  const availableStaff = staff.filter((s) => !committee.members.some((m) => m.user?.id === s.id))
 
   return (
     <div className="space-y-2">

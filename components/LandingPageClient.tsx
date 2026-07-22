@@ -1,17 +1,19 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { useState } from "react"
-import { useTheme } from "next-themes"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
-  Building2, ShieldCheck, TrendingUp, Wallet, Users, Receipt,
-  ArrowRight, CheckCircle2, Lock, Sun, Moon, Sparkles, ChevronDown
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Building2, ShieldCheck, TrendingUp, Receipt,
+  ArrowRight, CheckCircle2, Lock, Sparkles, ChevronDown, Users,
 } from "lucide-react"
 import { useMounted } from "@/lib/useMounted"
+import { useTheme } from "next-themes"
+import { Sun, Moon } from "lucide-react"
+import TrustRibbon from "@/components/somiti/TrustRibbon"
 
 /** Landing-page content item rendered in the facilities/projects/etc. lists. */
 interface LandingContentItem {
@@ -41,74 +43,78 @@ export interface LandingContent {
   activities?: LandingContentItem[]
 }
 
-// Premium Animation Variants
+// Staggered reveal variants — kept subtle (≤2 micro-interactions per screen).
 const container = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
 }
-
 const item = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] as const } }
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] as const } },
 }
 
-function ThemeToggle() {
+function ThemeButton() {
   const mounted = useMounted()
   const { theme, setTheme } = useTheme()
-
   if (!mounted) return null
-
   return (
     <button
-      aria-label="Toggle Dark Mode"
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 transition-colors"
+      aria-label="Toggle theme"
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] text-secondary-ink transition-colors hover:bg-subtle hover:text-primary-ink"
     >
-      {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
     </button>
   )
 }
 
 export default function LandingPageClient({ content }: { content: LandingContent }) {
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 transition-colors duration-300">
-      
-      {/* Navbar */}
-      <header className="sticky top-0 z-50 w-full border-b border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl transition-colors duration-300">
-        <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md group-hover:scale-105 transition-transform">
+    <div className="relative min-h-screen bg-base text-primary-ink transition-colors duration-300">
+      <TrustRibbon />
+
+      {/* ─── Navbar ─── */}
+      <header className="glass sticky top-0 z-50 w-full">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <Link href="/" className="group flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl brand-gradient text-white shadow-brand-glow transition-transform group-hover:scale-105">
               <Building2 className="h-5 w-5" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Future Savings</span>
+            <span className="t-h3 text-primary-ink">Future Savings</span>
           </Link>
-          <nav className="hidden md:flex items-center gap-8">
-            <Link href="#about" className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">About</Link>
-            <Link href="#management" className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">Management</Link>
-            <Link href="#activities" className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">Activities</Link>
-            <Link href="/policy" className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">Policy</Link>
+
+          <nav className="hidden items-center gap-8 md:flex">
+            <Link href="#about" className="t-body font-medium text-secondary-ink transition-colors hover:text-primary-ink">About</Link>
+            <Link href="#management" className="t-body font-medium text-secondary-ink transition-colors hover:text-primary-ink">Management</Link>
+            <Link href="#activities" className="t-body font-medium text-secondary-ink transition-colors hover:text-primary-ink">Activities</Link>
+            <Link href="/policy" className="t-body font-medium text-secondary-ink transition-colors hover:text-primary-ink">Policy</Link>
           </nav>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <ThemeToggle />
-            
-            {/* Desktop View (Separate Buttons) */}
-            <div className="hidden sm:flex items-center gap-2">
-              <Link href="/login"><Button variant="ghost" className="text-sm font-medium">Login</Button></Link>
-              <Link href="/register"><Button className="bg-indigo-600 hover:bg-indigo-700 text-sm font-medium shadow-md">Register <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <ThemeButton />
+
+            {/* Desktop auth buttons */}
+            <div className="hidden items-center gap-2 sm:flex">
+              <Link href="/login"><Button variant="ghost" className="t-body font-medium">Login</Button></Link>
+              <Link href="/register">
+                <Button className="brand-gradient shadow-brand-glow t-body font-medium">
+                  Register <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
 
-            {/* Mobile View (Dropdown Menu) */}
+            {/* Mobile dropdown */}
             <div className="sm:hidden">
               <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 bg-indigo-600 text-white shadow hover:bg-indigo-700 h-9 px-3 cursor-pointer outline-none">
+                <DropdownMenuTrigger className="brand-gradient inline-flex h-9 cursor-pointer items-center gap-1 whitespace-nowrap rounded-md px-3 text-sm font-medium text-white shadow-brand-glow outline-none">
                   Get Started <ChevronDown className="ml-1 h-4 w-4" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem className="p-0">
-                    <Link href="/login" className="flex items-center w-full cursor-pointer p-2">Login</Link>
+                    <Link href="/login" className="flex w-full cursor-pointer items-center p-2">Login</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="p-0">
-                    <Link href="/register" className="flex items-center w-full cursor-pointer p-2">Register</Link>
+                    <Link href="/register" className="flex w-full cursor-pointer items-center p-2">Register</Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -117,58 +123,71 @@ export default function LandingPageClient({ content }: { content: LandingContent
         </div>
       </header>
 
-      {/* Hero Section - Vibrant Indigo Glow */}
-      <section className="relative overflow-hidden bg-indigo-50 dark:bg-slate-900 transition-colors duration-300">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(99,102,241,0.2),transparent_50%)] dark:bg-[radial-gradient(circle_at_50%_120%,rgba(99,102,241,0.3),transparent_50%)]"></div>
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 md:py-32 relative z-10">
-          <motion.div 
+      {/* ─── Hero ─── */}
+      <section className="relative overflow-hidden">
+        {/* Ambient brand glows */}
+        <div className="pointer-events-none absolute inset-0 bg-brand-gradient opacity-[0.05]" />
+        <div className="pointer-events-none absolute left-1/2 top-0 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-brand opacity-[0.12] blur-[120px]" />
+        <div className="pointer-events-none absolute right-0 top-1/3 h-80 w-80 rounded-full bg-gold opacity-[0.07] blur-[120px]" />
+
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-24 sm:px-6 md:py-32 lg:px-8">
+          <motion.div
             className="mx-auto max-w-4xl text-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-100 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-sm font-medium mb-6">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--border-base)] bg-surface px-4 py-1.5 t-body font-medium text-brand shadow-sm">
               <Sparkles className="h-4 w-4" /> Next-Gen Cooperative Management
             </div>
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
+            <h1 className="t-display-xl text-primary-ink">
               {content.heroTitle}
             </h1>
-            <div className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-10 leading-relaxed prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content.heroSubtitle || "" }} />
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            {content.heroSubtitle && (
+              <div className="prose mt-6 max-w-none text-lg leading-relaxed text-secondary-ink dark:prose-invert" dangerouslySetInnerHTML={{ __html: content.heroSubtitle }} />
+            )}
+            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link href="/register">
-                <Button size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-base h-12 px-8 shadow-lg shadow-indigo-500/30">
+                <Button size="lg" className="brand-gradient h-12 px-8 text-base shadow-brand-glow">
                   Become a Member <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link href="#about">
-                <Button size="lg" variant="outline" className="text-base h-12 px-8 bg-white dark:bg-slate-800 shadow-sm">Learn More</Button>
+                <Button size="lg" variant="outline" className="h-12 bg-surface px-8 text-base shadow-sm">Learn More</Button>
               </Link>
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* About & Vision Section - Clean White/Slate */}
-      <section id="about" className="py-24 bg-white dark:bg-slate-950 transition-colors duration-300">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-16 items-center">
+      {/* ─── About & Vision ─── */}
+      <section id="about" className="relative py-24">
+        <div className="mx-auto grid max-w-7xl items-center gap-16 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-6">{content.aboutTitle}</h2>
-            <div className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content.aboutContent || "" }} />
-            <div className="flex items-start gap-4 p-6 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl border border-indigo-100 dark:border-indigo-900/50">
-              <ShieldCheck className="h-8 w-8 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <p className="t-overline mb-3 text-brand">About Us</p>
+            <h2 className="t-display mb-6 text-primary-ink">{content.aboutTitle}</h2>
+            {content.aboutContent && (
+              <div className="prose mb-8 max-w-none text-lg leading-relaxed text-secondary-ink dark:prose-invert" dangerouslySetInnerHTML={{ __html: content.aboutContent }} />
+            )}
+            <div className="card-premium flex items-start gap-4 p-6">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-gradient-soft text-brand">
+                <ShieldCheck className="h-6 w-6" />
+              </span>
               <div>
-                <h3 className="font-bold text-indigo-900 dark:text-indigo-300 mb-2 text-lg">{content.visionTitle}</h3>
-                <div className="text-indigo-700 dark:text-indigo-400 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content.visionContent || "" }} />
+                <h3 className="t-h3 mb-2 text-primary-ink">{content.visionTitle}</h3>
+                {content.visionContent && (
+                  <div className="prose max-w-none text-secondary-ink dark:prose-invert" dangerouslySetInnerHTML={{ __html: content.visionContent }} />
+                )}
               </div>
             </div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="grid grid-cols-2 gap-6"
             initial={{ opacity: 0, x: 50 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -176,115 +195,131 @@ export default function LandingPageClient({ content }: { content: LandingContent
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             {(content.facilities ?? []).map((fac, i) => (
-              <Card key={i} className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden h-full">
-                <CardContent className="p-6">
-                  <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center mb-4">
-                    <CheckCircle2 className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-                  </div>
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-2 text-lg">{fac.title}</h4>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: fac.description || "" }} />
-                </CardContent>
-              </Card>
+              <div key={i} className="card-premium card-premium-hover h-full overflow-hidden p-6">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-gradient-soft text-brand">
+                  <CheckCircle2 className="h-6 w-6" />
+                </div>
+                <h4 className="t-h3 mb-2 text-primary-ink">{fac.title}</h4>
+                {fac.description && (
+                  <div className="prose max-w-none t-body text-muted-ink dark:prose-invert" dangerouslySetInnerHTML={{ __html: fac.description }} />
+                )}
+              </div>
             ))}
           </motion.div>
         </div>
       </section>
 
-      {/* Transparency Section - Deep Indigo Background */}
-      <section className="py-20 bg-indigo-700 dark:bg-indigo-900 text-white transition-colors duration-300 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_70%)]"></div>
-        <motion.div 
-          className="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center relative z-10"
+      {/* ─── Transparency band ─── */}
+      <section className="relative overflow-hidden py-20">
+        <div className="absolute inset-0 brand-gradient" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.12),transparent_70%)]" />
+        <motion.div
+          className="relative z-10 mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8"
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
-          <div className="inline-block p-3 rounded-full bg-white/20 mb-6 backdrop-blur-md">
+          <div className="mb-6 inline-block rounded-full bg-white/20 p-3 backdrop-blur-md">
             <Lock className="h-8 w-8 text-white" />
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Transparency & Reporting</h2>
-          <div className="text-lg text-indigo-100 prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content.transparency || "" }} />
+          <h2 className="t-display mb-6 text-white">Transparency &amp; Reporting</h2>
+          {content.transparency && (
+            <div className="prose-invert prose max-w-none text-lg text-white/90" dangerouslySetInnerHTML={{ __html: content.transparency }} />
+          )}
         </motion.div>
       </section>
 
-      {/* Management Committee - Light Sky Blue Background */}
-      <section id="management" className="py-24 bg-sky-50 dark:bg-slate-950 transition-colors duration-300">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            className="text-center max-w-2xl mx-auto mb-16"
+      {/* ─── Management Committee ─── */}
+      <section id="management" className="py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="mx-auto mb-16 max-w-2xl text-center"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">Our Management Committee</h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400">Dedicated leaders working for the betterment of our community.</p>
+            <p className="t-overline mb-3 text-brand">Leadership</p>
+            <h2 className="t-display mb-4 text-primary-ink">Our Management Committee</h2>
+            <p className="t-body-lg text-muted-ink">Dedicated leaders working for the betterment of our community.</p>
           </motion.div>
-          
-          <motion.div 
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
+
+          <motion.div
+            className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4"
             variants={container}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.1 }}
           >
             {(content.management ?? []).map((member, i) => (
-              <motion.div
-                key={i}
-                variants={item}
-                className="w-full"
-              >
-                <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden text-center h-full">
-                  <CardContent className="p-8">
-                    <div className="w-28 h-28 rounded-full bg-slate-200 dark:bg-slate-800 mx-auto mb-6 overflow-hidden flex items-center justify-center ring-4 ring-white dark:ring-slate-900 shadow-md">
-                      {member.photoUrl ? <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" /> : <Users className="h-12 w-12 text-slate-400" />}
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">{member.name}</h3>
-                    <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium mb-4 mt-1">{member.role}</p>
-                    <div className="text-sm text-slate-500 dark:text-slate-400 prose dark:prose-invert max-w-none text-left" dangerouslySetInnerHTML={{ __html: member.bio || "" }} />
-                  </CardContent>
-                </Card>
+              <motion.div key={i} variants={item} className="w-full">
+                <div className="card-premium card-premium-hover h-full overflow-hidden p-8 text-center">
+                  <div className="mx-auto mb-6 flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-subtle shadow-md ring-4 ring-[var(--glass-border)]">
+                    {member.photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={member.photoUrl} alt={member.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <Users className="h-12 w-12 text-faint-ink" />
+                    )}
+                  </div>
+                  <h3 className="t-h3 text-primary-ink">{member.name}</h3>
+                  <p className="t-body mt-1 mb-4 font-medium text-brand">{member.role}</p>
+                  {member.bio && (
+                    <div className="prose max-w-none text-left t-body text-muted-ink dark:prose-invert" dangerouslySetInnerHTML={{ __html: member.bio }} />
+                  )}
+                </div>
               </motion.div>
             ))}
           </motion.div>
         </div>
       </section>
 
-      {/* Projects & Activities - Light Violet Background */}
-      <section id="activities" className="py-24 bg-violet-50 dark:bg-slate-900 transition-colors duration-300">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            className="text-center max-w-2xl mx-auto mb-16"
+      {/* ─── Projects & Activities ─── */}
+      <section id="activities" className="bg-surface py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="mx-auto mb-16 max-w-2xl text-center"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">Our Activities & Projects</h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400">See what we are doing to grow our community&apos;s wealth and well-being.</p>
+            <p className="t-overline mb-3 text-brand">Community</p>
+            <h2 className="t-display mb-4 text-primary-ink">Our Activities &amp; Projects</h2>
+            <p className="t-body-lg text-muted-ink">See what we are doing to grow our community&apos;s wealth and well-being.</p>
           </motion.div>
-          
-          <div className="grid lg:grid-cols-2 gap-16">
-            {/* Projects List */}
+
+          <div className="grid gap-16 lg:grid-cols-2">
+            {/* Projects */}
             <motion.div
               initial={{ opacity: 0, x: -50 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-3"><TrendingUp className="h-7 w-7 text-indigo-600 dark:text-indigo-400" /> Ongoing Projects</h3>
+              <h3 className="t-h2 mb-8 flex items-center gap-3 text-primary-ink">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-gradient-soft text-brand"><TrendingUp className="h-5 w-5" /></span>
+                Ongoing Projects
+              </h3>
               <div className="space-y-6">
                 {(content.projects ?? []).map((proj, i) => (
-                  <div key={i} className="p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl hover:shadow-lg transition-all duration-300 overflow-hidden">
-                    <div className="flex flex-col sm:flex-row gap-6">
-                      {proj.photoUrl && <img src={proj.photoUrl} alt={proj.title} className="w-full sm:w-28 h-28 object-cover rounded-xl shadow-sm" />}
+                  <div key={i} className="card-premium card-premium-hover overflow-hidden p-6">
+                    <div className="flex flex-col gap-6 sm:flex-row">
+                      {proj.photoUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={proj.photoUrl} alt={proj.title} className="h-28 w-full rounded-xl object-cover shadow-sm sm:w-28" />
+                      )}
                       <div className="flex-1">
-                        <div className="flex justify-between items-center mb-3">
-                          <h4 className="font-bold text-lg text-slate-900 dark:text-white">{proj.title}</h4>
-                          <span className="text-xs font-bold px-3 py-1 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full">{proj.status}</span>
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                          <h4 className="t-h3 text-primary-ink">{proj.title}</h4>
+                          {proj.status && (
+                            <span className="rounded-full bg-brand-gradient-soft px-3 py-1 t-caption font-bold text-brand">{proj.status}</span>
+                          )}
                         </div>
-                        <div className="text-sm text-slate-600 dark:text-slate-400 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: proj.description || "" }} />
+                        {proj.description && (
+                          <div className="prose max-w-none t-body text-muted-ink dark:prose-invert" dangerouslySetInnerHTML={{ __html: proj.description }} />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -292,25 +327,33 @@ export default function LandingPageClient({ content }: { content: LandingContent
               </div>
             </motion.div>
 
-            {/* Activities List */}
+            {/* Activities */}
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-3"><Receipt className="h-7 w-7 text-emerald-600 dark:text-emerald-400" /> Recent Activities</h3>
+              <h3 className="t-h2 mb-8 flex items-center gap-3 text-primary-ink">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-success-soft text-success"><Receipt className="h-5 w-5" /></span>
+                Recent Activities
+              </h3>
               <div className="space-y-6">
                 {(content.activities ?? []).map((act, i) => (
-                  <div key={i} className="p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl hover:shadow-lg transition-all duration-300 overflow-hidden">
-                    <div className="flex flex-col sm:flex-row gap-6">
-                      {act.photoUrl && <img src={act.photoUrl} alt={act.title} className="w-full sm:w-28 h-28 object-cover rounded-xl shadow-sm" />}
+                  <div key={i} className="card-premium card-premium-hover overflow-hidden p-6">
+                    <div className="flex flex-col gap-6 sm:flex-row">
+                      {act.photoUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={act.photoUrl} alt={act.title} className="h-28 w-full rounded-xl object-cover shadow-sm sm:w-28" />
+                      )}
                       <div className="flex-1">
-                        <div className="flex justify-between items-center mb-3">
-                          <h4 className="font-bold text-lg text-slate-900 dark:text-white">{act.title}</h4>
-                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">{act.date}</span>
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                          <h4 className="t-h3 text-primary-ink">{act.title}</h4>
+                          {act.date && <span className="rounded-full bg-subtle px-3 py-1 t-caption font-medium text-muted-ink">{act.date}</span>}
                         </div>
-                        <div className="text-sm text-slate-600 dark:text-slate-400 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: act.description || "" }} />
+                        {act.description && (
+                          <div className="prose max-w-none t-body text-muted-ink dark:prose-invert" dangerouslySetInnerHTML={{ __html: act.description }} />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -321,21 +364,23 @@ export default function LandingPageClient({ content }: { content: LandingContent
         </div>
       </section>
 
-      {/* CTA Section - Deep Slate with Gradient Glow */}
-      <section className="py-24 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            className="max-w-5xl mx-auto p-12 md:p-16 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl shadow-2xl text-center relative overflow-hidden"
+      {/* ─── CTA ─── */}
+      <section className="py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] brand-gradient p-12 text-center shadow-pop md:p-16"
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
           >
-            <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-[radial-gradient(circle_at_top_right,_white,_transparent_60%)]"></div>
-            <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 relative z-10">Ready to join our community?</h2>
-            <p className="text-indigo-100 text-lg md:text-xl mb-10 relative z-10 max-w-2xl mx-auto">Register your account today and become part of a growing, transparent, and secure financial family.</p>
-            <Link href="/register" className="relative z-10">
-              <Button size="lg" variant="secondary" className="bg-white text-indigo-600 hover:bg-slate-100 text-base h-12 px-10 shadow-lg">
+            <div className="pointer-events-none absolute inset-0 h-full w-full opacity-20 bg-[radial-gradient(circle_at_top_right,_white,_transparent_60%)]" />
+            <h2 className="relative z-10 t-display text-white">Ready to join our community?</h2>
+            <p className="relative z-10 mx-auto mt-4 max-w-2xl t-body-lg text-white/90">
+              Register your account today and become part of a growing, transparent, and secure financial family.
+            </p>
+            <Link href="/register" className="relative z-10 mt-10 inline-block">
+              <Button size="lg" variant="secondary" className="h-12 bg-white px-10 text-base text-brand shadow-lg hover:bg-white/90">
                 Register Now <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
@@ -343,24 +388,23 @@ export default function LandingPageClient({ content }: { content: LandingContent
         </div>
       </section>
 
-      {/* Footer - Clean White/Slate */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-12 transition-colors duration-300">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
+      {/* ─── Footer ─── */}
+      <footer className="border-t border-[var(--border-base)] bg-surface py-12">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 md:flex-row sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg brand-gradient text-white">
               <Building2 className="h-4 w-4" />
             </div>
-            <span className="font-bold text-slate-900 dark:text-white">Future Savings Foundation</span>
+            <span className="t-subheading text-primary-ink">Future Savings Foundation</span>
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">© {new Date().getFullYear()} Future Savings Foundation. All rights reserved.</p>
-          <div className="flex gap-6 text-sm text-slate-500 dark:text-slate-400">
-            <Link href="/login" className="hover:text-slate-900 dark:hover:text-white">Login</Link>
-            <Link href="/register" className="hover:text-slate-900 dark:hover:text-white">Register</Link>
-            <Link href="/policy" className="hover:text-slate-900 dark:hover:text-white">Privacy Policy</Link>
+          <p className="t-caption text-muted-ink">© {new Date().getFullYear()} Future Savings Foundation. All rights reserved.</p>
+          <div className="flex gap-6 t-caption text-muted-ink">
+            <Link href="/login" className="hover:text-primary-ink">Login</Link>
+            <Link href="/register" className="hover:text-primary-ink">Register</Link>
+            <Link href="/policy" className="hover:text-primary-ink">Privacy Policy</Link>
           </div>
         </div>
       </footer>
-
     </div>
   )
 }

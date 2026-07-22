@@ -5,7 +5,7 @@ import { useTheme } from "next-themes"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Menu, Moon, Sun, Bell, Search, User, Settings, LogOut, AlertCircle } from "lucide-react"
+import { Menu, Moon, Sun, Bell, Search, User, Settings, LogOut, AlertCircle, ChevronDown, Building2 } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useMounted } from "@/lib/useMounted"
+import LanguageToggle from "@/components/somiti/LanguageToggle"
 
 /** A topbar notification row — the subset of the Notification model we render. */
 export interface TopbarNotification {
@@ -28,48 +29,91 @@ export default function Topbar({ onMenuClick, notifications = [] }: { onMenuClic
   const { theme, setTheme } = useTheme()
 
   return (
-        <header className="z-40 relative flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 dark:border-slate-800 dark:bg-slate-950">
-      <div className="flex items-center gap-4 flex-1">
-        <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick}>
-          <Menu className="h-6 w-6" />
+    <header className="glass z-40 relative flex h-16 shrink-0 items-center justify-between gap-3 px-4 sm:px-6">
+      {/* Left: mobile menu, org selector, search */}
+      <div className="flex flex-1 items-center gap-3">
+        <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick} aria-label="Open navigation">
+          <Menu className="h-5 w-5" />
         </Button>
+
+        {/* Workspace / Somiti selector */}
+        <DropdownMenu>
+          <DropdownMenuTrigger className="hidden items-center gap-2.5 rounded-[10px] border border-[var(--border-base)] px-2.5 py-1.5 text-left transition-colors hover:bg-subtle lg:inline-flex">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg brand-gradient text-white shadow-brand-glow">
+              <Building2 className="h-4 w-4" />
+            </span>
+            <span className="hidden flex-col leading-tight xl:flex">
+              <span className="text-xs font-bold text-primary-ink">Somiti MS</span>
+              <span className="text-[10px] text-muted-ink">Future Savings Foundation</span>
+            </span>
+            <ChevronDown className="h-3.5 w-3.5 text-muted-ink" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-60">
+            <p className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-ink">Somiti MS</p>
+            <DropdownMenuItem className="gap-2.5">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg brand-gradient text-white"><Building2 className="h-3.5 w-3.5" /></span>
+              <span className="flex flex-col">
+                <span className="text-sm font-semibold">Future Savings Foundation</span>
+                <span className="text-[11px] text-muted-ink">Active workspace</span>
+              </span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Search */}
         <div className="relative w-full max-w-md hidden sm:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input placeholder="Search members, ID, transactions..." className="pl-9 h-9 bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus-visible:ring-1 focus-visible:ring-indigo-500" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-ink" />
+          <Input
+            placeholder="Search members, ID, transactions…"
+            className="h-9 rounded-[10px] border-[var(--border-base)] bg-[var(--control-bg)] pl-9 focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]"
+          />
         </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-4">
+      {/* Right: actions */}
+      <div className="flex items-center gap-1.5 sm:gap-2">
         {mounted && (
-          <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="h-9 w-9">
-            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="h-9 w-9 rounded-[10px] hover:bg-subtle"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
           </Button>
         )}
 
+        <LanguageToggle compact />
+
+        {/* Notifications */}
         <DropdownMenu>
-          <DropdownMenuTrigger className="relative h-9 w-9 inline-flex items-center justify-center rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 outline-none cursor-pointer">
-            <Bell className="h-5 w-5 text-slate-600 dark:text-slate-300" />
+          <DropdownMenuTrigger className="relative inline-flex h-9 w-9 items-center justify-center rounded-[10px] text-secondary-ink transition-colors hover:bg-subtle hover:text-primary-ink outline-none cursor-pointer">
+            <Bell className="h-[18px] w-[18px]" />
             {notifications.length > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-950"></span>
+              <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--status-debit)] opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--status-debit)]" />
+              </span>
             )}
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
-            <div className="flex items-center justify-between px-2 py-1.5 border-b border-slate-100 dark:border-slate-800">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Notifications</p>
-              {notifications.length > 0 && <span className="text-xs font-bold text-red-500">{notifications.length} New</span>}
+          <DropdownMenuContent align="end" className="w-80">
+            <div className="flex items-center justify-between border-b border-[var(--border-base)] px-3 py-2">
+              <p className="t-overline text-muted-ink">Notifications</p>
+              {notifications.length > 0 && <span className="text-xs font-bold text-debit">{notifications.length} New</span>}
             </div>
-            <div className="max-h-60 overflow-y-auto">
+            <div className="max-h-72 overflow-y-auto">
               {notifications.length === 0 ? (
-                <p className="text-sm text-slate-500 text-center py-6">No new notifications.</p>
+                <p className="t-body py-8 text-center text-muted-ink">No new notifications.</p>
               ) : (
                 notifications.map((notif) => (
-                  <div key={notif.id} className="flex items-start gap-3 p-3 border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                    <div className="p-1.5 rounded-full bg-red-50 dark:bg-red-950/40 mt-0.5">
-                      <AlertCircle className="h-4 w-4 text-red-600" />
+                  <div key={notif.id} className="flex items-start gap-3 border-b border-[var(--border-base)] p-3 transition-colors last:border-0 hover:bg-subtle">
+                    <div className="mt-0.5 rounded-full bg-warning-soft p-1.5">
+                      <AlertCircle className="h-4 w-4 text-warning" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white">{notif.title}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{notif.message}</p>
+                      <p className="t-subheading text-primary-ink">{notif.title}</p>
+                      <p className="t-caption mt-0.5 text-muted-ink">{notif.message}</p>
                     </div>
                   </div>
                 ))
@@ -78,24 +122,25 @@ export default function Topbar({ onMenuClick, notifications = [] }: { onMenuClic
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/* Profile */}
         <DropdownMenu>
-          <DropdownMenuTrigger className="relative h-9 w-9 rounded-full outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950 cursor-pointer">
-            <Avatar className="h-9 w-9">
-              <AvatarFallback className="bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300">
+          <DropdownMenuTrigger className="relative rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)] cursor-pointer">
+            <Avatar className="h-9 w-9 ring-2 ring-[var(--border-base)] transition-shadow hover:ring-[var(--brand-primary)]">
+              <AvatarFallback className="brand-gradient text-sm font-bold text-white">
                 {session?.user?.email?.charAt(0).toUpperCase() || "A"}
               </AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <p className="px-2 py-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
-              {session?.user?.email || "Admin"}
-            </p>
+            <div className="px-2 py-1.5">
+              <p className="truncate text-xs font-bold text-muted-ink">{session?.user?.email || "Admin"}</p>
+            </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem><User className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
-            <DropdownMenuItem><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
+            <DropdownMenuItem className="gap-2.5"><User className="h-4 w-4" /> Profile</DropdownMenuItem>
+            <DropdownMenuItem className="gap-2.5"><Settings className="h-4 w-4" /> Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })} className="text-red-600 focus:text-red-700">
-              <LogOut className="mr-2 h-4 w-4" /> Logout
+            <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })} className="gap-2.5 text-debit focus:text-debit">
+              <LogOut className="h-4 w-4" /> Exit / Logout
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

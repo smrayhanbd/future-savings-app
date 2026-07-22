@@ -3,6 +3,7 @@
 import { useState } from "react"
 import PortalSidebar from "@/components/PortalSidebar"
 import PortalTopbar, { type PortalNotification } from "@/components/PortalTopbar"
+import TrustRibbon from "@/components/somiti/TrustRibbon"
 
 export default function PortalShell({
   children,
@@ -21,27 +22,31 @@ export default function PortalShell({
 }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
+  // h-screen + overflow-hidden keeps only the main scroll area scrolling.
   return (
-    // h-screen + overflow-hidden prevents the whole window from scrolling; only main scrolls.
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-900">
-      <PortalSidebar
-        isOpen={isMobileOpen}
-        onClose={() => setIsMobileOpen(false)}
-        pendingRequests={pendingRequests}
-      />
-
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <PortalTopbar
-          onMenuClick={() => setIsMobileOpen(true)}
-          memberName={memberName}
-          memberNo={memberNo}
-          photoUrl={photoUrl}
-          notifications={notifications}
+    <div className="flex h-screen flex-col overflow-hidden bg-base">
+      {/* Signature brand element — always at the very top */}
+      <TrustRibbon />
+      <div className="flex min-h-0 flex-1">
+        <PortalSidebar
+          isOpen={isMobileOpen}
+          onClose={() => setIsMobileOpen(false)}
+          pendingRequests={pendingRequests}
         />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto w-full">{children}</div>
-        </main>
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <PortalTopbar
+            onMenuClick={() => setIsMobileOpen(true)}
+            memberName={memberName}
+            memberNo={memberNo}
+            photoUrl={photoUrl}
+            notifications={notifications}
+          />
+
+          <main className="flex-1 overflow-y-auto">
+            <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">{children}</div>
+          </main>
+        </div>
       </div>
     </div>
   )

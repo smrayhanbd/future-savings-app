@@ -87,8 +87,8 @@ function makeSmtpMailer(s: MailSettingsRow): Mailer | null {
     async send({ to, subject, html }) {
       await transporter.sendMail({ from, to, subject, html, replyTo: s.replyTo || undefined })
     },
-    verify() {
-      return transporter.verify()
+    async verify() {
+      await transporter.verify()
     },
   }
 }

@@ -3,12 +3,14 @@
 import { Suspense } from "react"
 import { resetPassword } from "@/app/actions/auth"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Lock, ArrowLeft } from "lucide-react"
+import TrustRibbon from "@/components/somiti/TrustRibbon"
+import ThemeToggle from "@/components/ThemeToggle"
+import LanguageToggle from "@/components/somiti/LanguageToggle"
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams()
@@ -16,49 +18,53 @@ function ResetPasswordContent() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-        <Card className="max-w-md w-full bg-white shadow-xl">
-          <CardContent className="p-6 text-center">
-            <h3 className="text-lg font-bold text-red-600 mb-2">Invalid Link</h3>
-            <p className="text-sm text-slate-500 mb-4">The password reset link is missing a token. Please request a new link.</p>
+      <div className="relative flex min-h-screen flex-col bg-base">
+        <TrustRibbon />
+        <div className="flex flex-1 items-center justify-center px-4 py-12">
+          <div className="card-premium w-full max-w-md p-6 text-center shadow-lift">
+            <h3 className="t-h3 mb-2 text-debit">Invalid Link</h3>
+            <p className="t-body mb-4 text-muted-ink">The password reset link is missing a token. Please request a new link.</p>
             <Link href="/forgot-password"><Button variant="outline">Request New Link</Button></Link>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <Link href="/login" className="inline-flex items-center text-sm text-slate-500 hover:text-slate-900 mb-4">
-            <ArrowLeft className="h-4 w-4 mr-1" /> Back to Login
-          </Link>
-          <h1 className="text-2xl font-bold text-slate-900">Reset Password</h1>
-        </div>
+    <div className="relative flex min-h-screen flex-col bg-base">
+      <TrustRibbon />
+      <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+        <LanguageToggle compact />
+        <ThemeToggle />
+      </div>
+      <div className="flex flex-1 items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          <div className="mb-8 text-center">
+            <Link href="/login" className="mb-4 inline-flex items-center t-body text-muted-ink hover:text-primary-ink">
+              <ArrowLeft className="mr-1 h-4 w-4" /> Back to Login
+            </Link>
+            <h1 className="t-h1 text-primary-ink">Reset Password</h1>
+          </div>
 
-        <Card className="bg-white/80 backdrop-blur-xl border-slate-200 shadow-xl">
-          <CardHeader>
-            <CardDescription>Enter your new password below.</CardDescription>
-          </CardHeader>
-          <CardContent>
+          <div className="card-premium p-6 shadow-lift">
+            <p className="t-body mb-4 text-muted-ink">Enter your new password below.</p>
             <form action={resetPassword} className="space-y-4">
               <input type="hidden" name="token" value={token} />
-              
+
               <div className="space-y-2">
-                <Label htmlFor="password">New Password</Label>
+                <Label htmlFor="password" className="t-subheading text-secondary-ink">New Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input id="password" name="password" type="password" required placeholder="Minimum 6 characters" className="pl-9" minLength={6} />
+                  <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint-ink" />
+                  <Input id="password" name="password" type="password" required placeholder="Minimum 6 characters" className="bg-[var(--control-bg)] pl-9" minLength={6} />
                 </div>
               </div>
-              <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700">
+              <Button type="submit" className="brand-gradient w-full shadow-brand-glow">
                 Update Password
               </Button>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -66,7 +72,7 @@ function ResetPasswordContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-base t-body text-muted-ink">Loading...</div>}>
       <ResetPasswordContent />
     </Suspense>
   )

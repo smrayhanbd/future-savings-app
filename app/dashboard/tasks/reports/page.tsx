@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic"
 
 export default async function TaskReportsPage() {
   // Window: tasks created in the last 90 days for the close-rate metric.
-  const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+  const now = new Date()
+  const since = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
 
   const [byStatus, byPriority, total, overdueAgg, workload, recentApproved, timeTotals] = await Promise.all([
     prisma.task.groupBy({ by: ["status"], _count: { _all: true } }),

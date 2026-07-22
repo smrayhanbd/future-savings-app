@@ -16,3 +16,9 @@ npm-debug.log*
 
 # local env files
 .env
+
+# typescript build info
+tsconfig.tsbuildinfo
+
+# ZCode local files
+.zcode/

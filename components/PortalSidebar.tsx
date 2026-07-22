@@ -7,7 +7,6 @@ import { signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
-import { Separator } from "@/components/ui/separator"
 import {
   LayoutDashboard, Wallet, HandCoins, FilePlus2, User,
   Inbox, Settings as SettingsIcon, LogOut, ChevronLeft, ChevronRight,
@@ -73,21 +72,22 @@ function SidebarContent({ isExpanded, setExpanded, onNavigate, pendingRequests =
 
   return (
     <aside
-      className={`relative flex h-screen flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 transition-[width] duration-300 ease-in-out ${isExpanded ? "w-[16.5rem]" : "w-[4.5rem]"}`}
+      className="relative flex h-screen flex-col border-r border-[var(--border-base)] bg-surface transition-[width] duration-300 ease-out"
+      style={{ width: isExpanded ? "16.5rem" : "4.5rem" }}
       aria-label="Member Portal Navigation"
     >
       {/* Brand */}
-      <header className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-100 px-4 dark:border-slate-800/50">
-        <Link href="/portal" className="flex items-center gap-3 min-w-0">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg ring-1 ring-indigo-500/10">
+      <header className="flex h-16 shrink-0 items-center gap-3 border-b border-[var(--border-base)] px-4">
+        <Link href="/portal" className="flex min-w-0 items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl brand-gradient text-white shadow-brand-glow">
             <Building2 className="h-5 w-5" />
           </div>
           {isExpanded && (
             <div className="flex flex-col overflow-hidden">
-              <span className="text-base font-bold leading-tight tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
+              <span className="whitespace-nowrap text-base font-bold leading-tight tracking-tight text-primary-ink font-[var(--font-heading)]">
                 Member Portal
               </span>
-              <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap">
+              <span className="whitespace-nowrap text-[10px] font-medium uppercase tracking-wider text-muted-ink">
                 Future Savings
               </span>
             </div>
@@ -96,36 +96,32 @@ function SidebarContent({ isExpanded, setExpanded, onNavigate, pendingRequests =
       </header>
 
       {/* Collapse toggle (desktop) */}
-      <div className="absolute top-[4.5rem] z-50 -right-3 hidden lg:flex">
+      <div className="absolute -right-3 top-[4.5rem] z-50 hidden lg:flex">
         <Button
           variant="outline"
           size="icon"
-          className="h-6 w-6 rounded-full border-slate-200 bg-white shadow-md hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900"
+          className="h-6 w-6 rounded-full border-[var(--border-base)] bg-surface shadow-md hover:bg-subtle"
           onClick={() => setExpanded(!isExpanded)}
+          aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
         >
           {isExpanded ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
         </Button>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-2.5">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-3">
         <TooltipProvider>
           {menu.map((group) => (
             <div key={group.title} className="mb-4">
               {isExpanded ? (
-                <>
-                  <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-400">
-                    {group.title}
-                  </p>
-                  <Separator className="mb-3 bg-slate-200/60 dark:bg-slate-800/60" />
-                </>
+                <p className="mb-2 px-3 t-overline text-faint-ink">{group.title}</p>
               ) : (
                 <div className="my-3 flex justify-center">
-                  <Separator className="w-8 bg-slate-200 dark:bg-slate-700" />
+                  <span className="h-px w-8 bg-[var(--border-strong)]" />
                 </div>
               )}
 
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const isActive = checkIsActive(pathname, item.href)
 
@@ -138,13 +134,20 @@ function SidebarContent({ isExpanded, setExpanded, onNavigate, pendingRequests =
                             onNavigate?.()
                             router.push(item.href)
                           }}
-                          className={`relative flex items-center justify-center w-full p-2 rounded-lg transition-colors no-underline ${isActive ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60"}`}
+                          className={`relative flex w-full items-center justify-center rounded-lg p-2.5 transition-colors ${
+                            isActive
+                              ? "bg-brand-gradient-soft text-brand"
+                              : "text-secondary-ink hover:bg-subtle hover:text-primary-ink"
+                          }`}
                         >
+                          {isActive && (
+                            <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full trust-gradient" />
+                          )}
                           <item.icon className="h-[18px] w-[18px] shrink-0" />
                           {item.badge && (
                             <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
-                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-                              <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--status-debit)] opacity-75" />
+                              <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--status-debit)]" />
                             </span>
                           )}
                         </TooltipTrigger>
@@ -161,18 +164,23 @@ function SidebarContent({ isExpanded, setExpanded, onNavigate, pendingRequests =
                       onClick={onNavigate}
                       className="block no-underline hover:no-underline"
                     >
-                      <div className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all w-full ${isActive ? "bg-indigo-50/80 text-indigo-600 shadow-sm dark:bg-indigo-950/30 dark:text-indigo-400" : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60"}`}>
-                        <div className="flex items-center gap-3 min-w-0">
-                          <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? "text-indigo-600" : "text-slate-500"}`} />
+                      <div className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
+                        isActive
+                          ? "bg-brand-gradient-soft text-brand"
+                          : "text-secondary-ink hover:bg-subtle hover:text-primary-ink"
+                      }`}>
+                        {isActive && (
+                          <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full trust-gradient" />
+                        )}
+                        <div className="flex min-w-0 items-center gap-3">
+                          <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? "text-brand" : "text-muted-ink"}`} />
                           <span className="truncate">{item.label}</span>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0 ml-auto">
-                          {item.badge ? (
-                            <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-100 px-1.5 text-[10px] font-bold text-rose-700 dark:bg-rose-900/30 dark:text-rose-400">
-                              {item.badge}
-                            </span>
-                          ) : null}
-                        </div>
+                        {item.badge ? (
+                          <span className="ml-auto inline-flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-debit-soft px-1.5 text-[10px] font-bold text-debit">
+                            {item.badge}
+                          </span>
+                        ) : null}
                       </div>
                     </Link>
                   )
@@ -184,11 +192,11 @@ function SidebarContent({ isExpanded, setExpanded, onNavigate, pendingRequests =
       </nav>
 
       {/* Footer / logout */}
-      <footer className="mt-auto shrink-0 border-t border-slate-100 p-2.5 dark:border-slate-800/50">
+      <footer className="mt-auto shrink-0 border-t border-[var(--border-base)] p-2.5">
         {isExpanded ? (
           <Button
             variant="ghost"
-            className="w-full justify-start gap-3 text-rose-600/90 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400/90 dark:hover:bg-rose-950/30"
+            className="w-full justify-start gap-3 text-debit hover:bg-debit-soft hover:text-debit"
             onClick={() => signOut({ callbackUrl: "/" })}
           >
             <LogOut className="h-[18px] w-[18px] shrink-0" />
@@ -198,7 +206,7 @@ function SidebarContent({ isExpanded, setExpanded, onNavigate, pendingRequests =
           <Tooltip>
             <TooltipTrigger
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="flex w-full items-center justify-center rounded-lg p-2.5 text-rose-600/90 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400/90 dark:hover:bg-rose-950/30"
+              className="flex w-full items-center justify-center rounded-lg p-2.5 text-debit transition-colors hover:bg-debit-soft hover:text-debit"
             >
               <LogOut className="h-[18px] w-[18px] shrink-0" />
             </TooltipTrigger>
@@ -224,13 +232,13 @@ export default function PortalSidebar({
   return (
     <>
       {/* Desktop */}
-      <div className="hidden lg:flex sticky top-0 h-screen z-30 shrink-0">
+      <div className="sticky top-0 z-30 hidden h-screen shrink-0 lg:flex">
         <SidebarContent isExpanded={isExpanded} setExpanded={setExpanded} pendingRequests={pendingRequests} />
       </div>
 
       {/* Mobile Sheet */}
       <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent side="left" className="w-[16.5rem] p-0 border-r-0">
+        <SheetContent side="left" className="w-[16.5rem] border-r-0 p-0">
           <SheetHeader className="sr-only">
             <SheetTitle>Member Portal Navigation</SheetTitle>
           </SheetHeader>

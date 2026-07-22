@@ -2,13 +2,16 @@
 
 import { useState } from "react"
 import { sendDueReminders } from "@/app/actions/finance"
-import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { Mail, MessageSquare, Send, AlertTriangle, Wallet, TrendingDown, MoreHorizontal, Eye, Banknote, Download, FileText, Table as TableIcon, X } from "lucide-react"
+import { Mail, MessageSquare, Send, AlertTriangle, Wallet, TrendingDown, MoreHorizontal, Eye, Banknote, Download, FileText, Table as TableIcon, X, CheckCircle2 } from "lucide-react"
+
+import StatCard from "@/components/somiti/StatCard"
+import Money from "@/components/somiti/Money"
+import SectionCard from "@/components/somiti/SectionCard"
 
 interface DueMember {
   id: string
@@ -30,11 +33,11 @@ export default function DueListClient({ members }: { members: DueMember[] }) {
     if (!confirm(`Send SMS and Email reminders to ${members.length} members?`)) return
     setLoading(true)
     toast.info("Processing...", { description: "Sending SMS and Email reminders. This may take a minute." })
-    
+
     try {
       const result = await sendDueReminders()
       if (result?.success) {
-        toast.success("Reminders Sent!", { 
+        toast.success("Reminders Sent!", {
           description: `${result.smsCount} SMS, ${result.emailCount} Emails sent successfully.`
         })
       }
@@ -48,21 +51,11 @@ export default function DueListClient({ members }: { members: DueMember[] }) {
   const handleExportCSV = () => {
     const headers = ["Member No", "Full Name", "Phone", "Email", "Total Expected", "Late Fines", "Total Paid", "Net Due"]
     const rows = members.map(m => [
-      m.memberNo,
-      m.fullName,
-      m.phone,
-      m.email || "N/A",
-      m.totalExpected,
-      m.totalFines,
-      m.totalPaid,
-      m.totalDue
+      m.memberNo, m.fullName, m.phone, m.email || "N/A",
+      m.totalExpected, m.totalFines, m.totalPaid, m.totalDue,
     ])
-    
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
-    ].join("\n")
-    
+
+    const csvContent = [headers.join(","), ...rows.map(row => row.map(cell => `"${cell}"`).join(","))].join("\n")
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
     const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
@@ -117,13 +110,9 @@ export default function DueListClient({ members }: { members: DueMember[] }) {
                 <th style="text-align: right;">Net Due</th>
               </tr>
             </thead>
-            <tbody>
-              ${tableRows}
-            </tbody>
+            <tbody>${tableRows}</tbody>
           </table>
-          <script>
-            window.onload = function() { window.print(); }
-          </script>
+          <script>window.onload = function() { window.print(); }</script>
         </body>
       </html>
     `)
@@ -133,128 +122,100 @@ export default function DueListClient({ members }: { members: DueMember[] }) {
   const totalDueAmount = members.reduce((acc, m) => acc + m.totalDue, 0)
   const totalFines = members.reduce((acc, m) => acc + m.totalFines, 0)
 
-  const stats = [
-    { label: "Members with Due", value: members.length, icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/50", border: "border-amber-200/50 dark:border-amber-900/50" },
-    { label: "Total Due Amount", value: `৳ ${totalDueAmount.toLocaleString()}`, icon: Wallet, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-950/50", border: "border-rose-200/50 dark:border-rose-900/50" },
-    { label: "Total Late Fines", value: `৳ ${totalFines.toLocaleString()}`, icon: TrendingDown, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/50", border: "border-red-200/50 dark:border-red-900/50" },
-  ]
-
   return (
-    <div className="space-y-6">
-      {/* Summary & Actions */}
-      <div className="flex flex-col md:flex-row justify-between gap-6">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1">
-          {stats.map((stat, index) => (
-            <Card key={index} className={`bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border ${stat.border} ${stat.bg} shadow-sm rounded-2xl overflow-hidden`}>
-              <CardContent className="p-4 flex flex-row items-center justify-between gap-2">
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500 dark:text-slate-400">{stat.label}</span>
-                  <h3 className={`text-lg font-extrabold tracking-tight ${stat.color}`}>{stat.value}</h3>
-                </div>
-                <div className={`p-2 rounded-lg bg-white/50 dark:bg-slate-900/50 border ${stat.border}`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <div className="flex items-end gap-2">
-          {/* Export Dropdown Button */}
-          <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 border border-slate-200 bg-white hover:bg-slate-100 h-12 px-4 cursor-pointer shadow-sm dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 outline-none" disabled={members.length === 0}>
-              <Download className="mr-2 h-5 w-5" /> Export
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer">
-                <TableIcon className="mr-2 h-4 w-4" /> Export to CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportPDF} className="cursor-pointer">
-                <FileText className="mr-2 h-4 w-4" /> Export to PDF (Print)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <div className="space-y-8">
+      {/* Summary stats */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard label="Members with Due" value={members.length.toLocaleString()} icon={AlertTriangle} accent="amber" />
+        <StatCard label="Total Due Amount" value={<Money amount={totalDueAmount} />} icon={Wallet} accent="crimson" />
+        <StatCard label="Total Late Fines" value={<Money amount={totalFines} />} icon={TrendingDown} accent="amber" />
+      </div>
 
-          <Button onClick={handleSendReminders} disabled={loading || members.length === 0} className="bg-indigo-600 hover:bg-indigo-700 h-12 px-6 shadow-md">
-            <Send className="mr-2 h-5 w-5" /> Send All Reminders
-          </Button>
-        </div>
+      {/* Actions bar */}
+      <div className="flex flex-col items-stretch justify-end gap-3 sm:flex-row sm:items-center">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className="inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[var(--border-base)] bg-surface px-4 t-body font-medium text-secondary-ink shadow-sm transition-colors hover:bg-subtle hover:text-primary-ink disabled:pointer-events-none disabled:opacity-50 outline-none"
+            disabled={members.length === 0}
+          >
+            <Download className="h-5 w-5" /> Export
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer gap-2.5"><TableIcon className="h-4 w-4" /> Export to CSV</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportPDF} className="cursor-pointer gap-2.5"><FileText className="h-4 w-4" /> Export to PDF (Print)</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Button onClick={handleSendReminders} disabled={loading || members.length === 0} className="brand-gradient h-12 px-6 shadow-brand-glow">
+          <Send className="mr-2 h-5 w-5" /> Send All Reminders
+        </Button>
       </div>
 
       {/* Due List Table */}
-      <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl overflow-hidden">
-        <CardContent className="p-0">
+      <SectionCard icon={AlertTriangle} accent="amber" title="Members Due List">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-b border-slate-200/50 dark:border-slate-800/50 hover:bg-transparent bg-amber-50/50 dark:bg-amber-950/10">
-                <TableHead className="px-6 py-4 text-[11px] uppercase tracking-widest font-bold text-amber-700 dark:text-amber-400">Member</TableHead>
-                <TableHead className="px-6 py-4 text-[11px] uppercase tracking-widest font-bold text-amber-700 dark:text-amber-400">Contact</TableHead>
-                <TableHead className="px-6 py-4 text-right text-[11px] uppercase tracking-widest font-bold text-amber-700 dark:text-amber-400">Expected</TableHead>
-                <TableHead className="px-6 py-4 text-right text-[11px] uppercase tracking-widest font-bold text-amber-700 dark:text-amber-400">Fines</TableHead>
-                <TableHead className="px-6 py-4 text-right text-[11px] uppercase tracking-widest font-bold text-amber-700 dark:text-amber-400">Paid</TableHead>
-                <TableHead className="px-6 py-4 text-right text-[11px] uppercase tracking-widest font-bold text-amber-700 dark:text-amber-400">Net Due</TableHead>
-                <TableHead className="px-6 py-4 text-right text-[11px] uppercase tracking-widest font-bold text-amber-700 dark:text-amber-400">Actions</TableHead>
+              <TableRow className="border-[var(--border-base)] hover:bg-transparent">
+                <TableHead className="t-overline px-6 py-4 text-muted-ink">Member</TableHead>
+                <TableHead className="t-overline px-6 py-4 text-muted-ink">Contact</TableHead>
+                <TableHead className="t-overline px-6 py-4 text-right text-muted-ink">Expected</TableHead>
+                <TableHead className="t-overline px-6 py-4 text-right text-muted-ink">Fines</TableHead>
+                <TableHead className="t-overline px-6 py-4 text-right text-muted-ink">Paid</TableHead>
+                <TableHead className="t-overline px-6 py-4 text-right text-muted-ink">Net Due</TableHead>
+                <TableHead className="t-overline px-6 py-4 text-right text-muted-ink">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {members.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-16 text-slate-500">
+                <TableRow className="border-[var(--border-base)]">
+                  <TableCell colSpan={7} className="py-16 text-center">
                     <div className="flex flex-col items-center">
-                      <Wallet className="h-12 w-12 text-emerald-400 mb-3" />
-                      <p className="font-bold text-lg text-slate-900 dark:text-white">All Clear!</p>
-                      <p>No members have pending dues.</p>
+                      <CheckCircle2 className="mb-3 h-12 w-12 text-success" />
+                      <p className="t-h3 text-primary-ink">All Clear!</p>
+                      <p className="t-body text-muted-ink">No members have pending dues.</p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
                 members.map((member) => (
-                  <TableRow key={member.id} className="border-b border-slate-100 dark:border-slate-800/50 last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                  <TableRow key={member.id} className="border-[var(--border-base)] transition-colors last:border-0 hover:bg-subtle">
                     <TableCell className="px-6 py-4">
-                      <p className="font-semibold text-sm text-slate-900 dark:text-white">{member.fullName}</p>
-                      <p className="font-mono text-[11px] text-indigo-500 dark:text-indigo-400 mt-0.5">{member.memberNo}</p>
+                      <p className="t-subheading text-primary-ink">{member.fullName}</p>
+                      <p className="t-num t-caption mt-0.5 text-brand">{member.memberNo}</p>
                     </TableCell>
                     <TableCell className="px-6 py-4">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                          <MessageSquare className="w-3.5 h-3.5 text-slate-400" /> {member.phone}
+                        <span className="t-body flex items-center gap-1.5 text-secondary-ink">
+                          <MessageSquare className="h-3.5 w-3.5 text-faint-ink" /> {member.phone}
                         </span>
                         {member.email && (
-                          <span className="text-xs text-slate-400 flex items-center gap-1.5">
-                            <Mail className="w-3.5 h-3.5" /> {member.email}
+                          <span className="t-caption flex items-center gap-1.5 text-muted-ink">
+                            <Mail className="h-3.5 w-3.5" /> {member.email}
                           </span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-right text-sm text-slate-600 dark:text-slate-400">৳ {member.totalExpected.toLocaleString()}</TableCell>
-                    <TableCell className="px-6 py-4 text-right text-sm text-red-600 font-medium">৳ {member.totalFines.toLocaleString()}</TableCell>
-                    <TableCell className="px-6 py-4 text-right text-sm text-emerald-600 font-medium">৳ {member.totalPaid.toLocaleString()}</TableCell>
-                    <TableCell className="px-6 py-4 text-right">
-                      <span className="text-base font-extrabold text-rose-600 dark:text-rose-400">৳ {member.totalDue.toLocaleString()}</span>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 text-right relative z-10">
+                    <TableCell className="px-6 py-4 text-right"><Money amount={member.totalExpected} className="t-body text-secondary-ink" /></TableCell>
+                    <TableCell className="px-6 py-4 text-right"><Money amount={member.totalFines} className="t-body font-medium text-debit" /></TableCell>
+                    <TableCell className="px-6 py-4 text-right"><Money amount={member.totalPaid} className="t-body font-medium text-success" /></TableCell>
+                    <TableCell className="px-6 py-4 text-right"><Money amount={member.totalDue} className="t-subheading font-bold text-debit" /></TableCell>
+                    <TableCell className="relative z-10 px-6 py-4 text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger className="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 outline-none cursor-pointer">
-                          <MoreHorizontal className="h-4 w-4" />
+                        <DropdownMenuTrigger className="cursor-pointer rounded-md p-2 outline-none transition-colors hover:bg-subtle">
+                          <MoreHorizontal className="h-4 w-4 text-muted-ink" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => setLedgerMember(member)}>
-                            <Eye className="mr-2 h-4 w-4" /> View Due Ledger
-                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setLedgerMember(member)} className="gap-2.5"><Eye className="h-4 w-4" /> View Due Ledger</DropdownMenuItem>
                           <DropdownMenuItem className="p-0">
-                            <a href={`/dashboard/collection-entry`} className="flex items-center w-full cursor-pointer p-2">
-                              <Banknote className="mr-2 h-4 w-4" /> Collect Dues
-                            </a>
+                            <a href="/dashboard/collection-entry" className="flex w-full cursor-pointer items-center gap-2.5 p-2"><Banknote className="h-4 w-4" /> Collect Dues</a>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="p-0">
-                            <a href={`mailto:${member.email}`} className="flex items-center w-full cursor-pointer p-2">
-                              <Mail className="mr-2 h-4 w-4" /> Send Email
-                            </a>
+                            <a href={`mailto:${member.email}`} className="flex w-full cursor-pointer items-center gap-2.5 p-2"><Mail className="h-4 w-4" /> Send Email</a>
                           </DropdownMenuItem>
                           <DropdownMenuItem className="p-0">
-                            <a href={`sms:${member.phone}`} className="flex items-center w-full cursor-pointer p-2">
-                              <MessageSquare className="mr-2 h-4 w-4" /> Send SMS
-                            </a>
+                            <a href={`sms:${member.phone}`} className="flex w-full cursor-pointer items-center gap-2.5 p-2"><MessageSquare className="h-4 w-4" /> Send SMS</a>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -264,35 +225,35 @@ export default function DueListClient({ members }: { members: DueMember[] }) {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
 
       {/* Due Ledger Popup Modal */}
       <Dialog open={!!ledgerMember} onOpenChange={(open) => !open && setLedgerMember(null)}>
-        <DialogContent className="max-w-md bg-white dark:bg-slate-950 rounded-2xl">
+        <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
-              <span>Due Ledger: {ledgerMember?.fullName}</span>
-              <button onClick={() => setLedgerMember(null)} className="text-slate-400 hover:text-slate-600"><X className="h-5 w-5" /></button>
+              <span className="t-h3 text-primary-ink">Due Ledger: {ledgerMember?.fullName}</span>
+              <button onClick={() => setLedgerMember(null)} className="text-muted-ink transition-colors hover:text-primary-ink"><X className="h-5 w-5" /></button>
             </DialogTitle>
           </DialogHeader>
           {ledgerMember && (
             <div className="space-y-4 py-4">
-              <div className="flex justify-between text-sm border-b pb-2">
-                <span className="text-slate-500">Total Expected:</span>
-                <span className="font-bold text-slate-900 dark:text-white">৳ {ledgerMember.totalExpected.toLocaleString()}</span>
+              <div className="flex justify-between border-b border-[var(--border-base)] pb-2 t-body">
+                <span className="text-muted-ink">Total Expected:</span>
+                <Money amount={ledgerMember.totalExpected} className="font-bold text-primary-ink" />
               </div>
-              <div className="flex justify-between text-sm border-b pb-2">
-                <span className="text-slate-500">Late Fines Applied:</span>
-                <span className="font-bold text-red-600">৳ {ledgerMember.totalFines.toLocaleString()}</span>
+              <div className="flex justify-between border-b border-[var(--border-base)] pb-2 t-body">
+                <span className="text-muted-ink">Late Fines Applied:</span>
+                <Money amount={ledgerMember.totalFines} className="font-bold text-debit" />
               </div>
-              <div className="flex justify-between text-sm border-b pb-2">
-                <span className="text-slate-500">Total Paid:</span>
-                <span className="font-bold text-emerald-600">৳ {ledgerMember.totalPaid.toLocaleString()}</span>
+              <div className="flex justify-between border-b border-[var(--border-base)] pb-2 t-body">
+                <span className="text-muted-ink">Total Paid:</span>
+                <Money amount={ledgerMember.totalPaid} className="font-bold text-success" />
               </div>
-              <div className="flex justify-between items-center pt-2">
-                <span className="font-bold text-slate-900 dark:text-white">Net Due Balance:</span>
-                <span className="text-xl font-extrabold text-rose-600 dark:text-rose-400">৳ {ledgerMember.totalDue.toLocaleString()}</span>
+              <div className="flex items-center justify-between pt-2">
+                <span className="t-subheading font-bold text-primary-ink">Net Due Balance:</span>
+                <Money amount={ledgerMember.totalDue} className="t-h2 font-extrabold text-debit" />
               </div>
             </div>
           )}

@@ -7,7 +7,11 @@
 
 import { useState, useMemo } from "react"
 import Link from "next/link"
-import { Award, Search, Trophy, TrendingUp, AlertTriangle, ShieldCheck } from "lucide-react"
+import { Trophy, Award, TrendingUp, AlertTriangle, Search, ShieldCheck, type LucideIcon } from "lucide-react"
+
+import StatCard from "@/components/somiti/StatCard"
+import StatusBadge from "@/components/somiti/StatusBadge"
+import SectionCard from "@/components/somiti/SectionCard"
 
 interface LeaderMember {
   id: string
@@ -21,11 +25,7 @@ interface LeaderMember {
   scoreLastUpdated: string | null
 }
 
-export default function TrustLeaderboardClient({
-  members,
-}: {
-  members: LeaderMember[]
-}) {
+export default function TrustLeaderboardClient({ members }: { members: LeaderMember[] }) {
   const [search, setSearch] = useState("")
   const [tierFilter, setTierFilter] = useState<string>("all")
 
@@ -33,47 +33,41 @@ export default function TrustLeaderboardClient({
     let r = [...members].sort((a, b) => b.trustScore - a.trustScore)
     if (search) {
       const q = search.toLowerCase()
-      r = r.filter(
-        (m) =>
-          m.fullName.toLowerCase().includes(q) ||
-          m.memberNo.toLowerCase().includes(q)
-      )
+      r = r.filter((m) => m.fullName.toLowerCase().includes(q) || m.memberNo.toLowerCase().includes(q))
     }
     if (tierFilter !== "all") r = r.filter((m) => badgeTier(m.trustScore) === tierFilter)
     return r
   }, [members, search, tierFilter])
 
-  const avg = members.length
-    ? Math.round(members.reduce((s, m) => s + m.trustScore, 0) / members.length)
-    : 0
+  const avg = members.length ? Math.round(members.reduce((s, m) => s + m.trustScore, 0) / members.length) : 0
   const suspended = members.filter((m) => m.status === "SUSPENDED").length
   const diamond = members.filter((m) => m.trustScore >= 90).length
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<Trophy className="w-5 h-5" />} label="Average Score" value={avg} tone="indigo" />
-        <StatCard icon={<Award className="w-5 h-5" />} label="Diamond Members" value={diamond} tone="violet" />
-        <StatCard icon={<TrendingUp className="w-5 h-5" />} label="Total Scored" value={members.length} tone="emerald" />
-        <StatCard icon={<AlertTriangle className="w-5 h-5" />} label="Suspended" value={suspended} tone="red" />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Average Score" value={avg.toLocaleString()} icon={Trophy as LucideIcon} accent="blue" />
+        <StatCard label="Diamond Members" value={diamond.toLocaleString()} icon={Award as LucideIcon} accent="violet" />
+        <StatCard label="Total Scored" value={members.length.toLocaleString()} icon={TrendingUp as LucideIcon} accent="emerald" />
+        <StatCard label="Suspended" value={suspended.toLocaleString()} icon={AlertTriangle as LucideIcon} accent="crimson" />
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint-ink" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search members by name or ID..."
-            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+            className="w-full rounded-xl border border-[var(--border-base)] bg-[var(--control-bg)] py-2.5 pl-9 pr-4 t-body text-primary-ink placeholder:text-muted-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklch,var(--brand-primary)_25%,transparent)]"
           />
         </div>
         <select
           value={tierFilter}
           onChange={(e) => setTierFilter(e.target.value)}
-          className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm"
+          className="cursor-pointer rounded-xl border border-[var(--border-base)] bg-surface px-3 py-2.5 t-body text-secondary-ink focus:border-brand focus:outline-none"
         >
           <option value="all">All Tiers</option>
           <option value="diamond">💎 Diamond (90+)</option>
@@ -87,81 +81,67 @@ export default function TrustLeaderboardClient({
       </div>
 
       {/* Leaderboard */}
-      <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <SectionCard title="Member Ranking" icon={Trophy as LucideIcon} accent="gold" bodyClassName="p-0">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                <th className="px-4 py-3 text-left w-12">#</th>
-                <th className="px-4 py-3 text-left">Member</th>
-                <th className="px-4 py-3 text-center">Score</th>
-                <th className="px-4 py-3 text-left">Badge</th>
-                <th className="px-4 py-3 text-left">Risk</th>
-                <th className="px-4 py-3 text-center">Status</th>
-                <th className="px-4 py-3 text-right"></th>
+              <tr className="border-b border-[var(--border-base)] bg-subtle/40">
+                <th className="t-overline w-12 px-4 py-3.5 text-left text-muted-ink">#</th>
+                <th className="t-overline px-4 py-3.5 text-left text-muted-ink">Member</th>
+                <th className="t-overline px-4 py-3.5 text-center text-muted-ink">Score</th>
+                <th className="t-overline px-4 py-3.5 text-left text-muted-ink">Badge</th>
+                <th className="t-overline px-4 py-3.5 text-left text-muted-ink">Risk</th>
+                <th className="t-overline px-4 py-3.5 text-center text-muted-ink">Status</th>
+                <th className="t-overline px-4 py-3.5 text-right text-muted-ink"></th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-500">
+                <tr className="border-b border-[var(--border-base)]">
+                  <td colSpan={7} className="t-body py-12 text-center text-muted-ink">
                     No members match your filters.
                   </td>
                 </tr>
               ) : (
                 filtered.map((m, i) => (
-                  <tr
-                    key={m.id}
-                    className="border-b border-slate-100 dark:border-slate-800/50 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-900/50"
-                  >
+                  <tr key={m.id} className="border-b border-[var(--border-base)] transition-colors last:border-0 hover:bg-subtle">
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
-                          i === 0
-                            ? "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
-                            : i === 1
-                            ? "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                            : i === 2
-                            ? "bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400"
-                            : "text-slate-400"
-                        }`}
-                      >
-                        {i + 1}
-                      </span>
+                      <RankBadge rank={i} />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {m.photoUrl ? (
-                          <img src={m.photoUrl} alt="" className="w-9 h-9 rounded-full object-cover" />
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={m.photoUrl} alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-[var(--border-base)]" />
                         ) : (
-                          <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-950/40 flex items-center justify-center text-sm font-bold text-indigo-600">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-gradient-soft t-subheading font-bold text-brand">
                             {m.fullName.charAt(0)}
                           </div>
                         )}
                         <div>
-                          <p className="font-semibold text-sm text-slate-900 dark:text-white">{m.fullName}</p>
-                          <p className="text-xs font-mono text-slate-400">{m.memberNo}</p>
+                          <p className="t-subheading text-primary-ink">{m.fullName}</p>
+                          <p className="t-num t-caption text-muted-ink">{m.memberNo}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`text-xl font-extrabold ${scoreColor(m.trustScore)}`}>{m.trustScore}</span>
+                      <span className="t-display t-num font-extrabold" style={{ color: scoreVar(m.trustScore) }}>{m.trustScore}</span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                    <td className="t-body px-4 py-3 text-secondary-ink">
                       {emojiForBadge(m.badgeLevel)} {m.badgeLevel}
                     </td>
                     <td className="px-4 py-3">
                       <RiskBadge risk={m.riskLevel} />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <StatusPill status={m.status} />
+                      <StatusBadge status={m.status} />
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/dashboard/trust-score/${m.id}`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline"
+                        className="t-caption inline-flex items-center gap-1 font-semibold text-brand hover:underline"
                       >
-                        <ShieldCheck className="w-3.5 h-3.5" /> View
+                        <ShieldCheck className="h-3.5 w-3.5" /> View
                       </Link>
                     </td>
                   </tr>
@@ -170,8 +150,27 @@ export default function TrustLeaderboardClient({
             </tbody>
           </table>
         </div>
-      </div>
+      </SectionCard>
     </div>
+  )
+}
+
+/** Top-3 medal styling; others get a neutral numeric chip. */
+function RankBadge({ rank }: { rank: number }) {
+  const styles: Record<number, { bg: string; fg: string }> = {
+    0: { bg: "color-mix(in oklch, var(--status-warning) 20%, transparent)", fg: "var(--status-warning)" }, // gold #1
+    1: { bg: "var(--bg-subtle)", fg: "var(--text-secondary)" }, // silver #2
+    2: { bg: "color-mix(in oklch, var(--status-info) 20%, transparent)", fg: "var(--status-info)" }, // bronze #3
+  }
+  const s = styles[rank]
+  if (!s) return <span className="t-num t-caption text-faint-ink">{rank + 1}</span>
+  return (
+    <span
+      className="inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold"
+      style={{ backgroundColor: s.bg, color: s.fg }}
+    >
+      {rank + 1}
+    </span>
   )
 }
 
@@ -195,67 +194,32 @@ function emojiForBadge(label: string): string {
   return "❌"
 }
 
-function scoreColor(score: number): string {
-  if (score >= 80) return "text-emerald-600 dark:text-emerald-400"
-  if (score >= 60) return "text-indigo-600 dark:text-indigo-400"
-  if (score >= 40) return "text-amber-600 dark:text-amber-400"
-  return "text-red-600 dark:text-red-400"
+/** Map a trust score to a semantic token colour. */
+function scoreVar(score: number): string {
+  if (score >= 80) return "var(--status-success-fg)"
+  if (score >= 60) return "var(--brand-primary)"
+  if (score >= 40) return "var(--status-warning-fg)"
+  return "var(--status-debit-fg)"
 }
 
+type RiskTone = "success" | "info" | "warning" | "debit"
 function RiskBadge({ risk }: { risk: string }) {
-  const map: Record<string, string> = {
-    "Low Risk": "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400",
-    Average: "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400",
-    "Elevated Risk": "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400",
-    "High Risk": "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400",
+  const map: Record<string, RiskTone> = {
+    "Low Risk": "success",
+    "Average": "info",
+    "Elevated Risk": "warning",
+    "High Risk": "debit",
+  }
+  const tone = map[risk] ?? "info"
+  const tones: Record<RiskTone, string> = {
+    success: "bg-success-soft text-success border-success",
+    info: "bg-info-soft text-info border-info",
+    warning: "bg-warning-soft text-warning border-warning",
+    debit: "bg-debit-soft text-debit border-debit",
   }
   return (
-    <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold ${map[risk] || map.Average}`}>
+    <span className={`inline-block rounded-full border px-2 py-0.5 t-caption font-semibold ${tones[tone]}`}>
       {risk}
     </span>
-  )
-}
-
-function StatusPill({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    ACTIVE: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400",
-    SUSPENDED: "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400",
-    INACTIVE: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
-    PENDING: "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400",
-  }
-  return (
-    <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold ${map[status] || map.INACTIVE}`}>
-      {status}
-    </span>
-  )
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: number
-  tone: "indigo" | "violet" | "emerald" | "red"
-}) {
-  const tones: Record<string, string> = {
-    indigo: "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-900",
-    violet: "bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-300 border-violet-200 dark:border-violet-900",
-    emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900",
-    red: "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-300 border-red-200 dark:border-red-900",
-  }
-  return (
-    <div className={`rounded-2xl border p-4 ${tones[tone]}`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
-        <div className="w-8 h-8 rounded-lg bg-white/50 dark:bg-slate-900/50 flex items-center justify-center">
-          {icon}
-        </div>
-      </div>
-      <p className="text-2xl font-extrabold">{value.toLocaleString()}</p>
-    </div>
   )
 }

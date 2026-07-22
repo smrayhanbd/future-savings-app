@@ -1,5 +1,6 @@
 "use server"
 
+import { Prisma } from "@prisma/client"
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
@@ -69,7 +70,7 @@ async function audit(
         section,
         action,
         summary,
-        changes: changes ?? undefined,
+        changes: (changes as Prisma.InputJsonValue | undefined) ?? undefined,
         userId: user?.id,
         userEmail: user?.email,
         ipAddress: await callerIp(),

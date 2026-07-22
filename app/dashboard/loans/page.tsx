@@ -1,26 +1,22 @@
 import prisma from "@/lib/prisma"
 import Link from "next/link"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   HandCoins, PlusCircle, PackagePlus, FileSignature, Wallet,
-  TrendingUp, AlertTriangle, Clock, Eye, ArrowRight,
+  TrendingUp, AlertTriangle, Clock, ArrowRight,
 } from "lucide-react"
 import LoanProductManager, { type ProductRow } from "./products/LoanProductManager"
 import ApplicationsTable, { type ApplicationRow } from "./ApplicationsTable"
 
-export const dynamic = 'force-dynamic'
+import PageHeader from "@/components/somiti/PageHeader"
+import StatCard from "@/components/somiti/StatCard"
+import Money from "@/components/somiti/Money"
+import StatusBadge from "@/components/somiti/StatusBadge"
+import SectionCard from "@/components/somiti/SectionCard"
 
-const STATUS_STYLES: Record<string, string> = {
-  DISBURSED: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
-  REPAID: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  CLOSED: "bg-slate-500/10 text-slate-600 border-slate-500/20",
-  DEFAULTED: "bg-orange-500/10 text-orange-600 border-orange-500/20",
-  WRITTEN_OFF: "bg-rose-500/10 text-rose-600 border-rose-500/20",
-}
+export const dynamic = 'force-dynamic'
 
 export default async function LoansHubPage() {
   const [loans, applications, products] = await Promise.all([
@@ -80,72 +76,73 @@ export default async function LoansHubPage() {
   }))
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <HandCoins className="h-7 w-7 text-indigo-600" /> Loan Management
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Manage loan products, applications, disbursements and repayments.</p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/dashboard/loans/products/new">
-            <Button variant="outline" className="rounded-xl bg-slate-50 dark:bg-slate-900">
-              <PackagePlus className="mr-2 h-4 w-4" /> New Product
-            </Button>
-          </Link>
-          <Link href="/dashboard/loans/apply">
-            <Button className="bg-indigo-600 hover:bg-indigo-700 rounded-xl">
-              <PlusCircle className="mr-2 h-4 w-4" /> New Loan
-            </Button>
-          </Link>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        overline="Finance & Accounting"
+        title="Loan Management"
+        subtitle="Manage loan products, applications, disbursements and repayments."
+        actions={
+          <>
+            <Link href="/dashboard/loans/products/new">
+              <Button variant="outline" className="rounded-xl">
+                <PackagePlus className="mr-2 h-4 w-4" /> New Product
+              </Button>
+            </Link>
+            <Link href="/dashboard/loans/apply">
+              <Button className="brand-gradient shadow-brand-glow rounded-xl">
+                <PlusCircle className="mr-2 h-4 w-4" /> New Loan
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Kpi label="Total Disbursed" value={`৳ ${totalDisbursed.toLocaleString()}`} icon={Wallet} color="text-indigo-600" bg="bg-indigo-50 dark:bg-indigo-950/40" border="border-indigo-200/50 dark:border-indigo-900/50" />
-        <Kpi label="Outstanding" value={`৳ ${totalOutstanding.toLocaleString()}`} icon={AlertTriangle} color="text-amber-600" bg="bg-amber-50 dark:bg-amber-950/40" border="border-amber-200/50 dark:border-amber-900/50" />
-        <Kpi label="Interest Collected" value={`৳ ${totalCollectedInterest.toLocaleString()}`} icon={TrendingUp} color="text-emerald-600" bg="bg-emerald-50 dark:bg-emerald-950/40" border="border-emerald-200/50 dark:border-emerald-900/50" />
-        <Kpi label="Overdue Loans" value={String(overdueCount)} icon={Clock} color="text-rose-600" bg="bg-rose-50 dark:bg-rose-950/40" border="border-rose-200/50 dark:border-rose-900/50" />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Total Disbursed" value={<Money amount={totalDisbursed} />} icon={Wallet} accent="blue" />
+        <StatCard label="Outstanding" value={<Money amount={totalOutstanding} />} icon={AlertTriangle} accent="amber" />
+        <StatCard label="Interest Collected" value={<Money amount={totalCollectedInterest} />} icon={TrendingUp} accent="emerald" trend={{ value: 6, positive: true }} />
+        <StatCard label="Overdue Loans" value={overdueCount.toLocaleString()} icon={Clock} accent="crimson" />
       </div>
 
       <Tabs defaultValue="active" className="w-full">
-        <TabsList className="grid w-full max-w-xl grid-cols-3 bg-slate-100 dark:bg-slate-900">
+        <TabsList className="grid w-full max-w-xl grid-cols-3">
           <TabsTrigger value="active">Active Loans ({loans.length})</TabsTrigger>
           <TabsTrigger value="applications">
-            Applications{pendingCount > 0 && <span className="ml-1.5 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">{pendingCount}</span>}
+            Applications
+            {pendingCount > 0 && (
+              <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--status-warning)] px-1 text-[10px] font-bold text-[var(--brand-gold-foreground)]">{pendingCount}</span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="products">Products</TabsTrigger>
         </TabsList>
 
         {/* Active Loans */}
         <TabsContent value="active" className="mt-4">
-          <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl overflow-hidden">
-            <CardContent className="p-0">
-              {loans.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="p-4 rounded-full bg-indigo-50 dark:bg-indigo-950/40 mb-4 ring-4 ring-white dark:ring-slate-900">
-                    <HandCoins className="h-10 w-10 text-indigo-500" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">No active loans</h3>
-                  <p className="text-slate-500 max-w-sm mt-1">Disburse a loan to see it tracked here with live repayment progress.</p>
-                  <Link href="/dashboard/loans/apply" className="mt-4">
-                    <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700"><FileSignature className="mr-2 h-4 w-4" /> Create Loan</Button>
-                  </Link>
+          <SectionCard>
+            {loans.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-gradient-soft">
+                  <HandCoins className="h-8 w-8 text-brand" />
                 </div>
-              ) : (
+                <h3 className="t-h3 text-primary-ink">No active loans</h3>
+                <p className="t-body mt-1 max-w-sm text-muted-ink">Disburse a loan to see it tracked here with live repayment progress.</p>
+                <Link href="/dashboard/loans/apply" className="mt-4">
+                  <Button size="sm" className="brand-gradient shadow-brand-glow"><FileSignature className="mr-2 h-4 w-4" /> Create Loan</Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50 dark:bg-slate-800/50 hover:bg-transparent">
-                      <TableHead className="px-4 py-3 text-[11px] uppercase tracking-widest font-bold text-slate-400">Loan / Member</TableHead>
-                      <TableHead className="px-4 py-3 text-[11px] uppercase tracking-widest font-bold text-slate-400">Product</TableHead>
-                      <TableHead className="px-4 py-3 text-right text-[11px] uppercase tracking-widest font-bold text-slate-400">Principal</TableHead>
-                      <TableHead className="px-4 py-3 text-right text-[11px] uppercase tracking-widest font-bold text-slate-400">Outstanding</TableHead>
-                      <TableHead className="px-4 py-3 text-[11px] uppercase tracking-widest font-bold text-slate-400">Next Due</TableHead>
-                      <TableHead className="px-4 py-3 text-center text-[11px] uppercase tracking-widest font-bold text-slate-400">Status</TableHead>
-                      <TableHead className="px-4 py-3 text-right text-[11px] uppercase tracking-widest font-bold text-slate-400">Action</TableHead>
+                    <TableRow className="border-[var(--border-base)] hover:bg-transparent">
+                      <TableHead className="t-overline px-4 py-3.5 text-muted-ink">Loan / Member</TableHead>
+                      <TableHead className="t-overline px-4 py-3.5 text-muted-ink">Product</TableHead>
+                      <TableHead className="t-overline px-4 py-3.5 text-right text-muted-ink">Principal</TableHead>
+                      <TableHead className="t-overline px-4 py-3.5 text-right text-muted-ink">Outstanding</TableHead>
+                      <TableHead className="t-overline px-4 py-3.5 text-muted-ink">Next Due</TableHead>
+                      <TableHead className="t-overline px-4 py-3.5 text-center text-muted-ink">Status</TableHead>
+                      <TableHead className="t-overline px-4 py-3.5 text-right text-muted-ink">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -155,41 +152,39 @@ export default async function LoansHubPage() {
                         : 0
                       const overdue = l.status === "DISBURSED" && l.nextDueDate && new Date(l.nextDueDate) < new Date()
                       return (
-                        <TableRow key={l.id} className="border-b border-slate-100 dark:border-slate-800/50 last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                        <TableRow key={l.id} className="border-[var(--border-base)] transition-colors last:border-0 hover:bg-subtle">
                           <TableCell className="px-4 py-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-gradient-soft t-subheading font-bold text-brand">
                                 {l.member.fullName.charAt(0)}
                               </div>
                               <div>
-                                <Link href={`/dashboard/loans/${l.id}`} className="font-semibold text-sm text-slate-900 dark:text-white hover:underline">{l.member.fullName}</Link>
-                                <p className="text-[11px] text-slate-500 font-mono">{l.loanNo} · {l.member.memberNo}</p>
+                                <Link href={`/dashboard/loans/${l.id}`} className="t-subheading text-primary-ink hover:underline">{l.member.fullName}</Link>
+                                <p className="t-num t-caption text-muted-ink">{l.loanNo} · {l.member.memberNo}</p>
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{l.product.name}</TableCell>
-                          <TableCell className="px-4 py-3 text-right text-sm font-semibold text-slate-900 dark:text-white">৳ {Number(l.principal).toLocaleString()}</TableCell>
+                          <TableCell className="t-body px-4 py-3 text-secondary-ink">{l.product.name}</TableCell>
+                          <TableCell className="px-4 py-3 text-right"><Money amount={Number(l.principal)} className="t-subheading text-primary-ink" /></TableCell>
                           <TableCell className="px-4 py-3 text-right">
-                            <p className="text-sm font-bold text-amber-600">৳ {Number(l.outstandingBalance).toLocaleString()}</p>
-                            <div className="mt-1 h-1.5 w-24 ml-auto rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                              <div className="h-full bg-emerald-500" style={{ width: `${progress}%` }} />
+                            <Money amount={Number(l.outstandingBalance)} className="t-subheading font-bold text-warning" />
+                            <div className="ml-auto mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-inset">
+                              <div className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: "var(--status-success)" }} />
                             </div>
                           </TableCell>
-                          <TableCell className="px-4 py-3 text-sm">
+                          <TableCell className="t-body px-4 py-3">
                             {l.nextDueDate ? (
-                              <span className={overdue ? "text-red-600 font-semibold" : "text-slate-500"}>
+                              <span className={overdue ? "font-semibold text-debit" : "text-muted-ink"}>
                                 {new Date(l.nextDueDate).toLocaleDateString()}
                               </span>
                             ) : "—"}
                           </TableCell>
                           <TableCell className="px-4 py-3 text-center">
-                            <Badge variant="outline" className={`uppercase text-[10px] px-2 py-0.5 rounded-full font-bold ${STATUS_STYLES[l.status] || ""}`}>
-                              {l.status.replace("_", " ")}
-                            </Badge>
+                            <StatusBadge status={l.status} />
                           </TableCell>
                           <TableCell className="px-4 py-3 text-right">
                             <Link href={`/dashboard/loans/${l.id}`}>
-                              <Button variant="ghost" size="sm" className="text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30">
+                              <Button variant="ghost" size="sm" className="text-brand hover:bg-brand-gradient-soft">
                                 View <ArrowRight className="ml-1 h-3 w-3" />
                               </Button>
                             </Link>
@@ -199,60 +194,28 @@ export default async function LoansHubPage() {
                     })}
                   </TableBody>
                 </Table>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </SectionCard>
         </TabsContent>
 
         {/* Applications */}
         <TabsContent value="applications" className="mt-4">
-          <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl overflow-hidden">
-            <CardContent className="p-0">
-              <ApplicationsTable applications={serializedApps} />
-            </CardContent>
-          </Card>
+          <SectionCard>
+            <ApplicationsTable applications={serializedApps} />
+          </SectionCard>
         </TabsContent>
 
         {/* Products */}
         <TabsContent value="products" className="mt-4 space-y-4">
           <div className="flex justify-end">
             <Link href="/dashboard/loans/products/new">
-              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700"><PackagePlus className="mr-2 h-4 w-4" /> New Product</Button>
+              <Button size="sm" className="brand-gradient shadow-brand-glow"><PackagePlus className="mr-2 h-4 w-4" /> New Product</Button>
             </Link>
           </div>
           <LoanProductManager products={serializedProducts} />
         </TabsContent>
       </Tabs>
     </div>
-  )
-}
-
-function Kpi({
-  label,
-  value,
-  icon: Icon,
-  color,
-  bg,
-  border,
-}: {
-  label: string
-  value: string
-  icon: React.ComponentType<{ className?: string }>
-  color: string
-  bg: string
-  border: string
-}) {
-  return (
-    <Card className={`bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border ${border} ${bg} shadow-sm rounded-2xl overflow-hidden`}>
-      <CardContent className="p-3 flex flex-row items-center justify-between gap-2">
-        <div>
-          <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500 dark:text-slate-400">{label}</span>
-          <h3 className={`text-lg font-extrabold tracking-tight ${color}`}>{value}</h3>
-        </div>
-        <div className={`p-2 rounded-lg bg-white/50 dark:bg-slate-900/50 border ${border}`}>
-          <Icon className={`h-4 w-4 ${color}`} />
-        </div>
-      </CardContent>
-    </Card>
   )
 }

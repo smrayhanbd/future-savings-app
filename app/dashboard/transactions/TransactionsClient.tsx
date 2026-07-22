@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -21,10 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { TransactionStatusBadge } from "@/components/transactions/TransactionStatusBadge"
-import {
-  formatBDT,
-  formatDate,
-} from "@/lib/accounting"
+import { formatBDT, formatDate } from "@/lib/accounting"
 import {
   TRANSACTION_TYPE_LABELS,
   SUBTYPE_LABELS,
@@ -33,17 +29,12 @@ import {
   type TransactionStatus,
 } from "@/lib/transactions/types"
 import {
-  Search,
-  Filter,
-  Plus,
-  ArrowDownToLine,
-  ArrowUpFromLine,
-  Receipt,
-  PieChart,
-  FileText,
-  Eye,
-  Printer,
+  Search, Filter, Plus, ArrowDownToLine, ArrowUpFromLine, Receipt,
+  PieChart, FileText, Eye, Printer, History,
 } from "lucide-react"
+
+import StatCard from "@/components/somiti/StatCard"
+import SectionCard from "@/components/somiti/SectionCard"
 
 interface Row {
   id: string
@@ -98,44 +89,18 @@ export default function TransactionsClient({ rows }: Props) {
   const stats = useMemo(() => {
     const approved = rows.filter((r) => r.status === "APPROVED")
     const pending = rows.filter((r) => r.status === "PENDING_APPROVAL")
-    const inflow = approved
-      .filter((r) => r.transactionType === "DEPOSIT")
-      .reduce((s, r) => s + r.amount, 0)
-    const outflow = approved
-      .filter((r) => r.transactionType === "WITHDRAWAL")
-      .reduce((s, r) => s + r.amount, 0)
-    return {
-      total: rows.length,
-      pending: pending.length,
-      inflow,
-      outflow,
-    }
+    const inflow = approved.filter((r) => r.transactionType === "DEPOSIT").reduce((s, r) => s + r.amount, 0)
+    const outflow = approved.filter((r) => r.transactionType === "WITHDRAWAL").reduce((s, r) => s + r.amount, 0)
+    return { total: rows.length, pending: pending.length, inflow, outflow }
   }, [rows])
 
   const exportCsv = () => {
-    const header = [
-      "Voucher",
-      "Type",
-      "Sub Type",
-      "Status",
-      "Member",
-      "Amount",
-      "Method",
-      "Reference",
-      "Created",
-      "Approved",
-    ]
+    const header = ["Voucher", "Type", "Sub Type", "Status", "Member", "Amount", "Method", "Reference", "Created", "Approved"]
     const body = filtered.map((r) => [
-      r.voucherNo,
-      r.transactionType,
-      r.subType,
-      r.status,
+      r.voucherNo, r.transactionType, r.subType, r.status,
       r.member ? `${r.member.memberNo} ${r.member.fullName}` : "",
-      r.amount.toFixed(2),
-      r.paymentMethod ?? "",
-      r.referenceNo ?? "",
-      r.createdAt,
-      r.approvedAt ?? "",
+      r.amount.toFixed(2), r.paymentMethod ?? "", r.referenceNo ?? "",
+      r.createdAt, r.approvedAt ?? "",
     ])
     const csv = [header, ...body]
       .map((line) => line.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
@@ -150,50 +115,48 @@ export default function TransactionsClient({ rows }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Transaction History
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-            Unified ledger of every financial transaction with full audit trail.
-          </p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:flex-wrap">
+        <div className="min-w-0">
+          <p className="t-overline mb-1.5 text-brand">Transactions</p>
+          <h1 className="t-h1 text-primary-ink">Transaction History</h1>
+          <p className="t-body mt-1.5 text-muted-ink">Unified ledger of every financial transaction with full audit trail.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportCsv}>
-            Export CSV
-          </Button>
+          <Button variant="outline" onClick={exportCsv}>Export CSV</Button>
           <Link href="/dashboard/transactions/deposits">
-            <Button className="bg-indigo-600 hover:bg-indigo-700">
+            <Button className="brand-gradient shadow-brand-glow">
               <Plus className="mr-2 h-4 w-4" /> New Transaction
             </Button>
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MiniStat label="Total" value={stats.total} />
-        <MiniStat label="Pending Approval" value={stats.pending} tone="text-amber-600" />
-        <MiniStat label="Approved Inflow" value={formatBDT(stats.inflow)} tone="text-emerald-600" />
-        <MiniStat label="Approved Outflow" value={formatBDT(stats.outflow)} tone="text-rose-600" />
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <StatCard label="Total" value={stats.total.toLocaleString()} icon={History} accent="blue" />
+        <StatCard label="Pending Approval" value={stats.pending.toLocaleString()} icon={Filter} accent="amber" />
+        <StatCard label="Approved Inflow" value={formatBDT(stats.inflow)} icon={ArrowDownToLine} accent="emerald" />
+        <StatCard label="Approved Outflow" value={formatBDT(stats.outflow)} icon={ArrowUpFromLine} accent="crimson" />
       </div>
 
-      <Card className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl">
-        <CardContent className="p-4 flex flex-col md:flex-row gap-3">
+      {/* Toolbar */}
+      <SectionCard bodyClassName="p-4">
+        <div className="flex flex-col gap-3 md:flex-row">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint-ink" />
             <Input
               placeholder="Search voucher, member, reference…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-white dark:bg-slate-950"
+              className="bg-[var(--control-bg)] pl-9"
             />
           </div>
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-400" />
+            <Filter className="h-4 w-4 text-faint-ink" />
             <Select value={typeFilter} onValueChange={(v) => { if (v) setTypeFilter(v as TransactionType | "ALL") }}>
-              <SelectTrigger className="w-40 bg-white dark:bg-slate-950">
+              <SelectTrigger className="w-40 bg-[var(--control-bg)]">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
@@ -205,7 +168,7 @@ export default function TransactionsClient({ rows }: Props) {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={(v) => { if (v) setStatusFilter(v as TransactionStatus | "ALL") }}>
-              <SelectTrigger className="w-40 bg-white dark:bg-slate-950">
+              <SelectTrigger className="w-40 bg-[var(--control-bg)]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -219,62 +182,46 @@ export default function TransactionsClient({ rows }: Props) {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
 
-      <Card className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl overflow-hidden">
+      {/* Table */}
+      <SectionCard bodyClassName="p-0">
         <Table>
           <TableHeader>
-            <TableRow className="bg-slate-50 dark:bg-slate-800/50 hover:bg-transparent">
-              <TableHead className="text-[11px] uppercase tracking-widest font-bold text-slate-400">
-                Voucher
-              </TableHead>
-              <TableHead className="text-[11px] uppercase tracking-widest font-bold text-slate-400">
-                Type
-              </TableHead>
-              <TableHead className="text-[11px] uppercase tracking-widest font-bold text-slate-400">
-                Member
-              </TableHead>
-              <TableHead className="text-[11px] uppercase tracking-widest font-bold text-slate-400 text-right">
-                Amount
-              </TableHead>
-              <TableHead className="text-[11px] uppercase tracking-widest font-bold text-slate-400 text-center">
-                Status
-              </TableHead>
-              <TableHead className="text-[11px] uppercase tracking-widest font-bold text-slate-400">
-                Date
-              </TableHead>
+            <TableRow className="border-[var(--border-base)] bg-subtle/40 hover:bg-transparent">
+              <TableHead className="t-overline text-muted-ink">Voucher</TableHead>
+              <TableHead className="t-overline text-muted-ink">Type</TableHead>
+              <TableHead className="t-overline text-muted-ink">Member</TableHead>
+              <TableHead className="t-overline text-right text-muted-ink">Amount</TableHead>
+              <TableHead className="t-overline text-center text-muted-ink">Status</TableHead>
+              <TableHead className="t-overline text-muted-ink">Date</TableHead>
               <TableHead className="text-right"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-16 text-slate-500">
-                  <FileText className="h-10 w-10 mx-auto mb-2 text-slate-300" />
-                  <p className="font-medium">No transactions found</p>
-                  <p className="text-sm">Create one from the Deposit / Withdrawal / Charge pages.</p>
+              <TableRow className="border-[var(--border-base)]">
+                <TableCell colSpan={7} className="py-16 text-center">
+                  <FileText className="mx-auto mb-2 h-10 w-10 text-faint-ink" />
+                  <p className="t-subheading text-primary-ink">No transactions found</p>
+                  <p className="t-body text-muted-ink">Create one from the Deposit / Withdrawal / Charge pages.</p>
                 </TableCell>
               </TableRow>
             ) : (
               filtered.map((r) => {
                 const Icon = TYPE_ICON[r.transactionType] ?? FileText
                 return (
-                  <TableRow
-                    key={r.id}
-                    className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
-                  >
+                  <TableRow key={r.id} className="border-[var(--border-base)] transition-colors hover:bg-subtle">
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                          <Icon className="h-4 w-4 text-slate-500" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-subtle">
+                          <Icon className="h-4 w-4 text-muted-ink" />
                         </div>
                         <div>
-                          <p className="font-mono text-sm font-semibold text-slate-900 dark:text-white">
-                            {r.voucherNo}
-                          </p>
+                          <p className="t-num t-body font-semibold text-primary-ink">{r.voucherNo}</p>
                           {r.paymentMethod && (
-                            <p className="text-[11px] text-slate-400">
+                            <p className="t-caption text-muted-ink">
                               {PAYMENT_METHOD_LABELS[r.paymentMethod as keyof typeof PAYMENT_METHOD_LABELS] ?? r.paymentMethod}
                               {r.cashAccountName ? ` · ${r.cashAccountName}` : ""}
                             </p>
@@ -283,34 +230,24 @@ export default function TransactionsClient({ rows }: Props) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        {TRANSACTION_TYPE_LABELS[r.transactionType]}
-                      </p>
-                      <p className="text-[11px] text-slate-400">
-                        {SUBTYPE_LABELS[r.subType as keyof typeof SUBTYPE_LABELS] ?? r.subType}
-                      </p>
+                      <p className="t-body font-medium text-secondary-ink">{TRANSACTION_TYPE_LABELS[r.transactionType]}</p>
+                      <p className="t-caption text-muted-ink">{SUBTYPE_LABELS[r.subType as keyof typeof SUBTYPE_LABELS] ?? r.subType}</p>
                     </TableCell>
                     <TableCell>
                       {r.member ? (
                         <div>
-                          <p className="text-sm text-slate-700 dark:text-slate-200">
-                            {r.member.fullName}
-                          </p>
-                          <p className="text-[11px] text-slate-400">{r.member.memberNo}</p>
+                          <p className="t-body text-secondary-ink">{r.member.fullName}</p>
+                          <p className="t-num t-caption text-muted-ink">{r.member.memberNo}</p>
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400">—</span>
+                        <span className="t-caption text-muted-ink">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right font-bold tabular-nums text-slate-900 dark:text-white">
-                      {formatBDT(r.amount)}
-                    </TableCell>
+                    <TableCell className="t-num text-right font-bold text-primary-ink">{formatBDT(r.amount)}</TableCell>
                     <TableCell className="text-center">
                       <TransactionStatusBadge status={r.status} />
                     </TableCell>
-                    <TableCell className="text-sm text-slate-500">
-                      {formatDate(r.createdAt)}
-                    </TableCell>
+                    <TableCell className="t-body text-muted-ink">{formatDate(r.createdAt)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={`/dashboard/transactions/${r.id}`}>
@@ -320,7 +257,7 @@ export default function TransactionsClient({ rows }: Props) {
                         </Link>
                         {r.status === "APPROVED" && (r.transactionType === "DEPOSIT" || r.transactionType === "WITHDRAWAL") && (
                           <Link href={`/dashboard/receipts/${r.id}`}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30" title="Print money receipt">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-brand hover:bg-brand-gradient-soft" title="Print money receipt">
                               <Printer className="h-4 w-4" />
                             </Button>
                           </Link>
@@ -333,26 +270,7 @@ export default function TransactionsClient({ rows }: Props) {
             )}
           </TableBody>
         </Table>
-      </Card>
+      </SectionCard>
     </div>
-  )
-}
-
-function MiniStat({
-  label,
-  value,
-  tone = "text-slate-900 dark:text-white",
-}: {
-  label: string
-  value: string | number
-  tone?: string
-}) {
-  return (
-    <Card className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-2xl">
-      <CardContent className="p-3">
-        <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">{label}</p>
-        <p className={`text-lg font-extrabold tabular-nums ${tone}`}>{value}</p>
-      </CardContent>
-    </Card>
   )
 }

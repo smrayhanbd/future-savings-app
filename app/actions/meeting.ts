@@ -101,7 +101,6 @@ export async function createMeeting(formData: FormData) {
     title: `Prepare for meeting: ${title}`,
     description: `Meeting scheduled for ${date.toLocaleString()} (${type}). ${type === "ONLINE" ? `Link: ${link}` : `Location: ${location}`}. Finalize agenda, arrange logistics, and notify attendees.`,
     priority: "MEDIUM",
-    dueDate: undefined,
     meetingId: meeting.id,
     createdByLabel: "MEETING_SYSTEM",
     checklist: ["Finalize agenda", "Arrange logistics", "Notify attendees", "Prepare minutes template"],
