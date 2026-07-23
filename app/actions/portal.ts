@@ -464,44 +464,73 @@ const PROFILE_PAYLOAD_FIELDS: Record<string, string> = {
   photoUrl: "photoUrl",
 }
 
-export async function approveProfileUpdateRequest(requestId: string) {
-  const req = await prisma.profileUpdateRequest.findUnique({ where: { id: requestId } })
-  if (!req) throw new Error("Request not found.")
-  if (req.status !== "PENDING") throw new Error("This request has already been processed.")
+export async function approveProfileUpdateRequest(
+  requestId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const req = await prisma.profileUpdateRequest.findUnique({ where: { id: requestId } })
+    if (!req) return { ok: false, error: "Request not found." }
+    if (req.status !== "PENDING")
+      return { ok: false, error: "This request has already been processed." }
 
-  const payload = (req.payload || {}) as Record<string, unknown>
-  const data: Record<string, unknown> = {}
-  for (const [key, memberField] of Object.entries(PROFILE_PAYLOAD_FIELDS)) {
-    const v = payload[key]
-    if (typeof v === "string" && v.trim()) data[memberField] = v.trim()
-  }
-
-  // Recompute fullName if the name parts changed.
-  if (data.firstName || data.lastName) {
-    const member = await prisma.member.findUnique({ where: { id: req.memberId } })
-    if (member) {
-      const fn = (data.firstName as string) || member.firstName
-      const ln = (data.lastName as string) || member.lastName
-      data.fullName = `${fn} ${ln}`.trim()
+    const payload = (req.payload || {}) as Record<string, unknown>
+    const data: Record<string, unknown> = {}
+    for (const [key, memberField] of Object.entries(PROFILE_PAYLOAD_FIELDS)) {
+      const v = payload[key]
+      if (typeof v === "string" && v.trim()) data[memberField] = v.trim()
     }
-  }
 
-  if (Object.keys(data).length > 0) {
-    await prisma.member.update({ where: { id: req.memberId }, data })
-  }
-  await prisma.profileUpdateRequest.update({ where: { id: requestId }, data: { status: "APPROVED" } })
+    // Recompute fullName if the name parts changed.
+    if (data.firstName || data.lastName) {
+      const member = await prisma.member.findUnique({ where: { id: req.memberId } })
+      if (member) {
+        const fn = (data.firstName as string) || member.firstName
+        const ln = (data.lastName as string) || member.lastName
+        data.fullName = `${fn} ${ln}`.trim()
+      }
+    }
 
-  revalidatePath(`/dashboard/members/${req.memberId}`)
-  revalidatePath("/portal/profile")
+    if (Object.keys(data).length > 0) {
+      await prisma.member.update({ where: { id: req.memberId }, data })
+    }
+    await prisma.profileUpdateRequest.update({ where: { id: requestId }, data: { status: "APPROVED" } })
+
+    revalidatePath(`/dashboard/members/${req.memberId}`)
+    revalidatePath("/portal/profile")
+    revalidatePath("/portal/requests")
+    revalidatePath("/dashboard/profile-approvals")
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
 }
 
-export async function rejectProfileUpdateRequest(requestId: string) {
-  const req = await prisma.profileUpdateRequest.findUnique({ where: { id: requestId } })
-  if (!req) throw new Error("Request not found.")
-  if (req.status !== "PENDING") throw new Error("This request has already been processed.")
+export async function rejectProfileUpdateRequest(
+  requestId: string,
+  reason?: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const req = await prisma.profileUpdateRequest.findUnique({ where: { id: requestId } })
+    if (!req) return { ok: false, error: "Request not found." }
+    if (req.status !== "PENDING")
+      return { ok: false, error: "This request has already been processed." }
 
-  await prisma.profileUpdateRequest.update({ where: { id: requestId }, data: { status: "REJECTED" } })
-  revalidatePath("/portal/profile")
+    const trimmed = reason?.trim()
+    await prisma.profileUpdateRequest.update({
+      where: { id: requestId },
+      data: {
+        status: "REJECTED",
+        ...(trimmed ? { payload: { ...(req.payload as object | null ?? {}), rejectReason: trimmed } } : {}),
+      },
+    })
+
+    revalidatePath("/portal/profile")
+    revalidatePath("/portal/requests")
+    revalidatePath("/dashboard/profile-approvals")
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
 }
 
 // ---------------------------------------------------------------------------

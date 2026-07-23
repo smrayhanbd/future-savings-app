@@ -20,7 +20,7 @@ import {
 import {
   LayoutDashboard, Users, Clock, PieChart, Landmark,
   Receipt, Printer, CalendarCheck, Briefcase, Gem,
-  CheckSquare, Heart, UserCog, Settings, Cloud, LogOut,
+  CheckSquare, Heart, UserCog, UserPen, Settings, Cloud, LogOut,
   ChevronLeft, ChevronRight, ChevronDown, Building2,
   SlidersHorizontal, FilePlus2, HandCoins, AlertTriangle,
   Scale, Award, ArrowDownToLine, ArrowUpFromLine, CheckCheck,
@@ -53,6 +53,7 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
     items: [
       { label: "Member Panel", icon: Users, href: "/dashboard/members" },
       { label: "Pending Approvals", icon: Clock, href: "/dashboard/approvals" },
+      { label: "Profile Update Approvals", icon: UserPen, href: "/dashboard/profile-approvals" },
       {
         label: "Trust Score & Badges",
         icon: Award,
