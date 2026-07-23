@@ -35,7 +35,6 @@ export default async function DueListPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        overline="Transactions"
         title="Due List & Reminders"
         subtitle="Automatically calculated based on historical charge setups and late fines."
       />

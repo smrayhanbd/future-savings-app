@@ -20,6 +20,14 @@ export default async function ChargeTransactionsPage() {
     orderBy: { memberNo: "asc" },
   })
 
+  // Active charge types come from the Fees & Charge Setup → Charge Type tab.
+  // Only these appear in the "Charge Type" dropdown below.
+  const chargeTypes = await prisma.chargeTypeConfig.findMany({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  })
+
   return (
     <ChargeForm
       members={members.map((m) => {
@@ -36,6 +44,7 @@ export default async function ChargeTransactionsPage() {
           balance: deposit - withdrawal,
         }
       })}
+      chargeTypes={chargeTypes.map((c) => ({ id: c.id, name: c.name }))}
     />
   )
 }

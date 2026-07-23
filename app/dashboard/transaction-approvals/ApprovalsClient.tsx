@@ -44,6 +44,7 @@ interface PendingTxn {
   voucherNo: string
   transactionType: TransactionType
   subType: string
+  chargeTypeName: string | null
   amount: number
   approvalLevel: string | null
   submittedBy: string | null
@@ -250,7 +251,7 @@ export default function ApprovalsClient({
                           </p>
                           <p className="text-[11px] text-slate-400">
                             {TRANSACTION_TYPE_LABELS[t.transactionType]} ·{" "}
-                            {SUBTYPE_LABELS[t.subType as keyof typeof SUBTYPE_LABELS] ?? t.subType}
+                            {t.chargeTypeName ?? SUBTYPE_LABELS[t.subType as keyof typeof SUBTYPE_LABELS] ?? t.subType}
                             {t.approvalLevel ? ` · ${t.approvalLevel}` : ""}
                           </p>
                         </TableCell>

@@ -28,25 +28,19 @@ import { createTransaction } from "@/app/actions/transactions"
 import { toast } from "sonner"
 import { formatBDT } from "@/lib/accounting"
 import { Receipt, Save, Check } from "lucide-react"
-import type { TransactionSubType } from "@/lib/transactions/types"
 
 interface Props {
   members: { id: string; memberNo: string; fullName: string; balance: number }[]
+  /** Active Charge Type configs from the Fees & Charge Setup → Charge Type tab. */
+  chargeTypes: { id: string; name: string }[]
 }
 
-const CHARGE_SUBTYPES: { value: TransactionSubType; label: string }[] = [
-  { value: "SERVICE_CHARGE", label: "Service Charge" },
-  { value: "BANK_CHARGE", label: "Bank Charge" },
-  { value: "ANNUAL_FEE", label: "Annual Membership Fee" },
-  { value: "ADMIN_CHARGE", label: "Administrative Charge" },
-  { value: "FINE_PENALTY", label: "Fine / Penalty" },
-  { value: "OTHER_CHARGE", label: "Other Charge" },
-]
-
-export default function ChargeForm({ members }: Props) {
+export default function ChargeForm({ members, chargeTypes }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [subType, setSubType] = useState<TransactionSubType>("SERVICE_CHARGE")
+  const [chargeTypeName, setChargeTypeName] = useState<string | undefined>(
+    chargeTypes[0]?.name
+  )
   const [method, setMethod] = useState<"FIXED" | "PERCENTAGE">("FIXED")
   const [amount, setAmount] = useState("")
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -88,6 +82,8 @@ export default function ChargeForm({ members }: Props) {
     if (targets.length === 0) return toast.error("Select at least one member")
     const base = parseFloat(amount)
     if (!base || base <= 0) return toast.error("Enter a valid amount / percentage")
+    if (!chargeTypeName) return toast.error("Select a charge type")
+    const selectedChargeName = chargeTypeName
 
     startTransition(async () => {
       let ok = 0
@@ -96,7 +92,8 @@ export default function ChargeForm({ members }: Props) {
         if (m.charge <= 0) continue
         const res = await createTransaction({
           transactionType: "CHARGE",
-          subType,
+          subType: "CUSTOM_CHARGE",
+          chargeTypeName: selectedChargeName,
           memberId: m.id,
           amount: m.charge,
           remarks: remarks.trim() || null,
@@ -135,18 +132,25 @@ export default function ChargeForm({ members }: Props) {
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Charge Type *</Label>
-            <Select value={subType} onValueChange={(v) => { if (v) setSubType(v as TransactionSubType) }}>
-              <SelectTrigger className="bg-white dark:bg-slate-950">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CHARGE_SUBTYPES.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>
-                    {s.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {chargeTypes.length === 0 ? (
+              <p className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-md px-3 py-2">
+                No charge types available. Enable at least one in{" "}
+                <span className="font-medium">Fees &amp; Charge Setup → Charge Type</span>.
+              </p>
+            ) : (
+              <Select value={chargeTypeName} onValueChange={(v) => { if (v) setChargeTypeName(v) }}>
+                <SelectTrigger className="bg-white dark:bg-slate-950">
+                  <SelectValue placeholder="Select a charge type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {chargeTypes.map((s) => (
+                    <SelectItem key={s.id} value={s.name}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Method *</Label>

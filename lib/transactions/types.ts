@@ -23,6 +23,7 @@ export type TransactionSubType =
   | "ADMIN_CHARGE"
   | "FINE_PENALTY"
   | "OTHER_CHARGE"
+  | "CUSTOM_CHARGE"
   | "PROJECT_PROFIT"
   | "BANK_INTEREST"
   | "INVESTMENT_INCOME"
@@ -55,6 +56,7 @@ export const SUBTYPE_LABELS: Record<TransactionSubType, string> = {
   ADMIN_CHARGE: "Administrative Charge",
   FINE_PENALTY: "Fine / Penalty",
   OTHER_CHARGE: "Other Charge",
+  CUSTOM_CHARGE: "Custom Charge",
   PROJECT_PROFIT: "Project Profit",
   BANK_INTEREST: "Bank Interest",
   INVESTMENT_INCOME: "Investment Income",
@@ -130,6 +132,7 @@ export const SUBTYPES_BY_TYPE: Record<TransactionType, TransactionSubType[]> = {
     "ADMIN_CHARGE",
     "FINE_PENALTY",
     "OTHER_CHARGE",
+    "CUSTOM_CHARGE",
   ],
   INCOME_DISTRIBUTION: [
     "PROJECT_PROFIT",

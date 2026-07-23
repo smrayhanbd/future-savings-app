@@ -52,6 +52,7 @@ export default async function TransactionDetailPage({
     voucherNo: txn.voucherNo,
     transactionType: txn.transactionType,
     subType: txn.subType,
+    chargeTypeName: txn.chargeTypeName,
     status: txn.status,
     approvalLevel: txn.approvalLevel,
     amount: Number(txn.amount),

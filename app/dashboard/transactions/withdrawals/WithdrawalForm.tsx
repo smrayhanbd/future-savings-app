@@ -268,7 +268,6 @@ export default function WithdrawalForm({
     <div className="flex flex-col gap-6 lg:h-[calc(100dvh-8.1875rem)] lg:gap-4">
       <PageHeader
         className="lg:shrink-0"
-        overline="Transactions"
         title="Withdrawal Transaction"
         subtitle="Pay out from a member's savings. Saved as draft, then submitted for Maker-Checker approval."
         actions={

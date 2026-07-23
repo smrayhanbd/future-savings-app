@@ -67,6 +67,182 @@ const TXN_SYSTEM_ACCOUNTS = [
     nature: 'DEBIT',
     description: 'Parent grouping for service, bank, annual and admin charges.',
   },
+  // ── Investment & Project module accounts ─────────────────────────────
+  // Assets (where Somiti money is placed) — nature DEBIT.
+  {
+    accountCode: 'INVESTMENT-SHARES',
+    accountName: 'Investment in Shares / Securities',
+    accountType: 'ASSET',
+    nature: 'DEBIT',
+    description: 'Listed & unlisted shares, mutual funds, bonds.',
+  },
+  {
+    accountCode: 'INVESTMENT-FDR',
+    accountName: 'Fixed Deposit Investments',
+    accountType: 'ASSET',
+    nature: 'DEBIT',
+    description: 'Bank / NBFI fixed deposits.',
+  },
+  {
+    accountCode: 'INVESTMENT-LAND',
+    accountName: 'Investment in Land',
+    accountType: 'ASSET',
+    nature: 'DEBIT',
+    description: 'Agricultural / commercial / residential land held as investment.',
+  },
+  {
+    accountCode: 'INVESTMENT-PROPERTY',
+    accountName: 'Investment in Property / Building',
+    accountType: 'ASSET',
+    nature: 'DEBIT',
+    description: 'Commercial / residential property held as investment.',
+  },
+  {
+    accountCode: 'INVESTMENT-BUSINESS',
+    accountName: 'Investment in Businesses',
+    accountType: 'ASSET',
+    nature: 'DEBIT',
+    description: 'Own business / joint venture / subsidiary equity.',
+  },
+  {
+    accountCode: 'INVESTMENT-LOANS',
+    accountName: 'Loans to External Parties',
+    accountType: 'ASSET',
+    nature: 'DEBIT',
+    description: 'Loans & advances given to individuals / organisations.',
+  },
+  {
+    accountCode: 'INVESTMENT-OTHER',
+    accountName: 'Other Investments',
+    accountType: 'ASSET',
+    nature: 'DEBIT',
+    description: 'Gold / commodity / foreign currency / misc investments.',
+  },
+  {
+    accountCode: 'PROJECT-WIP',
+    accountName: 'Construction Work in Progress',
+    accountType: 'ASSET',
+    nature: 'DEBIT',
+    description: 'Project work-in-progress before transfer to a fixed asset.',
+  },
+  {
+    accountCode: 'PROJECT-RECEIVABLES',
+    accountName: 'Project Receivables',
+    accountType: 'ASSET',
+    nature: 'DEBIT',
+    description: 'Amounts receivable from project customers (e.g. plot buyers).',
+  },
+  // Liabilities — tax payables (nature CREDIT).
+  {
+    accountCode: 'TDS-PAYABLE',
+    accountName: 'TDS Payable',
+    accountType: 'LIABILITY',
+    nature: 'CREDIT',
+    description: 'Tax deducted at source on investment income, owed to NBR.',
+  },
+  {
+    accountCode: 'CGT-PAYABLE',
+    accountName: 'Capital Gains Tax Payable',
+    accountType: 'LIABILITY',
+    nature: 'CREDIT',
+    description: 'Capital gains tax on investment disposals, owed to NBR.',
+  },
+  // Income (nature CREDIT).
+  {
+    accountCode: 'INCOME-DIVIDEND',
+    accountName: 'Dividend Income',
+    accountType: 'INCOME',
+    nature: 'CREDIT',
+    description: 'Dividends received from shares / mutual funds.',
+  },
+  {
+    accountCode: 'INCOME-INTEREST',
+    accountName: 'Interest Income (FDR)',
+    accountType: 'INCOME',
+    nature: 'CREDIT',
+    description: 'Interest earned on fixed deposits & loans.',
+  },
+  {
+    accountCode: 'INCOME-RENTAL',
+    accountName: 'Rental Income',
+    accountType: 'INCOME',
+    nature: 'CREDIT',
+    description: 'Rent received from investment property.',
+  },
+  {
+    accountCode: 'INCOME-CAPITAL-GAIN',
+    accountName: 'Capital Gain Income',
+    accountType: 'INCOME',
+    nature: 'CREDIT',
+    description: 'Realised capital gains on investment disposals.',
+  },
+  {
+    accountCode: 'INCOME-PROFIT-SHARE',
+    accountName: 'Profit Share from Business',
+    accountType: 'INCOME',
+    nature: 'CREDIT',
+    description: 'Profit share from invested businesses / joint ventures.',
+  },
+  {
+    accountCode: 'INCOME-PROJECT-REVENUE',
+    accountName: 'Project Revenue',
+    accountType: 'INCOME',
+    nature: 'CREDIT',
+    description: 'Plot / product / service / rental revenue from projects.',
+  },
+  // Expenses (nature DEBIT).
+  {
+    accountCode: 'EXPENSE-BROKERAGE',
+    accountName: 'Brokerage / Commission',
+    accountType: 'EXPENSE',
+    nature: 'DEBIT',
+    description: 'Brokerage, commission, and fees on investment purchases.',
+  },
+  {
+    accountCode: 'EXPENSE-REGISTRATION',
+    accountName: 'Land Registration & Stamp Expense',
+    accountType: 'EXPENSE',
+    nature: 'DEBIT',
+    description: 'Registration cost & stamp duty on land/property acquisition.',
+  },
+  {
+    accountCode: 'EXPENSE-CAPITAL-LOSS',
+    accountName: 'Capital Loss Expense',
+    accountType: 'EXPENSE',
+    nature: 'DEBIT',
+    description: 'Realised capital losses on investment disposals.',
+  },
+  {
+    accountCode: 'EXPENSE-INVESTMENT-WRITEOFF',
+    accountName: 'Investment Write-Off',
+    accountType: 'EXPENSE',
+    nature: 'DEBIT',
+    description: 'Bad-investment write-offs.',
+  },
+  {
+    accountCode: 'EXPENSE-PROJECT',
+    accountName: 'Project Expenses',
+    accountType: 'EXPENSE',
+    nature: 'DEBIT',
+    description: 'All project costs (cost centre recorded on the voucher memo).',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Default Investment Type master (spec §1.1). Each maps to its asset CoA code
+// and lists the sub-categories shown in the dynamic form dropdown.
+// ---------------------------------------------------------------------------
+const DEFAULT_INVESTMENT_TYPES = [
+  { name: 'Stock / Shares', slug: 'stock-shares', subCategories: ['Listed', 'Unlisted'], assetCode: 'INVESTMENT-SHARES', sortOrder: 1 },
+  { name: 'Fixed Deposit (FDR)', slug: 'fixed-deposit', subCategories: ['Bank FDR', 'NBFI'], assetCode: 'INVESTMENT-FDR', sortOrder: 2 },
+  { name: 'Land', slug: 'land', subCategories: ['Agricultural', 'Commercial', 'Residential'], assetCode: 'INVESTMENT-LAND', sortOrder: 3 },
+  { name: 'Building / Property', slug: 'building-property', subCategories: ['Commercial', 'Residential'], assetCode: 'INVESTMENT-PROPERTY', sortOrder: 4 },
+  { name: 'Business Equity', slug: 'business-equity', subCategories: ['Own Business', 'Joint Venture', 'Subsidiary'], assetCode: 'INVESTMENT-BUSINESS', sortOrder: 5 },
+  { name: 'Mutual Fund / Bond', slug: 'mutual-fund-bond', subCategories: ['Govt Bond', 'Corporate Bond', 'Mutual Fund'], assetCode: 'INVESTMENT-SHARES', sortOrder: 6 },
+  { name: 'Loan to External Party', slug: 'loan-external', subCategories: ['Individual', 'Organization'], assetCode: 'INVESTMENT-LOANS', sortOrder: 7 },
+  { name: 'Gold / Commodity', slug: 'gold-commodity', subCategories: [], assetCode: 'INVESTMENT-OTHER', sortOrder: 8 },
+  { name: 'Foreign Currency', slug: 'foreign-currency', subCategories: [], assetCode: 'INVESTMENT-OTHER', sortOrder: 9 },
+  { name: 'Other', slug: 'other', subCategories: [], assetCode: 'INVESTMENT-OTHER', sortOrder: 10 },
 ];
 
 async function main() {
@@ -147,6 +323,23 @@ async function main() {
         },
       });
     }
+  }
+
+  // --- 4b. Ensure default Investment Type master rows exist -----------------
+  for (const t of DEFAULT_INVESTMENT_TYPES) {
+    await prisma.investmentType.upsert({
+      where: { slug: t.slug },
+      update: { assetAccountCode: t.assetAccountCode, subCategories: t.subCategories, sortOrder: t.sortOrder, isSystem: true },
+      create: {
+        name: t.name,
+        slug: t.slug,
+        subCategories: t.subCategories,
+        assetAccountCode: t.assetCode,
+        isActive: true,
+        isSystem: true,
+        sortOrder: t.sortOrder,
+      },
+    });
   }
 
   // --- 5. Seed default Mail/SMS message templates ----------------------------
@@ -342,6 +535,7 @@ async function main() {
   console.log('Super Admin   : admin@foundation.com / Admin@123');
   console.log('Approval tiers: 3 (Branch / Regional / Super Admin)');
   console.log('System accounts: ' + TXN_SYSTEM_ACCOUNTS.length + ' ensured');
+  console.log('Investment types: ' + DEFAULT_INVESTMENT_TYPES.length + ' ensured');
   console.log('Message templates: ' + DEFAULT_TEMPLATES.length + ' ensured');
   if (process.env.SEED_TASKS === 'true') console.log('Task module  : demo data seeded');
   console.log('--------------------------------------------------');

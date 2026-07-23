@@ -277,7 +277,6 @@ export default function DepositForm({
     <div className="flex flex-col gap-6 lg:h-[calc(100dvh-8.1875rem)] lg:gap-4">
       <PageHeader
         className="lg:shrink-0"
-        overline="Transactions"
         title="Deposit Transaction"
         subtitle="Record money received from a member. Saved as draft, then submitted for Maker-Checker approval."
         actions={

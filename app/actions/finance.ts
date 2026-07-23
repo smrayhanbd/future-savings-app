@@ -126,6 +126,68 @@ export async function toggleCollectionTypeStatus(id: string, isActive: boolean) 
 
   revalidatePath("/dashboard/collection-setup")
 }
+
+// --- Charge Type Actions ---
+// Charge Type rows back the "Charge Type" tab on the Fees & Charge Setup page.
+// These are free-form names created by the user (mirrors the Collection Type
+// tab). The Charge Management page reads the active rows for its dropdown and
+// snapshots the chosen name onto Transaction.chargeTypeName.
+
+export async function createChargeTypeConfig(formData: FormData) {
+  const name = (formData.get("name") as string)?.trim()
+  if (!name) throw new Error("Charge type name is required.")
+
+  await prisma.chargeTypeConfig.create({
+    data: { name },
+  })
+
+  revalidatePath("/dashboard/collection-setup")
+  revalidatePath("/dashboard/transactions/charges")
+  redirect("/dashboard/collection-setup")
+}
+
+export async function updateChargeTypeConfig(id: string, name: string) {
+  const trimmed = name?.trim()
+  if (!trimmed) throw new Error("Charge type name is required.")
+
+  await prisma.chargeTypeConfig.update({
+    where: { id },
+    data: { name: trimmed },
+  })
+
+  revalidatePath("/dashboard/collection-setup")
+  revalidatePath("/dashboard/transactions/charges")
+}
+
+export async function deleteChargeTypeConfig(id: string) {
+  const config = await prisma.chargeTypeConfig.findUnique({ where: { id } })
+  if (!config) throw new Error("Charge type not found.")
+
+  // Safety check: refuse to delete a charge type whose name has been snapshotted
+  // onto any charge transaction.
+  const usedCount = await prisma.transaction.count({
+    where: { transactionType: "CHARGE", chargeTypeName: config.name },
+  })
+  if (usedCount > 0) {
+    throw new Error("Cannot delete: This charge type is used on existing transactions.")
+  }
+
+  await prisma.chargeTypeConfig.delete({ where: { id } })
+
+  revalidatePath("/dashboard/collection-setup")
+  revalidatePath("/dashboard/transactions/charges")
+}
+
+export async function toggleChargeTypeConfigStatus(id: string, isActive: boolean) {
+  await prisma.chargeTypeConfig.update({
+    where: { id },
+    data: { isActive },
+  })
+
+  revalidatePath("/dashboard/collection-setup")
+  revalidatePath("/dashboard/transactions/charges")
+}
+
 // --- Updated Fee Setup Action ---
 export async function createFeeSetup(formData: FormData) {
   const chargeTypeId = formData.get("name") as string

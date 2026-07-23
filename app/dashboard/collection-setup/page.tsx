@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import FeeSetupForm from "./FeeSetupForm"
 import CollectionTypeManager from "./CollectionTypeManager"
+import ChargeTypeCreateForm from "./ChargeTypeCreateForm"
+import ChargeTypeConfigManager from "./ChargeTypeConfigManager"
 import { History, PlusCircle, Tag, Trash2 } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
@@ -23,6 +25,20 @@ export default async function CollectionSetupPage() {
   const chargeTypes = await prisma.chargeType.findMany({
     orderBy: { name: "asc" },
   })
+
+  // 2a. Fetch Charge Type configs (backs the "Charge Type" tab).
+  const chargeTypeConfigs = await prisma.chargeTypeConfig.findMany({
+    orderBy: { name: "asc" },
+  })
+
+  // Which charge type names are already snapshotted on transactions? Used to
+  // disable deletion of charge types that are in use.
+  const usedChargeTypeConfigs = await prisma.transaction.findMany({
+    where: { transactionType: "CHARGE", NOT: { chargeTypeName: null } },
+    select: { chargeTypeName: true },
+    distinct: ["chargeTypeName"],
+  })
+  const usedChargeNames = usedChargeTypeConfigs.map((t) => t.chargeTypeName as string)
 
   const activeMembers = await prisma.member.findMany({
     where: { status: "ACTIVE" },
@@ -49,9 +65,10 @@ export default async function CollectionSetupPage() {
       </div>
 
       <Tabs defaultValue="declare" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2 bg-slate-100 dark:bg-slate-900">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3 bg-slate-100 dark:bg-slate-900">
           <TabsTrigger value="declare">Declare Collection/Fees</TabsTrigger>
           <TabsTrigger value="types">Collection Type</TabsTrigger>
+          <TabsTrigger value="charge-types">Charge Type</TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Declare Collection/Fees */}
@@ -140,6 +157,22 @@ export default async function CollectionSetupPage() {
 
             {/* Collection Types List (Client Component) */}
             <CollectionTypeManager chargeTypes={plain(chargeTypes)} usedNames={usedNames} />
+          </div>
+        </TabsContent>
+
+        {/* Tab 3: Charge Type */}
+        <TabsContent value="charge-types" className="mt-6">
+          <div className="grid lg:grid-cols-3 gap-8">
+            <ChargeTypeCreateForm />
+
+            <ChargeTypeConfigManager
+              configs={plain(chargeTypeConfigs).map((c: { id: string; name: string; isActive: boolean }) => ({
+                id: c.id,
+                name: c.name,
+                isActive: c.isActive,
+              }))}
+              usedNames={usedChargeNames}
+            />
           </div>
         </TabsContent>
       </Tabs>

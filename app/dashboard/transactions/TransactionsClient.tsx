@@ -41,6 +41,7 @@ interface Row {
   voucherNo: string
   transactionType: TransactionType
   subType: string
+  chargeTypeName: string | null
   status: TransactionStatus
   amount: number
   paymentMethod: string | null
@@ -229,10 +230,10 @@ export default function TransactionsClient({ rows }: Props) {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <p className="t-body font-medium text-secondary-ink">{TRANSACTION_TYPE_LABELS[r.transactionType]}</p>
-                      <p className="t-caption text-muted-ink">{SUBTYPE_LABELS[r.subType as keyof typeof SUBTYPE_LABELS] ?? r.subType}</p>
-                    </TableCell>
+                        <TableCell>
+                          <p className="t-body font-medium text-secondary-ink">{TRANSACTION_TYPE_LABELS[r.transactionType]}</p>
+                          <p className="t-caption text-muted-ink">{r.chargeTypeName ?? SUBTYPE_LABELS[r.subType as keyof typeof SUBTYPE_LABELS] ?? r.subType}</p>
+                        </TableCell>
                     <TableCell>
                       {r.member ? (
                         <div>

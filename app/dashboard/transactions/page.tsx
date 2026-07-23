@@ -30,6 +30,7 @@ export default async function TransactionsPage() {
     voucherNo: t.voucherNo,
     transactionType: t.transactionType,
     subType: t.subType,
+    chargeTypeName: t.chargeTypeName,
     status: t.status,
     amount: Number(t.amount),
     paymentMethod: t.paymentMethod,

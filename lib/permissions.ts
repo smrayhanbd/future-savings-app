@@ -23,6 +23,11 @@ export const PERMISSIONS = {
   TASK_MANAGE_RECURRING: "TASK_MANAGE_RECURRING",
   // Committee Management module
   COMMITTEE_MANAGE: "COMMITTEE_MANAGE",
+  // Investment & Project modules
+  INVESTMENT_MANAGE: "INVESTMENT_MANAGE",
+  INVESTMENT_VIEW: "INVESTMENT_VIEW",
+  PROJECT_MANAGE: "PROJECT_MANAGE",
+  PROJECT_VIEW: "PROJECT_VIEW",
 } as const
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -164,6 +169,15 @@ export const PERMISSION_GROUPS: { group: string; keys: PermissionKey[] }[] = [
   {
     group: "Committees",
     keys: [PERMISSIONS.COMMITTEE_MANAGE],
+  },
+  {
+    group: "Investments & Projects",
+    keys: [
+      PERMISSIONS.INVESTMENT_MANAGE,
+      PERMISSIONS.INVESTMENT_VIEW,
+      PERMISSIONS.PROJECT_MANAGE,
+      PERMISSIONS.PROJECT_VIEW,
+    ],
   },
 ]
 

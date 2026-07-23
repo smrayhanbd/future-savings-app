@@ -53,6 +53,7 @@ export interface TransactionDetailData {
   voucherNo: string
   transactionType: TransactionType
   subType: string
+  chargeTypeName: string | null
   status: TransactionStatus
   approvalLevel: string | null
   amount: number
@@ -173,7 +174,7 @@ export default function TransactionDetailClient({
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             {TRANSACTION_TYPE_LABELS[txn.transactionType]} ·{" "}
-            {SUBTYPE_LABELS[txn.subType as keyof typeof SUBTYPE_LABELS] ?? txn.subType}
+            {txn.chargeTypeName ?? SUBTYPE_LABELS[txn.subType as keyof typeof SUBTYPE_LABELS] ?? txn.subType}
           </p>
         </div>
 

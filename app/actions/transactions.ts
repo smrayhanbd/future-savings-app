@@ -60,6 +60,9 @@ function revalidateAll() {
 export interface CreateTransactionInput {
   transactionType: TransactionType
   subType: TransactionSubType
+  // For dynamic charge types (subType = CUSTOM_CHARGE), the human-readable name
+  // chosen on the Fees & Charge Setup → Charge Type tab.
+  chargeTypeName?: string | null
   memberId?: string | null
   amount: number
   paymentMethod?: PaymentMethod | null
@@ -96,6 +99,7 @@ export async function createTransaction(
           voucherNo: no,
           transactionType: input.transactionType,
           subType: input.subType,
+          chargeTypeName: input.chargeTypeName || null,
           category: "MEMBER",
           memberId: input.memberId || null,
           amount: input.amount,
@@ -446,6 +450,7 @@ export async function reverseTransaction(id: string, reason: string): Promise<Ac
           voucherNo,
           transactionType: original.transactionType,
           subType: original.subType,
+          chargeTypeName: original.chargeTypeName,
           category: original.category,
           memberId: original.memberId,
           amount: original.amount,
