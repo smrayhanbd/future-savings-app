@@ -8,8 +8,10 @@ import LanguageToggle from "@/components/somiti/LanguageToggle"
 
 export default function RegisterPage() {
   return (
-    <div className="relative flex min-h-screen flex-col bg-base lg:flex-row">
+    <div className="relative flex min-h-screen flex-col bg-base">
       <TrustRibbon />
+
+      <div className="flex min-h-[calc(100vh-3px)] flex-1 lg:flex-row">
 
       {/* Left Side: Marketing & Trust Info (sticky on Desktop) */}
       <div className="relative hidden w-1/4 flex-col justify-between overflow-hidden p-10 text-white lg:flex sticky top-0 h-screen">
@@ -91,6 +93,7 @@ export default function RegisterPage() {
 
           <RegisterForm />
         </div>
+      </div>
       </div>
     </div>
   )

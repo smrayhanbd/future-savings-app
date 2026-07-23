@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { Prisma } from "@prisma/client"
 import { submitWithdrawalRequest } from "@/app/actions/portal"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,11 +12,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner"
 import { HandCoins, AlertCircle, CheckCircle2, Clock, XCircle } from "lucide-react"
 
-/** A withdrawal request row — subset of the Savings model rendered here. */
+/** A withdrawal request row — subset of the Savings model rendered here.
+ *  Server components pass these through `plain()` so Decimal/Date are already
+ *  converted to number / ISO-string (serializable across the boundary). */
 interface WithdrawalRequest {
   id: string
-  amount: Prisma.Decimal | number | null
-  createdAt: Date | string
+  amount: number | null
+  createdAt: string
   method: string | null
   notes: string | null
   status: string

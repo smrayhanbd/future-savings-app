@@ -2,324 +2,116 @@ import prisma from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import ProfileEditDialog from "./ProfileEditDialog"
-import PhotoUploadDialog from "./PhotoUploadDialog"
-import {
-  User, Phone, Mail, Home, Building, Banknote, CreditCard,
-  FileText, Users, CalendarDays, Heart, Globe, Droplet, Briefcase,
-  MapPin, ExternalLink, Scale, Hash, Clock
-} from "lucide-react"
+import { plain } from "@/lib/serialize"
+import { getScoreView, type ScoreView } from "@/lib/trustScore"
+import ProfileClient from "./ProfileClient"
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic"
 
+/**
+ * Member Portal → My Profile (server data layer).
+ *
+ * All Prisma data is serialized through `plain()` before being handed to the
+ * client component, so Decimal / Date objects never cross the Server→Client
+ * boundary (they would otherwise throw "Only plain objects can be passed…").
+ */
 export default async function PortalProfilePage() {
   const session = await getServerSession(authOptions)
-
   if (!session?.user || session.user.role !== "MEMBER") {
     redirect("/")
   }
 
   const memberId = session.user.id
 
-  const member = await prisma.member.findUnique({
-    where: { id: memberId },
-    include: {
-      addresses: true,
-      nominees: true,
-      documents: true,
-    },
-  })
+  const [member, pendingProfileRequests, scoreView, recentSavings] = await Promise.all([
+    prisma.member.findUnique({
+      where: { id: memberId },
+      include: { addresses: true, nominees: true, documents: true },
+    }),
+    prisma.profileUpdateRequest.findMany({
+      where: { memberId, status: "PENDING" },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, payload: true, createdAt: true },
+      take: 5,
+    }),
+    getScoreView(memberId).catch(() => null),
+    prisma.savings.findMany({
+      where: { memberId },
+      orderBy: { date: "desc" },
+      take: 8,
+      select: { id: true, type: true, amount: true, date: true, receiptNo: true },
+    }),
+  ])
 
-  if (!member) {
-    redirect("/portal")
-  }
+  if (!member) redirect("/portal")
 
-  // Check if there is a pending photo update request so we can badge the avatar.
-  const pendingProfileRequests = await prisma.profileUpdateRequest.findMany({
-    where: { memberId, status: "PENDING" },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, payload: true, createdAt: true },
-    take: 5,
-  })
+  // Pending photo-update request (badges the avatar).
   const pendingPhoto = pendingProfileRequests.find((r) => {
     const p = r.payload as Record<string, unknown> | null
     return p && typeof p === "object" && "photoUrl" in p
   })
 
-  const currentAddress = member.addresses.find((a) => a.addressType === "CURRENT")
-  const permanentAddress = member.addresses.find((a) => a.addressType === "PERMANENT")
-  
-  const idType = member.nidNumber ? "National ID" : member.passportNumber ? "Passport" : member.birthCertificateNo ? "Birth Certificate" : "ID"
-  const idNumber = member.nidNumber || member.passportNumber || member.birthCertificateNo || "N/A"
-  const idDoc = member.documents.find(d => d.documentType === idType)
+  // Profile completion — weighted across the key identity/financial fields.
+  const completion = computeCompletion(member)
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">My Profile</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">View your registration details and submitted documents.</p>
-      </div>
-
-      {/* Profile Header Card */}
-      <Card className="bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800/70 shadow-sm rounded-2xl overflow-hidden">
-        <div className="h-28 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 relative">
-          <div className="absolute inset-0 opacity-30">
-            <div className="absolute -top-8 -right-8 h-40 w-40 rounded-full bg-white/30 blur-3xl" />
-          </div>
-        </div>
-        <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between -mt-14">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              {member.photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={member.photoUrl} alt="Member" className="w-24 h-24 rounded-2xl object-cover ring-4 ring-white dark:ring-slate-900 shadow-xl" />
-              ) : (
-                <div className="w-24 h-24 rounded-2xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-3xl font-bold text-indigo-600 ring-4 ring-white dark:ring-slate-900 shadow-xl">
-                  {member.fullName.charAt(0)}
-                </div>
-              )}
-              {pendingPhoto && (
-                <span className="absolute -bottom-1 -right-1 inline-flex items-center gap-1 rounded-full bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 shadow ring-2 ring-white dark:ring-slate-900">
-                  <Clock className="h-2.5 w-2.5" /> Pending
-                </span>
-              )}
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">{member.fullName}</h2>
-              <p className="text-sm font-mono text-slate-500 dark:text-slate-400">{member.memberNo} • {member.phone}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Badge variant={member.status === "ACTIVE" ? "default" : "secondary"} className={`uppercase text-xs px-2.5 py-1 rounded-full ${member.status === "ACTIVE" ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-amber-500/10 text-amber-600 border border-amber-500/20"}`}>
-                  {member.status}
-                </Badge>
-                {member.kycVerified && (
-                  <Badge variant="outline" className="bg-indigo-500/10 text-indigo-600 border-indigo-500/20 text-xs px-2.5 py-1 rounded-full">
-                    KYC Verified
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <PhotoUploadDialog memberId={member.id} />
-            <ProfileEditDialog member={JSON.parse(JSON.stringify(member))} />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Main Layout Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
-        {/* Left Column (2/3 width) */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Personal Information */}
-          <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl overflow-hidden">
-            <CardHeader className="bg-blue-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 pb-3 px-5 py-3">
-              <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
-                <User className="h-4 w-4" /> Personal Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-3 pt-4 px-5">
-              <InfoItem icon={CalendarDays} label="Date of Birth" value={member.dateOfBirth ? new Date(member.dateOfBirth).toLocaleDateString() : "N/A"} />
-              <InfoItem icon={User} label="Gender" value={member.gender ? member.gender.charAt(0) + member.gender.slice(1).toLowerCase() : "N/A"} />
-              <InfoItem icon={Heart} label="Marital Status" value={member.maritalStatus ? member.maritalStatus.charAt(0) + member.maritalStatus.slice(1).toLowerCase() : "N/A"} />
-              <InfoItem icon={CalendarDays} label="Marriage Date" value={member.marriageDate ? new Date(member.marriageDate).toLocaleDateString() : "N/A"} />
-              <InfoItem icon={Globe} label="Religion" value={member.religion || "N/A"} />
-              <InfoItem icon={Globe} label="Nationality" value={member.nationality || "N/A"} />
-              <InfoItem icon={Droplet} label="Blood Group" value={member.bloodGroup ? member.bloodGroup.replace("_POSITIVE", "+").replace("_NEGATIVE", "-") : "N/A"} />
-              <InfoItem icon={Briefcase} label="Profession" value={member.profession || "N/A"} />
-              <InfoItem icon={User} label="Father's Name" value={member.fatherName || "N/A"} />
-              <InfoItem icon={User} label="Mother's Name" value={member.motherName || "N/A"} />
-              <InfoItem icon={Heart} label="Spouse Name" value={member.spouseName || "N/A"} />
-            </CardContent>
-          </Card>
-
-          {/* Contact Information */}
-          <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl overflow-hidden">
-            <CardHeader className="bg-green-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 pb-3 px-5 py-3">
-              <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
-                <Phone className="h-4 w-4" /> Contact Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2 pt-4 px-5">
-              <InfoItem icon={Phone} label="Phone Number" value={member.phone} />
-              <InfoItem icon={Mail} label="Email Address" value={member.email || "N/A"} />
-              <InfoItem icon={Phone} label="Emergency Contact" value={member.emergencyPhone || "N/A"} />
-              <InfoItem icon={User} label="Emergency Person" value={member.emergencyContactName || "N/A"} />
-            </CardContent>
-          </Card>
-
-          {/* Residence Information */}
-          <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl overflow-hidden">
-            <CardHeader className="bg-gray-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 pb-3 px-5 py-3">
-              <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
-                <Home className="h-4 w-4" /> Residence Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2 pt-4 px-5">
-              <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/50">
-                <h4 className="text-[11px] font-bold uppercase text-slate-500 flex items-center gap-1.5 tracking-wider"><MapPin className="h-3 w-3" /> Current Address</h4>
-                <AddressDisplay address={currentAddress} />
-              </div>
-              <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/50">
-                <h4 className="text-[11px] font-bold uppercase text-slate-500 flex items-center gap-1.5 tracking-wider"><Building className="h-3 w-3" /> Permanent Address</h4>
-                <AddressDisplay address={permanentAddress} />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column (1/3 width) */}
-        <div className="space-y-6">
-          
-          {/* Bank Details */}
-          <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl overflow-hidden">
-            <CardHeader className="bg-yellow-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 pb-3 px-5 py-3">
-              <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
-                <Banknote className="h-4 w-4" /> Bank Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4 px-5">
-              <InfoItem vertical icon={User} label="Account Name" value={member.accountName || "N/A"} />
-              <InfoItem vertical icon={CreditCard} label="Account Number" value={member.accountNumber || "N/A"} />
-              <InfoItem vertical icon={Building} label="Bank Name" value={member.bankName || "N/A"} />
-              <InfoItem vertical icon={MapPin} label="Branch" value={member.branch || "N/A"} />
-              <InfoItem vertical icon={Hash} label="Routing Number" value={member.routingNumber || "N/A"} />
-            </CardContent>
-          </Card>
-
-          {/* Documents */}
-          <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl overflow-hidden">
-            <CardHeader className="bg-blue-500 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 pb-3 px-5 py-3">
-              <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
-                <FileText className="h-4 w-4" /> Documents
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-4 px-5">
-              <div className="flex items-center justify-between p-3 border border-slate-200/50 dark:border-slate-800/50 rounded-xl bg-slate-50 dark:bg-slate-950">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
-                    <FileText className="h-4 w-4 text-slate-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{idType}</p>
-                    <p className="text-xs text-slate-500">{idNumber}</p>
-                  </div>
-                </div>
-                {idDoc && (
-                  <a href={idDoc.fileUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-500">
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                )}
-              </div>
-              {member.documents.filter(d => d.documentType === "ADDITIONAL").map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-3 border border-slate-200/50 dark:border-slate-800/50 rounded-xl bg-slate-50 dark:bg-slate-950">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
-                      <FileText className="h-4 w-4 text-slate-500" />
-                    </div>
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{doc.name || "Additional Document"}</span>
-                  </div>
-                  <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-500">
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Nominees Full Width */}
-      <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl overflow-hidden">
-        <CardHeader className="bg-purple-600 text-white rounded-t-2xl border-b border-slate-100 dark:border-slate-800 pb-3 px-5 py-3">
-          <CardTitle className="flex items-center gap-2 text-sm text-white tracking-tight font-bold">
-            <Users className="h-4 w-4" /> Registered Nominees
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4 px-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {member.nominees.map((nom) => (
-              <div key={nom.id} className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-950 flex flex-col gap-3">
-                <div className="flex items-center gap-3">
-                  {nom.photoUrl ? (
-                    <img src={nom.photoUrl} alt={nom.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 font-bold">
-                      {nom.name.charAt(0)}
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">{nom.name}</h3>
-                    <p className="text-xs text-indigo-600 dark:text-indigo-400">{nom.relation}</p>
-                  </div>
-                </div>
-                <div className="text-xs space-y-1 text-slate-500 dark:text-slate-400">
-                  <p><span className="font-medium text-slate-700 dark:text-slate-300">Phone:</span> {nom.phone || "N/A"}</p>
-                  <p><span className="font-medium text-slate-700 dark:text-slate-300">ID Type:</span> {nom.idType || "N/A"}</p>
-                  <p><span className="font-medium text-slate-700 dark:text-slate-300">ID Number:</span> {nom.nidNumber || "N/A"}</p>
-                </div>
-                <div className="flex items-center justify-between mt-1 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                    <Scale className="h-3 w-3 mr-1" /> {Number(nom.sharePercentage)}% Share
-                  </Badge>
-                  {nom.idDocumentUrl && (
-                    <a href={nom.idDocumentUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-indigo-600 hover:underline flex items-center gap-1">
-                      View ID Doc <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <ProfileClient
+      member={plain(member)}
+      scoreView={scoreView}
+      recentSavings={plain(recentSavings)}
+      pendingPhoto={!!pendingPhoto}
+      completion={completion}
+    />
   )
 }
 
-// Reusable Info Item Component
-function InfoItem({ icon: Icon, label, value, vertical }: { icon: React.ComponentType<{ className?: string }>, label: string, value: string, vertical?: boolean }) {
-  return (
-    <div className={`flex ${vertical ? 'flex-col gap-1' : 'items-start gap-2.5'}`}>
-      {!vertical && (
-        <div className="p-1 rounded-lg bg-slate-100 dark:bg-slate-800/50 mt-0.5">
-          <Icon className="h-3 w-3 text-slate-500" />
-        </div>
-      )}
-      <div>
-        <p className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">{label}</p>
-        <p className="text-[13px] text-slate-800 dark:text-slate-100 font-medium mt-0.5">{value}</p>
-      </div>
-    </div>
-  )
+/**
+ * Weighted profile completion score (0–100).
+ * Counts the fields a reviewer most cares about for KYC / payout readiness.
+ */
+function computeCompletion(m: {
+  fullName: string
+  phone: string
+  email: string | null
+  photoUrl: string | null
+  dateOfBirth: Date | null
+  gender: unknown
+  profession: string | null
+  fatherName: string | null
+  motherName: string | null
+  nidNumber: string | null
+  accountName: string | null
+  accountNumber: string | null
+  bankName: string | null
+  addresses: unknown[]
+  nominees: unknown[]
+}) {
+  // Each entry is [value, weight]; weights sum to 100.
+  const checks: Array<[unknown, number]> = [
+    [m.fullName, 8],
+    [m.phone, 8],
+    [m.email, 6],
+    [m.photoUrl, 8],
+    [m.dateOfBirth, 6],
+    [m.gender, 4],
+    [m.profession, 4],
+    [m.fatherName, 4],
+    [m.motherName, 4],
+    [m.nidNumber, 12],
+    [m.accountName, 9],
+    [m.accountNumber, 9],
+    [m.bankName, 9],
+    [m.addresses.length > 0, 5],
+    [m.nominees.length > 0, 4],
+  ]
+  return checks.reduce((acc, [val, w]) => acc + (filled(val) ? w : 0), 0)
 }
 
-// Reusable Address Display Component
-function AddressDisplay({ address }: { address: { village?: string | null; postOffice?: string | null; district?: string | null; postalCode?: string | null } | null | undefined }) {
-  if (!address) return <p className="text-xs text-slate-500 italic">Not provided</p>
-  return (
-    <div className="space-y-2 text-xs">
-      <div>
-        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Address</p>
-        <p className="text-slate-700 dark:text-slate-200 mt-0.5">{address.village || "N/A"}</p>
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        <div>
-          <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Post Office</p>
-          <p className="text-slate-700 dark:text-slate-200 mt-0.5">{address.postOffice || "N/A"}</p>
-        </div>
-        <div>
-          <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">District</p>
-          <p className="text-slate-700 dark:text-slate-200 mt-0.5">{address.district || "N/A"}</p>
-        </div>
-        <div>
-          <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Post Code</p>
-          <p className="text-slate-700 dark:text-slate-200 mt-0.5">{address.postalCode || "N/A"}</p>
-        </div>
-      </div>
-    </div>
-  )
+function filled(v: unknown): boolean {
+  if (v === null || v === undefined) return false
+  if (typeof v === "boolean") return v
+  if (typeof v === "string") return v.trim().length > 0
+  return true
 }
+
+export type { ScoreView }

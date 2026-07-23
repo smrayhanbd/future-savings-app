@@ -65,7 +65,7 @@ export default function PhotoUploadDialog({ memberId }: { memberId: string }) {
       }}
     >
       <DialogTrigger
-        className="inline-flex shrink-0 items-center justify-center gap-1.5 border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 h-9 rounded-lg px-3 text-sm font-medium transition-colors cursor-pointer"
+        className="inline-flex shrink-0 h-10 items-center justify-center gap-1.5 rounded-[10px] brand-gradient text-white shadow-brand-glow hover:opacity-90 px-3 text-sm font-medium transition-opacity cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2"
       >
         <Camera className="h-3.5 w-3.5" /> Change Photo
       </DialogTrigger>

@@ -347,7 +347,10 @@ export default function MemberListClient({ members }: { members: Member[] }) {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
-  const [sorting, setSorting] = useState<SortingState>([{ id: "createdAt", desc: true }])
+  // Initial sort by Join Date (membershipDate) — there is no `createdAt` column
+  // in the table, so referencing it made @tanstack/react-table throw
+  // "[Table] Column with id 'createdAt' does not exist".
+  const [sorting, setSorting] = useState<SortingState>([{ id: "membershipDate", desc: true }])
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [quickViewId, setQuickViewId] = useState<string | null>(null)

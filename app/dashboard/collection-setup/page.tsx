@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma"
+import { plain } from "@/lib/serialize"
 import { createChargeType } from "@/app/actions/finance"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -59,7 +60,7 @@ export default async function CollectionSetupPage() {
             
             {/* Form takes 1/3 width */}
             <div className="lg:col-span-1">
-              <FeeSetupForm chargeTypes={chargeTypes} members={activeMembers} />
+              <FeeSetupForm chargeTypes={plain(chargeTypes)} members={activeMembers} />
             </div>
 
             {/* History Table takes 2/3 width */}
@@ -138,7 +139,7 @@ export default async function CollectionSetupPage() {
             </Card>
 
             {/* Collection Types List (Client Component) */}
-            <CollectionTypeManager chargeTypes={chargeTypes} usedNames={usedNames} />
+            <CollectionTypeManager chargeTypes={plain(chargeTypes)} usedNames={usedNames} />
           </div>
         </TabsContent>
       </Tabs>

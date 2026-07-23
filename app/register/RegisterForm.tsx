@@ -38,14 +38,41 @@ const inputClass = "w-full rounded-lg border border-[var(--border-base)] bg-[var
 const labelClass = "block t-body font-medium text-secondary-ink mb-1"
 const subLabelClass = "block t-caption font-medium text-muted-ink mb-1"
 
+const FORM_ACCENT_VAR: Record<"blue" | "emerald" | "gold" | "violet", string> = {
+    blue: "var(--chart-blue)",
+    emerald: "var(--chart-emerald)",
+    gold: "var(--chart-gold)",
+    violet: "var(--chart-violet)",
+}
+
 function FormSection({ accent, children, title, icon }: { accent: "blue" | "emerald" | "gold" | "violet", children: React.ReactNode, title: string, icon: React.ReactNode }) {
+    const color = FORM_ACCENT_VAR[accent]
+    // NOTE: title/icon are intentionally NOT forwarded to SectionCard — we render
+    // our own accent-tinted header so each section gets a colorful header + body
+    // (and we avoid the duplicated header the old wrapper produced).
     return (
-        <SectionCard title={title} icon={undefined} accent={accent} className="h-full" bodyClassName="p-5">
-            <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-gradient-soft text-brand">{icon}</span>
+        <SectionCard accent={accent} className="overflow-hidden" bodyClassName="p-0">
+            <div
+                className="flex items-center gap-3 border-b px-5 py-4"
+                style={{
+                    backgroundColor: `color-mix(in oklch, ${color} 15%, transparent)`,
+                    borderColor: `color-mix(in oklch, ${color} 32%, transparent)`,
+                }}
+            >
+                <span
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-white [&>svg]:h-[18px] [&>svg]:w-[18px]"
+                    style={{ backgroundColor: color }}
+                >
+                    {icon}
+                </span>
                 <h2 className="t-h3 text-primary-ink">{title}</h2>
             </div>
-            {children}
+            <div
+                className="p-5"
+                style={{ backgroundColor: `color-mix(in oklch, ${color} 5%, transparent)` }}
+            >
+                {children}
+            </div>
         </SectionCard>
     )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { toast } from "sonner"
 import {
   Heart, Cake, HeartHandshake, CalendarPlus, Sparkles, Send,
@@ -456,17 +456,18 @@ function FestivalDialog({ open, onOpenChange, festival, onSaved }: {
   const [day, setDay] = useState(festival?.day?.toString() || "1")
   const [message, setMessage] = useState(festival?.message || "")
 
-  const [lastFestivalId, setLastFestivalId] = useState<string | null>(null)
-  if (open && festival?.id !== lastFestivalId) {
-    setLastFestivalId(festival?.id || null)
+  // Reset the form fields when the dialog opens or the festival being edited
+  // changes. Must run as an effect (not during render), otherwise calling
+  // setState in the render body loops forever — e.g. when `festival` is null,
+  // `festival?.id` is `undefined`, which never equals `lastFestivalId`, so the
+  // reset branch fires on every render → "Too many re-renders".
+  useEffect(() => {
+    if (!open) return
     setName(festival?.name || "")
     setMonth(festival?.month?.toString() || "1")
     setDay(festival?.day?.toString() || "1")
     setMessage(festival?.message || "")
-  }
-  if (open && !festival && lastFestivalId !== null) {
-    setLastFestivalId(null); setName(""); setMonth("1"); setDay("1"); setMessage("")
-  }
+  }, [open, festival])
 
   const monthNum = parseInt(month)
   const daysInMonth = getDaysInMonth(monthNum)

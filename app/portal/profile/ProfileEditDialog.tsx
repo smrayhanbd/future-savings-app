@@ -47,8 +47,8 @@ export default function ProfileEditDialog({ member }: { member: EditableMember }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 border border-slate-200 bg-white hover:bg-slate-100 h-9 px-3 cursor-pointer outline-none dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 bg-white/80 dark:bg-slate-900/80">
-        <Pencil className="h-3 w-3" /> Edit Info
+      <DialogTrigger className="inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 border border-[var(--border-base)] bg-[var(--control-bg)] text-secondary-ink hover:border-brand hover:text-primary-ink px-3 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2">
+        <Pencil className="h-3.5 w-3.5" /> Edit Info
       </DialogTrigger>
       <DialogContent className="max-w-lg bg-white dark:bg-slate-950 rounded-2xl">
         <DialogHeader>

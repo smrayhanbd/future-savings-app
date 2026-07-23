@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import MySavingsClient from "./MySavingsClient"
 import PrintButton from "@/components/portal/PrintButton"
+import { plain } from "@/lib/serialize"
 import { Wallet, TrendingUp, TrendingDown, Receipt, Building2 } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -122,7 +123,7 @@ export default async function MySavingsPage() {
 
       {/* Withdrawal requests + history (on-screen only) */}
       <div className="portal-no-print space-y-6">
-        <MySavingsClient memberId={member.id} currentBalance={currentBalance} requests={member.requests} />
+        <MySavingsClient memberId={member.id} currentBalance={currentBalance} requests={plain(member.requests)} />
 
         <Card className="bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800/70 shadow-sm rounded-2xl overflow-hidden">
           <CardHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200/60 dark:border-slate-800/60 px-6 py-4 flex flex-row items-center justify-between">

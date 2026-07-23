@@ -206,7 +206,7 @@ export default function BankAccountsClient({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* LEFT: Add/Edit form */}
         <div className="lg:col-span-1">
-          <SectionCard title={editing ? "Edit Account" : "Add Account"} icon={Plus} className="lg:sticky lg:top-6">
+          <SectionCard title={editing ? "Edit Account" : "Add Account"} icon={<Plus />} className="lg:sticky lg:top-6">
             <div className="space-y-3">
               <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm() }}>
                 <DialogTrigger

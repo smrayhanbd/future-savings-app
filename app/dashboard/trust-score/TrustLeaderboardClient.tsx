@@ -81,7 +81,7 @@ export default function TrustLeaderboardClient({ members }: { members: LeaderMem
       </div>
 
       {/* Leaderboard */}
-      <SectionCard title="Member Ranking" icon={Trophy as LucideIcon} accent="gold" bodyClassName="p-0">
+      <SectionCard title="Member Ranking" icon={<Trophy />} accent="gold" bodyClassName="p-0">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

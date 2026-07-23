@@ -94,7 +94,7 @@ export default function OrganizationForm({ initial }: { initial: InitialData }) 
       />
 
       {/* Identity */}
-      <SectionCard title="Identity" icon={Building2}>
+      <SectionCard title="Identity" icon={<Building2 />}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="name">Organization Name *</Label>
@@ -131,7 +131,7 @@ export default function OrganizationForm({ initial }: { initial: InitialData }) 
       </SectionCard>
 
       {/* Contact + Address */}
-      <SectionCard title="Contact & Address" icon={MapPin} accent="emerald">
+      <SectionCard title="Contact & Address" icon={<MapPin />} accent="emerald">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="email"><Mail className="mr-1 inline h-3.5 w-3.5" />Email</Label>
@@ -156,7 +156,7 @@ export default function OrganizationForm({ initial }: { initial: InitialData }) 
       </SectionCard>
 
       {/* Legal / Registration */}
-      <SectionCard title="Legal / Registration" icon={Scale} accent="gold">
+      <SectionCard title="Legal / Registration" icon={<Scale />} accent="gold">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2"><Label htmlFor="regNo">Registration No.</Label><Input id="regNo" value={form.regNo} onChange={setField("regNo")} placeholder="Cooperative society reg. no." className={fieldCls} /></div>
           <div className="space-y-2"><Label htmlFor="licenseNo">License No.</Label><Input id="licenseNo" value={form.licenseNo} onChange={setField("licenseNo")} placeholder="Operating license no." className={fieldCls} /></div>
@@ -166,7 +166,7 @@ export default function OrganizationForm({ initial }: { initial: InitialData }) 
       </SectionCard>
 
       {/* Social */}
-      <SectionCard title="Social Links" icon={Share2} accent="violet">
+      <SectionCard title="Social Links" icon={<Share2 />} accent="violet">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="space-y-2"><Label htmlFor="facebook">Facebook</Label><Input id="facebook" value={form.facebook} onChange={setField("facebook")} placeholder="https://facebook.com/…" className={fieldCls} /></div>
           <div className="space-y-2"><Label htmlFor="whatsapp">WhatsApp</Label><Input id="whatsapp" value={form.whatsapp} onChange={setField("whatsapp")} placeholder="https://wa.me/8801…" className={fieldCls} /></div>

@@ -144,7 +144,7 @@ export default async function PortalDashboardPage() {
           className="lg:col-span-2"
           title="Savings Trend"
           subtitle="Last 6 months"
-          icon={TrendingUp}
+          icon={<TrendingUp />}
           action={
             <Link href="/portal/savings">
               <Button variant="ghost" size="sm" className="text-brand hover:bg-brand-gradient-soft">
@@ -156,7 +156,7 @@ export default async function PortalDashboardPage() {
           <Sparkline data={trend} height={64} />
         </SectionCard>
 
-        <SectionCard title="Active Loans" icon={HandCoins} accent="gold">
+        <SectionCard title="Active Loans" icon={<HandCoins />} accent="gold">
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-inset p-3">
@@ -189,7 +189,7 @@ export default async function PortalDashboardPage() {
       {/* Lower split: meetings + recent transactions */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Upcoming Meetings */}
-        <SectionCard title="Upcoming Meetings" icon={CalendarDays}>
+        <SectionCard title="Upcoming Meetings" icon={<CalendarDays />}>
           <div className="space-y-3">
             {meetings.length === 0 ? (
               <div className="py-8 text-center">
@@ -226,7 +226,7 @@ export default async function PortalDashboardPage() {
         {/* Recent Transactions */}
         <SectionCard
           title="Recent Transactions"
-          icon={Receipt}
+          icon={<Receipt />}
           action={
             <Link href="/portal/savings">
               <Button variant="ghost" size="sm" className="text-brand hover:bg-brand-gradient-soft">

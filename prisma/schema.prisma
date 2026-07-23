@@ -845,6 +845,22 @@ model ChargeType {
   createdAt DateTime @default(now())
 }
 
+// ====================== FEES & CHARGE SETUP — CHARGE TYPE ====================
+// Backs the "Charge Type" tab on the Fees & Charge Setup page. Each row maps a
+// human-friendly label to a TransactionSubType CHARGE enum value, with an
+// active/inactive toggle. The Charge Management page's "Charge Type" dropdown
+// shows only rows where isActive = true and writes the enumValue to
+// Transaction.subType (which is a Postgres enum, so it must stay in sync with
+// the TransactionSubType enum declared above).
+model ChargeTypeConfig {
+  id         String   @id @default(uuid())
+  enumValue  String   @unique // must match a TransactionSubType CHARGE member
+  label      String   // user-editable display name
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 // ====================== SOMITI SETTINGS — BANK ACCOUNTS ======================
 // Backs the "Somiti Settings → Active Bank Accounts" page. Each row maps a
 // payment method (Cash / Bank / Mobile) to a Chart-of-Accounts (COA) Account

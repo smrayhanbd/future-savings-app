@@ -46,6 +46,15 @@ function smtpOptionsForProvider(s: MailSettingsRow): nodemailer.TransportOptions
   const enc = (s.encryption || "tls").toLowerCase()
   const port = s.smtpPort ?? 587
   const password = s.smtpPasswordEnc ? decrypt(s.smtpPasswordEnc) : ""
+  // Apply the admin-set connection timeout (stored in seconds) to every SMTP
+  // phase so a blocked/unreachable server fails fast instead of hanging the
+  // request indefinitely. Nodemailer takes these in milliseconds.
+  const timeoutMs = Math.max(5, s.timeoutSec ?? 30) * 1000
+  const timeouts = {
+    connectionTimeout: timeoutMs,
+    greetingTimeout: timeoutMs,
+    socketTimeout: timeoutMs,
+  }
 
   // Provider-specific SMTP host/defaults when not overridden by the admin.
   let host = s.smtpHost || ""
@@ -55,6 +64,7 @@ function smtpOptionsForProvider(s: MailSettingsRow): nodemailer.TransportOptions
       return {
         service: "gmail",
         auth: { user: s.smtpUsername || "", pass: password },
+        ...timeouts,
       } as nodemailer.TransportOptions
     case "m365":
       host = host || "smtp.office365.com"
@@ -73,6 +83,7 @@ function smtpOptionsForProvider(s: MailSettingsRow): nodemailer.TransportOptions
     secure: enc === "ssl" || (enc === "tls" && port === 465),
     requireTLS: enc === "tls",
     auth: { user: s.smtpUsername || "", pass: password },
+    ...timeouts,
   } as nodemailer.TransportOptions
 }
 

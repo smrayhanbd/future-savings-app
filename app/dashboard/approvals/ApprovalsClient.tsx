@@ -155,7 +155,7 @@ export default function ApprovalsClient({ pending, approved, rejected }: Props) 
         </TabsList>
 
         <TabsContent value="pending" className="mt-4">
-          <SectionCard title="Application Queue" icon={Users} accent="blue" bodyClassName="p-0">
+          <SectionCard title="Application Queue" icon={<Users />} accent="blue" bodyClassName="p-0">
             <MemberTable
               members={pending}
               emptyTitle="You're all caught up!"
@@ -168,7 +168,7 @@ export default function ApprovalsClient({ pending, approved, rejected }: Props) 
         </TabsContent>
 
         <TabsContent value="approved" className="mt-4">
-          <SectionCard title="Recently Approved" icon={CheckCircle} accent="emerald" bodyClassName="p-0">
+          <SectionCard title="Recently Approved" icon={<CheckCircle />} accent="emerald" bodyClassName="p-0">
             <MemberTable
               members={approved}
               emptyTitle="No approved members yet"
@@ -181,7 +181,7 @@ export default function ApprovalsClient({ pending, approved, rejected }: Props) 
         </TabsContent>
 
         <TabsContent value="rejected" className="mt-4">
-          <SectionCard title="Rejected Applications" icon={XCircle} accent="crimson" bodyClassName="p-0">
+          <SectionCard title="Rejected Applications" icon={<XCircle />} accent="crimson" bodyClassName="p-0">
             <MemberTable
               members={rejected}
               emptyTitle="No rejected applications"

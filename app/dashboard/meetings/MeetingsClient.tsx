@@ -124,7 +124,7 @@ function UpcomingTab({ meetings }: { meetings: MeetingSerialized[] }) {
   return (
     <div className="grid gap-8 lg:grid-cols-3">
       <div className="lg:col-span-1">
-        <SectionCard title="Declare New Meeting" icon={CalendarDays}>
+        <SectionCard title="Declare New Meeting" icon={<CalendarDays />}>
           <DeclareMeetingForm />
         </SectionCard>
       </div>
@@ -495,7 +495,7 @@ function SummaryPill({ label, value, tone }: { label: string; value: number; ton
 
 function PermissionsPanel({ adminUsers }: { adminUsers: AdminUser[] }) {
   return (
-    <SectionCard title="Authorized Users" icon={Shield} accent="violet">
+    <SectionCard title="Authorized Users" icon={<Shield />} accent="violet">
       <p className="t-caption mb-3 text-muted-ink">
         Grant these so normal admins can submit attendance or upload minutes once. After submission the record locks; only you can edit.
       </p>

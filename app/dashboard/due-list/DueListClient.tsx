@@ -152,7 +152,7 @@ export default function DueListClient({ members }: { members: DueMember[] }) {
       </div>
 
       {/* Due List Table */}
-      <SectionCard icon={AlertTriangle} accent="amber" title="Members Due List">
+      <SectionCard icon={<AlertTriangle />} accent="amber" title="Members Due List">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
