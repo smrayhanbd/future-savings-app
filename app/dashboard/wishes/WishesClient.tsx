@@ -127,7 +127,6 @@ export default function WishesClient({
   return (
     <div className="space-y-8">
       <PageHeader
-        overline="Operations & Management"
         title="Special Wishes"
         subtitle="Automatically send birthday, anniversary, joining day & festival wishes to members every year."
         actions={

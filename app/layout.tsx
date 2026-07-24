@@ -28,18 +28,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* Anti-FOUC theme init. Rendered server-side in <head> so next-themes
-            does not need to emit a <script> from the client component tree
-            (which React 19 flags as "Encountered a script tag"). Mirrors the
-            inline script next-themes would otherwise inject. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme')||'dark';var m=document.documentElement;var d=t==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;m.classList.remove('light','dark');m.classList.add(d);m.style.colorScheme=d;}catch(e){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark';}})();`,
-          }}
-        />
-      </head>
+      <head />
       <body className={`${inter.variable} ${jakarta.variable} font-sans antialiased`}>
+        {/* Anti-FOUC theme init is handled by next-themes' ThemeProvider
+            (in components/Providers), which injects its own synchronous
+            inline script into the server-rendered HTML. That built-in script
+            sets the theme class before first paint, so no manual <Script>
+            is needed here. Avoiding next/script in the layout also clears
+            the React 19 "Encountered a script tag" warning. */}
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -20,13 +20,17 @@ import {
 import {
   LayoutDashboard, Users, Clock, PieChart, Landmark,
   Receipt, Printer, CalendarCheck, Briefcase, Gem,
-  CheckSquare, Heart, UserCog, UserPen, Settings, Cloud, LogOut,
+  CheckSquare, Heart, UserCog, UserPen, Settings, Cloud, LogOut, ShieldCheck,
   ChevronLeft, ChevronRight, ChevronDown, Building2,
   SlidersHorizontal, FilePlus2, HandCoins, AlertTriangle,
   Scale, Award, ArrowDownToLine, ArrowUpFromLine, CheckCheck,
   Wallet, History,
   type LucideIcon
 } from "lucide-react"
+
+// RBAC — filter nav items by the current user's effective permissions.
+import { usePermissions } from "@/lib/permissions/client"
+import { ACCORDION_GROUPS } from "@/lib/permissions/permission-registry"
 
 // --- Types ---
 interface NavItem {
@@ -43,7 +47,9 @@ interface MenuGroup {
 }
 
 // --- Menu Data ---
-const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
+// Exported so the permission-filtering logic (and tests) can share the
+// canonical structure with the registry in lib/permissions/permission-registry.ts.
+export const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
   {
     title: "Overview",
     items: [ { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" } ]
@@ -53,7 +59,7 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
     items: [
       { label: "Member Panel", icon: Users, href: "/dashboard/members" },
       { label: "Pending Approvals", icon: Clock, href: "/dashboard/approvals" },
-      { label: "Profile Update Approvals", icon: UserPen, href: "/dashboard/profile-approvals" },
+      { label: "Member's Pending Req.", icon: UserPen, href: "/dashboard/profile-approvals" },
       {
         label: "Trust Score & Badges",
         icon: Award,
@@ -69,12 +75,12 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
   {
     title: "Transactions",
     items: [
-      { label: "Deposit Transactions", icon: ArrowDownToLine, href: "/dashboard/transactions/deposits" },
-      { label: "Withdrawal Transactions", icon: ArrowUpFromLine, href: "/dashboard/transactions/withdrawals" },
-      { label: "Income Distribution", icon: PieChart, href: "/dashboard/transactions/income-distribution" },
-      { label: "Charge Management", icon: Receipt, href: "/dashboard/transactions/charges" },
-      { label: "Fees & Charge Setup", icon: SlidersHorizontal, href: "/dashboard/collection-setup" },
       { label: "Members Due List", icon: AlertTriangle, href: "/dashboard/due-list" },
+      { label: "Deposit Entry", icon: ArrowDownToLine, href: "/dashboard/transactions/deposits" },
+      { label: "Withdrawal Entry", icon: ArrowUpFromLine, href: "/dashboard/transactions/withdrawals" },
+      { label: "Distribute Income", icon: PieChart, href: "/dashboard/distributions" },
+      { label: "Apply Charges", icon: Receipt, href: "/dashboard/transactions/charges" },
+
       {
         label: "Transaction Approvals",
         icon: CheckCheck,
@@ -85,7 +91,8 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
         ]
       },
       { label: "Cash Closing", icon: Wallet, href: "/dashboard/cash-closing" },
-      { label: "Transaction History", icon: History, href: "/dashboard/transactions" }
+      { label: "Transaction History", icon: History, href: "/dashboard/transactions" },
+      { label: "Fees & Charge Setup", icon: SlidersHorizontal, href: "/dashboard/collection-setup" }
     ]
   },
    {
@@ -140,6 +147,7 @@ const SIDEBAR_MENU_GROUPS: MenuGroup[] = [
     title: "System & Settings",
     items: [
       { label: "User Control", icon: UserCog, href: "/dashboard/users" },
+      { label: "Role Permissions", icon: ShieldCheck, href: "/dashboard/permissions" },
       {
         label: "Somiti Settings",
         icon: Settings,
@@ -174,9 +182,39 @@ interface SidebarContentProps {
   onNavigate?: () => void
 }
 
+/**
+ * Filter the sidebar menu by the user's permissions.
+ *   • A menu GROUP is shown only if at least one of its items is visible.
+ *   • A plain NavItem is shown if the user can access its page.
+ *   • An accordion NavItem (subItems) is shown if the user can access the
+ *     parent page OR any of its child pages. Each subItem is filtered too.
+ *
+ * Accordion parents map to ACCORDION_GROUPS (parent label → child pages) so a
+ * parent like "Trust Score & Badges" appears only if a child is visible.
+ */
+function useFilteredMenu(canAccessPage: (g: string, p: string) => boolean): MenuGroup[] {
+  const isItemVisible = (groupTitle: string, item: NavItem): boolean => {
+    if (item.subItems && item.subItems.length > 0) {
+      // Accordion parent: visible if the parent page itself is accessible OR
+      // any registered child of this accordion is accessible.
+      const childPages = ACCORDION_GROUPS[item.label]?.pages ?? []
+      const anyChild = childPages.some((p) => canAccessPage(groupTitle, p))
+      return anyChild
+    }
+    return canAccessPage(groupTitle, item.label)
+  }
+
+  return SIDEBAR_MENU_GROUPS.map((group) => {
+    const items = group.items.filter((item) => isItemVisible(group.title, item))
+    return { ...group, items }
+  }).filter((group) => group.items.length > 0)
+}
+
 function SidebarContent({ isExpanded, setExpanded, onNavigate }: SidebarContentProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { canAccessPage } = usePermissions()
+  const menuGroups = useFilteredMenu(canAccessPage)
 
   return (
     <aside
@@ -217,7 +255,7 @@ function SidebarContent({ isExpanded, setExpanded, onNavigate }: SidebarContentP
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-3">
         <TooltipProvider>
-          {SIDEBAR_MENU_GROUPS.map((group) => (
+          {menuGroups.map((group) => (
             <div key={group.title} className="mb-4">
               {/* Section Header */}
               {isExpanded ? (
@@ -303,7 +341,9 @@ function SidebarContent({ isExpanded, setExpanded, onNavigate }: SidebarContentP
                             {linkContent}
                           </AccordionTrigger>
                           <AccordionContent className="mt-1 space-y-0.5 overflow-hidden pb-0">
-                            {item.subItems!.map((sub) => {
+                            {item.subItems!
+                              .filter((sub) => canAccessPage(group.title, sub.label))
+                              .map((sub) => {
                               const subActive = checkIsActive(pathname, sub.href)
                               return (
                                 <Link

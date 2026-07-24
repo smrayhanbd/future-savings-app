@@ -181,7 +181,6 @@ export default function BankAccountsClient({
   return (
     <div className="space-y-8">
       <PageHeader
-        overline="Somiti Settings"
         title="Active Bank Accounts"
         subtitle="Map each Collection Method to the Chart-of-Accounts account that should receive deposits. The Deposit form auto-selects the default account for the chosen method."
       />

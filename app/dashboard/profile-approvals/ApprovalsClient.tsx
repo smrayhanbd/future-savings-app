@@ -1,5 +1,9 @@
 "use client"
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// `payload` is an arbitrary JSON object read from the ProfileUpdateRequest.payload
+// (Prisma `Json` column), so it is intentionally typed loosely for rendering.
+
 import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -31,7 +35,7 @@ import {
 
 export interface ProfileApprovalItem {
   id: string
-  payload: Record<string, string>
+  payload: Record<string, any>
   status: string
   createdAt: string
   member: {
@@ -44,11 +48,8 @@ export interface ProfileApprovalItem {
   }
 }
 
-interface Props {
-  items: ProfileApprovalItem[]
-}
-
-// Friendly labels for the raw payload keys stored in ProfileUpdateRequest.payload.
+// Friendly labels for the raw payload keys stored in ProfileUpdateRequest.payload
+// (legacy flat payloads only). Structured payloads are summarized below.
 const FIELD_LABELS: Record<string, string> = {
   firstName: "First Name",
   lastName: "Last Name",
@@ -60,6 +61,81 @@ const FIELD_LABELS: Record<string, string> = {
   occupation: "Occupation",
   profession: "Profession",
   photoUrl: "New Photo",
+}
+
+// Friendly labels for the structured (full) payload sub-keys.
+const PERSONAL_LABELS: Record<string, string> = {
+  firstName: "First Name", lastName: "Last Name", fatherName: "Father", motherName: "Mother",
+  spouseName: "Spouse", dateOfBirth: "DOB", gender: "Gender", maritalStatus: "Marital Status",
+  marriageDate: "Marriage Date", religion: "Religion", nationality: "Nationality",
+  bloodGroup: "Blood Group", profession: "Profession",
+}
+const CONTACT_LABELS: Record<string, string> = {
+  phone: "Phone", email: "Email", emergencyPhone: "Emergency Phone",
+  emergencyContactName: "Emergency Contact", idType: "ID Type", idNumber: "ID Number",
+}
+const BANK_LABELS: Record<string, string> = {
+  accountName: "Account Name", accountNumber: "Account No", bankName: "Bank",
+  branch: "Branch", routingNumber: "Routing",
+}
+
+// Turn a structured payload into a flat list of [label, value] summary chips.
+function summarizeStructuredPayload(payload: Record<string, any>): Array<[string, string]> {
+  const out: Array<[string, string]> = []
+  const push = (label: string, value: any) => {
+    if (value === null || value === undefined || value === "") return
+    out.push([label, String(value)])
+  }
+
+  const personal = payload.personal || {}
+  Object.entries(PERSONAL_LABELS).forEach(([k, label]) => {
+    if (personal[k] !== undefined) {
+      if (k === "bloodGroup") {
+        push(label, String(personal[k]).replace("_POSITIVE", "+").replace("_NEGATIVE", "-"))
+      } else {
+        push(label, personal[k])
+      }
+    }
+  })
+
+  const contact = payload.contact || {}
+  Object.entries(CONTACT_LABELS).forEach(([k, label]) => {
+    if (contact[k] !== undefined) push(label, contact[k])
+  })
+
+  const bank = payload.bank || {}
+  const bankHas = Object.values(bank).some((v) => v)
+  if (bankHas) {
+    Object.entries(BANK_LABELS).forEach(([k, label]) => {
+      if (bank[k] !== undefined) push(label, bank[k])
+    })
+  }
+
+  if (payload.currentAddress && (payload.currentAddress.village || payload.currentAddress.district)) {
+    const a = payload.currentAddress
+    push("Current Addr", [a.village, a.district].filter(Boolean).join(", "))
+  }
+  if (payload.permanentAddress && (payload.permanentAddress.village || payload.permanentAddress.district)) {
+    const a = payload.permanentAddress
+    push("Permanent Addr", [a.village, a.district].filter(Boolean).join(", "))
+  }
+
+  if (Array.isArray(payload.nominees) && payload.nominees.length > 0) {
+    push("Nominees", payload.nominees.map((n: any) => `${n.name} (${n.share || 0}%)`).join(", "))
+  }
+
+  if (payload.memberPhotoUrl) out.push(["New Photo", payload.memberPhotoUrl])
+  if (payload.idDocumentUrl) out.push(["New ID Document", payload.idDocumentUrl])
+
+  return out
+}
+
+function isStructuredPayload(payload: Record<string, any>): boolean {
+  return Boolean(payload && (payload.personal || payload.contact || payload.bank || payload.nominees))
+}
+
+interface Props {
+  items: ProfileApprovalItem[]
 }
 
 export default function ApprovalsClient({ items }: Props) {
@@ -100,7 +176,13 @@ export default function ApprovalsClient({ items }: Props) {
   }
 
   const renderRow = (r: ProfileApprovalItem) => {
-    const changes = Object.entries(r.payload || {}).filter(([k]) => k !== "rejectReason")
+    // Normalize to a flat [label, value] summary, whether the payload is the
+    // legacy flat string map or the new structured payload.
+    const changes: Array<[string, string]> = isStructuredPayload(r.payload || {})
+      ? summarizeStructuredPayload(r.payload || {})
+      : Object.entries(r.payload || {})
+          .filter(([k]) => k !== "rejectReason")
+          .map(([k, v]) => [FIELD_LABELS[k] ?? k, String(v)] as [string, string])
     return (
       <TableRow key={r.id}>
         <TableCell>
@@ -131,36 +213,31 @@ export default function ApprovalsClient({ items }: Props) {
         <TableCell>
           {changes.length > 0 ? (
             <div className="flex flex-wrap gap-1.5 max-w-md">
-              {changes.map(([key, val]) =>
-                key === "photoUrl" ? (
+              {changes.map(([label, val]) => {
+                const isPhoto = label === "New Photo" || label === "New ID Document"
+                const isUrl = typeof val === "string" && val.startsWith("http")
+                return (
                   <span
-                    key={key}
+                    key={label + val}
                     className="inline-flex items-center gap-1 text-[11px] rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-0.5"
                   >
                     <Hash className="h-2.5 w-2.5 text-slate-400" />
-                    <span className="text-slate-400">New Photo</span>
-                    {typeof val === "string" && val.startsWith("http") && (
+                    <span className="text-slate-400">{label}:</span>
+                    {isPhoto && isUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={val}
-                        alt="Requested"
+                        alt={label}
                         className="h-7 w-7 rounded object-cover ml-1"
                       />
+                    ) : (
+                      <span className="font-medium text-slate-700 dark:text-slate-200 truncate max-w-[160px]">
+                        {val}
+                      </span>
                     )}
                   </span>
-                ) : (
-                  <span
-                    key={key}
-                    className="inline-flex items-center gap-1 text-[11px] rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-0.5"
-                  >
-                    <Hash className="h-2.5 w-2.5 text-slate-400" />
-                    <span className="text-slate-400">{FIELD_LABELS[key] ?? key}:</span>
-                    <span className="font-medium text-slate-700 dark:text-slate-200 truncate max-w-[160px]">
-                      {String(val)}
-                    </span>
-                  </span>
                 )
-              )}
+              })}
             </div>
           ) : (
             <span className="text-xs text-slate-400">No field changes recorded.</span>

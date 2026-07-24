@@ -130,7 +130,7 @@ export default function ApprovalsClient({ pending, approved, rejected }: Props) 
   return (
     <div className="space-y-8">
       <PageHeader
-        overline="Member Management"
+
         title="Pending Approvals"
         subtitle="Review, approve, and reject member applications."
         actions={

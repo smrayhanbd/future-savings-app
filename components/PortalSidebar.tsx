@@ -35,10 +35,9 @@ function buildMenu(pendingRequests = 0): MenuGroup[] {
     {
       title: "Finance",
       items: [
-        { label: "My Savings", icon: Wallet, href: "/portal/savings" },
-        { label: "My Loans", icon: HandCoins, href: "/portal/loans" },
-        { label: "Apply for Loan", icon: FilePlus2, href: "/portal/loans/apply" },
-        { label: "My Trust Score", icon: ShieldCheck, href: "/portal/trust-score" },
+        { label: "View Savings", icon: Wallet, href: "/portal/savings" },
+        { label: "Manage Loans", icon: HandCoins, href: "/portal/loans" },
+        { label: "View Trust Score", icon: ShieldCheck, href: "/portal/trust-score" },
       ],
     },
     {

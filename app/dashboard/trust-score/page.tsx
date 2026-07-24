@@ -31,7 +31,7 @@ export default async function TrustLeaderboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        overline="Member Management"
+     
         title="Trust Score Leaderboard"
         subtitle="Member performance ranking by Trust Score. Scores update automatically from savings, loans, attendance, fines, and referrals."
         actions={

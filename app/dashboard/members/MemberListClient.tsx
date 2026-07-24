@@ -467,7 +467,6 @@ export default function MemberListClient({ members }: { members: Member[] }) {
   return (
     <div className="space-y-8">
       <PageHeader
-        overline="Member Management"
         title="Members"
         subtitle="Manage your foundation members, KYC, and finances."
         actions={

@@ -36,8 +36,15 @@ export const INVESTMENT_EXPENSE_CODES = {
   WRITE_OFF: "EXPENSE-INVESTMENT-WRITEOFF",
 } as const
 
-// ── Tax liability accounts ─────────────────────────────────────────────
+// ── Tax accounts ───────────────────────────────────────────────────────
+// NOTE on TDS direction:
+//   • Investment income — tax is deducted at source BY the payer and already
+//     deposited to NBR on our behalf. We hold a claim against future tax, so
+//     it is an ASSET → TDS_RECEIVABLE (debit nature).
+//   • Project revenue   — tax/VAT is collected FROM customers and owed back
+//     to NBR, so it is a LIABILITY → TDS_PAYABLE (credit nature).
 export const TAX_CODES = {
+  TDS_RECEIVABLE: "TDS-RECEIVABLE",
   TDS_PAYABLE: "TDS-PAYABLE",
   CGT_PAYABLE: "CGT-PAYABLE",
 } as const

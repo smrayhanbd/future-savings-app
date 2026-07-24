@@ -226,6 +226,9 @@ model Member {
   projectsManaged   Project[] @relation("ProjectManager")
   projectsSponsored Project[] @relation("ProjectSponsor")
 
+  // Income Distribution Module — shares credited to this member
+  distributionShares DistributionShare[]
+
   // Audit
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -328,6 +331,9 @@ model Savings {
   // Transactions Module — the member-facing mirror of an approved Transaction.
   transactionMirror Transaction?
 
+  // Income Distribution Module — the PROFIT credit row created for this share.
+  distributionShare DistributionShare?
+
   @@index([memberId])
 }
 
@@ -356,6 +362,12 @@ model User {
   lastLogin   DateTime?
   createdBy   String?
   permissions UserPermission[]
+
+  // RBAC Module — new granular role/permission system
+  roles           UserRole[]
+  permOverrides   UserPermissionOverride[]
+  rbacAuditActor AuditLog[] @relation("AuditActor")
+  rbacAuditTarget AuditLog[] @relation("AuditTargetUser")
 
   // Task Management Module — relations
   taskAssignees         TaskAssignee[]        @relation("TaskAssigneeUser")
@@ -411,6 +423,33 @@ enum VoucherType {
 enum JournalStatus {
   DRAFT // Editable, not yet affecting balances
   POSTED // Posted to the ledger; balances updated
+}
+
+// ====================== INCOME DISTRIBUTION MODULE ======================
+// Distributes income (investment income, project profit, bank interest, etc.)
+// to members pro-rata by their fund share at a snapshot date. Each posting
+// writes a balanced GL voucher AND per-member Savings mirror rows so member
+// balances rise immediately while the aggregate liability stays in sync.
+
+// Where the distributed income came from.
+enum DistributionSourceType {
+  INVESTMENT // launched from an Investment — distributes its recorded income
+  PROJECT // launched from a Project — distributes net profit (revenue − expense)
+  GENERAL // bank interest / other income not tied to a specific entity
+}
+
+// How each member's share is computed.
+enum DistributionBasis {
+  PRO_RATA // proportional to fund at snapshotDate (cooperative standard)
+  EQUAL // equal split among eligible members
+  MANUAL // admin-entered weights per member
+}
+
+// Lifecycle of a distribution run.
+enum DistributionStatus {
+  DRAFT // shares computed, voucher not yet posted
+  POSTED // voucher posted; member Savings credited; balances updated
+  REVERSED // reversed by a reversing voucher; mirror rows removed
 }
 
 model Account {
@@ -488,6 +527,10 @@ model JournalEntry {
   investmentValuations InvestmentValuation[]
   projectExpenses      ProjectExpense[]
   projectRevenues      ProjectRevenue[]
+
+  // Income Distribution Module — posted distribution & its reversal voucher
+  postedDistributions     IncomeDistribution[] @relation("DistributionPostedJournal")
+  reversedDistributions   IncomeDistribution[] @relation("DistributionReversalJournal")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -736,9 +779,10 @@ model PasswordReset {
 
 model Notification {
   id        String   @id @default(uuid())
-  type      String   @default("SYSTEM") // SYSTEM, SMS_ERROR
+  type      String   @default("SYSTEM") // SYSTEM, SMS_ERROR, MEMBER_REQUEST, PROFILE_REQUEST, LOAN_REQUEST
   title     String
   message   String
+  link      String?  // admin page to open when this notification is clicked
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 }
@@ -840,6 +884,140 @@ model UserPermission {
 
   @@unique([userId, permission])
   @@index([userId])
+}
+
+// ====================== RBAC MODULE ======================
+// Granular role-based access control at 4 levels: menu group → page → tab →
+// action. Replaces the flat UserPermission + role-string model above; the
+// resolver (lib/permissions/resolver.ts) reads BOTH during migration so old
+// grants keep working while the new system is adopted.
+//
+// A user's effective permissions = union of all their roles' permissions,
+// then UserPermissionOverride applied on top (DENY wins over ALLOW, ALLOW can
+// add a permission no role grants). Super Admin role short-circuits to all.
+
+// ── Effect of a per-user override ────────────────────────────────────────
+enum OverrideEffect {
+  ALLOW // grant a permission even if no role provides it
+  DENY // revoke a permission even if a role grants it (DENY wins)
+}
+
+// ── Role: a named bundle of permissions ─────────────────────────────────
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique // e.g. "Super Admin", "Cashier", "Auditor"
+  description String?
+  // System roles are seeded and cannot be deleted or renamed (Super Admin,
+  // Treasurer/Cashier, Auditor, Committee Member, Member Support). They may
+  // still have their permission set edited.
+  isSystem    Boolean  @default(false)
+  // Marker for the single all-access role so the resolver can short-circuit
+  // without querying RolePermission rows.
+  isSuperAdmin Boolean @default(false)
+
+  users       UserRole[]
+  permissions RolePermission[]
+  auditTargets AuditLog[] @relation("AuditTargetRole")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isSystem])
+}
+
+// ── User ↔ Role join (a user may hold several roles) ────────────────────
+model UserRole {
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId     String
+  role       Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now())
+  assignedBy String? // actor userId who granted the role
+
+  @@id([userId, roleId])
+  @@index([roleId])
+}
+
+// ── Permission: one node in the 4-level hierarchy ───────────────────────
+// The natural key is (menuGroup, page, tab, action):
+//   menuGroup only : ("Finance & Accounting", "", "", "")
+//   page           : ("Finance & Accounting", "Loan Management", "", "")
+//   tab            : ("Finance & Accounting", "Loan Management", "pending", "")
+//   action         : ("Finance & Accounting", "Loan Management", "", "approve_loan")
+//
+// IMPORTANT: tab & action use "" (empty string) rather than NULL. A compound
+// unique on nullable columns can't be used for lookups (SQL NULL ≠ NULL), so
+// we use a sentinel empty string to make every natural key a deterministic
+// 4-tuple of non-null strings. The "::"-separated permission KEY still maps
+// cleanly: an empty segment in the key == "" in the column.
+model Permission {
+  id          String  @id @default(uuid())
+  menuGroup   String  // matches MenuGroup.title in SIDEBAR_MENU_GROUPS
+  page        String  // matches a NavItem.label (or "" for group-only nodes)
+  tab         String  @default("") // tab slug, e.g. "pending"; "" = whole page
+  action      String  @default("") // action key, e.g. "approve_loan"; "" = whole tab/page
+  description String?
+
+  roles       RolePermission[]
+  overrides   UserPermissionOverride[]
+
+  @@unique([menuGroup, page, tab, action])
+  @@index([menuGroup])
+  @@index([page])
+}
+
+// ── Role ↔ Permission join ──────────────────────────────────────────────
+model RolePermission {
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([roleId, permissionId])
+}
+
+// ── Per-user override of the role-derived permission set ────────────────
+model UserPermissionOverride {
+  id           String         @id @default(uuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission     @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  effect       OverrideEffect
+  reason       String?        @db.Text // audit note: why this override exists
+  createdAt    DateTime       @default(now())
+  createdBy    String?        // actor userId
+
+  // A user can have at most one override (ALLOW or DENY) per permission.
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@index([permissionId])
+}
+
+// ── Append-only trail of every RBAC mutation ────────────────────────────
+// Distinct from SettingsAuditLog / TaskAuditLog / EntityAuditLog which are
+// scoped to their own modules. This one is dedicated to role/permission
+// changes (ROLE_ASSIGNED, ROLE_REVOKED, PERMISSION_GRANTED, OVERRIDE_ADDED,
+// etc.) for compliance.
+model AuditLog {
+  id           String   @id @default(uuid())
+  actorId      String?
+  actor        User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  // Exactly one of targetUserId / targetRoleId is set per row.
+  targetUserId String?
+  targetUser   User?    @relation("AuditTargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+  targetRoleId String?
+  targetRole   Role?    @relation("AuditTargetRole", fields: [targetRoleId], references: [id], onDelete: Cascade)
+  action       String   // ROLE_CREATED, ROLE_ASSIGNED, PERMISSION_GRANTED, OVERRIDE_ADDED, ...
+  details      Json     // { permissionKey, effect, reason, ... }
+  createdAt    DateTime @default(now())
+
+  @@index([targetUserId, createdAt])
+  @@index([targetRoleId, createdAt])
+  @@index([action])
 }
 
 model ProfileUpdateRequest {
@@ -1849,6 +2027,8 @@ model Investment {
   exits        InvestmentExit[]
   valuations   InvestmentValuation[]
   projectLinks InvestmentProjectLink[]
+  // Income Distribution Module — distributions sourced from this investment's income
+  distributions IncomeDistribution[] @relation("InvestmentDistributions")
   auditLogs    EntityAuditLog[]        @relation("InvestmentAuditLogs")
 
   // ── Audit ───────────────────────────────────────────────────────────
@@ -2068,6 +2248,8 @@ model Project {
   revenues     ProjectRevenue[]
   milestones   ProjectMilestone[]
   projectLinks InvestmentProjectLink[]
+  // Income Distribution Module — distributions sourced from this project's profit
+  distributions IncomeDistribution[] @relation("ProjectDistributions")
   tasks        Task[]                  @relation("ProjectTasks")
   auditLogs    EntityAuditLog[]        @relation("ProjectAuditLogs")
 
@@ -2237,4 +2419,81 @@ model EntityAuditLog {
   @@index([entityType, investmentId, createdAt(sort: Desc)])
   @@index([entityType, projectId, createdAt(sort: Desc)])
   @@index([action])
+}
+
+// ── Income Distribution: a single distribution run (header) ─────────────
+model IncomeDistribution {
+  id             String                 @id @default(uuid())
+  distributionNo String                 @unique // e.g. DIST-2026-001
+  sourceType     DistributionSourceType
+  // Exactly one of investmentId / projectId is set when sourceType is not GENERAL.
+  investmentId   String?
+  investment     Investment?            @relation("InvestmentDistributions", fields: [investmentId], references: [id], onDelete: Restrict)
+  projectId      String?
+  project        Project?               @relation("ProjectDistributions", fields: [projectId], references: [id], onDelete: Restrict)
+
+  title          String
+  description    String?                @db.Text
+
+  basis          DistributionBasis      @default(PRO_RATA)
+  snapshotDate   DateTime // date fund shares are computed at (immutable once POSTED)
+
+  totalDistributable Decimal            @db.Decimal(16, 2) // amount being split
+  eligibleFund       Decimal            @db.Decimal(16, 2) // Σ eligible members' fund at snapshot (audit)
+  memberCount        Int               @default(0)
+
+  status DistributionStatus             @default(DRAFT)
+
+  // Posted voucher (Dr income / Cr MEMBER-SAVINGS-LIABILITY) and optional reversal.
+  journalEntryId       String?
+  journalEntry         JournalEntry?    @relation("DistributionPostedJournal", fields: [journalEntryId], references: [id], onDelete: Restrict)
+  reversalJournalId    String?
+  reversalJournal      JournalEntry?    @relation("DistributionReversalJournal", fields: [reversalJournalId], references: [id], onDelete: Restrict)
+  reversalReason       String?
+  reversedAt           DateTime?
+
+  postedAt   DateTime?
+  postedById String?
+  postedByName String?
+
+  shares DistributionShare[]
+
+  // Audit
+  createdBy     String?
+  createdById   String?
+  createdByName String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([sourceType])
+  @@index([investmentId])
+  @@index([projectId])
+  @@index([status])
+  @@index([snapshotDate])
+}
+
+// ── Income Distribution: one share per member (persisted, immutable) ────
+model DistributionShare {
+  id             String           @id @default(uuid())
+  distributionId String
+  distribution   IncomeDistribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+
+  memberId   String
+  member     Member           @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  memberNo   String // snapshot of Member.memberNo for audit/history
+  memberName String // snapshot of Member.fullName for audit/history
+
+  // Member's fund at snapshotDate — captured once, never recomputed.
+  fundAtSnapshot Decimal         @db.Decimal(16, 2)
+  weight         Decimal         @db.Decimal(10, 6) // 0–1 fraction of the total
+  amount         Decimal         @db.Decimal(16, 2) // this member's profit
+
+  // The PROFIT Savings mirror row created for this share on posting.
+  savingsMirrorId String?        @unique
+  savingsMirror   Savings?       @relation(fields: [savingsMirrorId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@unique([distributionId, memberId])
+  @@index([memberId])
 }

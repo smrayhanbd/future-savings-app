@@ -88,7 +88,6 @@ export default function OrganizationForm({ initial }: { initial: InitialData }) 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       <PageHeader
-        overline="Somiti Settings"
         title="Organization Info"
         subtitle="This information appears on money receipts, vouchers, and member ledgers."
       />

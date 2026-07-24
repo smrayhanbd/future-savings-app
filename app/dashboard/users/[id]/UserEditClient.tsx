@@ -30,6 +30,7 @@ import {
   resetUserPassword,
   grantPermission,
   revokePermission,
+  setUserRole,
 } from "@/app/actions/users"
 import { PERMISSION_GROUPS } from "@/lib/permissions"
 import { formatDate } from "@/lib/accounting"
@@ -41,6 +42,23 @@ import {
   Power,
   Lock,
 } from "lucide-react"
+import UserPermissionsCard from "./UserPermissionsCard"
+
+interface AssignedRole {
+  id: string
+  name: string
+  description: string | null
+  isSystem: boolean
+  isSuperAdmin: boolean
+  assignedAt: string
+}
+
+interface UserOverride {
+  id: string
+  effect: "ALLOW" | "DENY"
+  reason: string | null
+  permission: { id: string; menuGroup: string; page: string; tab: string; action: string }
+}
 
 interface UserData {
   id: string
@@ -53,10 +71,24 @@ interface UserData {
   createdAt: string
   createdBy: string | null
   permissions: string[]
+  // New RBAC data for the Permissions & Roles card.
+  assignedRoles: AssignedRole[]
+  overrides: UserOverride[]
+  effectiveKeys: string[]
+}
+
+interface SelectableRole {
+  id: string
+  name: string
+  description: string | null
+  isSystem: boolean
+  isSuperAdmin: boolean
 }
 
 interface Props {
   user: UserData
+  allRoles: SelectableRole[]
+  currentRoleId: string | null
   canManage: boolean
   currentUserId: string
 }
@@ -72,13 +104,13 @@ const PERM_LABELS: Record<string, string> = {
   USER_MANAGE: "Manage Users",
 }
 
-export default function UserEditClient({ user, canManage, currentUserId }: Props) {
+export default function UserEditClient({ user, allRoles, currentRoleId, canManage, currentUserId }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [name, setName] = useState(user.name ?? "")
   const [email, setEmail] = useState(user.email)
   const [phone, setPhone] = useState(user.phone ?? "")
-  const [role, setRole] = useState(user.role)
+  const [roleId, setRoleId] = useState<string>(currentRoleId ?? "")
   const [granted, setGranted] = useState<Set<string>>(new Set(user.permissions))
   const [pwOpen, setPwOpen] = useState(false)
   const [newPassword, setNewPassword] = useState("")
@@ -87,17 +119,31 @@ export default function UserEditClient({ user, canManage, currentUserId }: Props
   const isSuperUser = user.role === "SUPER_ADMIN"
 
   const handleSaveProfile = () => {
-    const formData = new FormData()
-    formData.set("name", name)
-    formData.set("email", email)
-    formData.set("phone", phone)
-    formData.set("role", role)
     startTransition(async () => {
+      // 1. Update profile fields (name/email/phone) via the legacy action.
+      //    Derive the routing role value from the selected RBAC role so the
+      //    legacy User.role stays consistent with auth routing.
+      const selectedRole = allRoles.find((r) => r.id === roleId)
+      const routingRole = selectedRole?.isSuperAdmin ? "SUPER_ADMIN" : "ADMIN"
+      const formData = new FormData()
+      formData.set("name", name)
+      formData.set("email", email)
+      formData.set("phone", phone)
+      formData.set("role", routingRole)
       const res = await updateUser(user.id, formData)
-      if (res.ok) {
-        toast.success("Profile updated")
-        router.refresh()
-      } else toast.error("Failed", { description: res.error })
+      if (!res.ok) { toast.error("Failed", { description: res.error }); return }
+
+      // 2. Assign the selected RBAC role (replaces any prior functional role
+      //    and syncs User.role) if it changed.
+      if (roleId && roleId !== currentRoleId) {
+        const roleRes = await setUserRole(user.id, roleId)
+        if (!roleRes.ok) {
+          toast.error("Profile saved, but role change failed", { description: roleRes.error })
+          return
+        }
+      }
+      toast.success("Profile updated")
+      router.refresh()
     })
   }
 
@@ -217,15 +263,24 @@ export default function UserEditClient({ user, canManage, currentUserId }: Props
           </div>
           <div className="space-y-2">
             <Label>Role</Label>
-            <Select value={role} onValueChange={(v) => { if (v) setRole(v) }} disabled={!canManage}>
+            <Select value={roleId} onValueChange={(v) => { if (v) setRoleId(v) }} disabled={!canManage}>
               <SelectTrigger className="bg-white dark:bg-slate-950">
-                <SelectValue />
+                <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ADMIN">Admin</SelectItem>
-                <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                {allRoles.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.name}{r.isSuperAdmin ? " (full access)" : ""}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            {(() => {
+              const sel = allRoles.find((r) => r.id === roleId)
+              return sel?.description ? (
+                <p className="text-[11px] text-slate-400">{sel.description}</p>
+              ) : null
+            })()}
           </div>
           <div className="md:col-span-2 grid grid-cols-2 gap-4 text-xs text-slate-500">
             <div>
@@ -278,6 +333,16 @@ export default function UserEditClient({ user, canManage, currentUserId }: Props
           )}
         </CardContent>
       </Card>
+
+      {/* Roles, Overrides & Effective Preview (new RBAC system) */}
+      <UserPermissionsCard
+        userId={user.id}
+        assignedRoles={user.assignedRoles}
+        overrides={user.overrides}
+        effectiveKeys={user.effectiveKeys}
+        allRoles={allRoles}
+        canManage={canManage}
+      />
 
       {canManage && (
         <div className="flex justify-end gap-2">

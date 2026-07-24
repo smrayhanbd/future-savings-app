@@ -8,7 +8,8 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog"
@@ -209,12 +210,18 @@ export function LinkProjectToInvestment({
 }
 
 // ── Investment side: shortcut button → create a NEW linked project ───────
+// This is a navigation link to a create page, not an action. The codebase
+// Button wraps Base UI's ButtonPrimitive, which (per the Base UI Button docs)
+// should NOT wrap an <a> via the render/asChild pattern — links have their own
+// semantics. So we render a real <Link> and apply the button look via the
+// shared buttonVariants() class helper instead.
 export function CreateLinkedProjectButton({ investmentId }: { investmentId: string }) {
   return (
-    <Button asChild size="sm" variant="outline">
-      <a href={`/dashboard/projects/create?investment=${investmentId}`}>
-        <Plus className="mr-1.5 h-4 w-4" /> Create Linked Project
-      </a>
-    </Button>
+    <Link
+      href={`/dashboard/projects/create?investment=${investmentId}`}
+      className={buttonVariants({ size: "sm", variant: "outline" })}
+    >
+      <Plus className="mr-1.5 h-4 w-4" /> Create Linked Project
+    </Link>
   )
 }

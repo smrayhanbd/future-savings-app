@@ -120,7 +120,6 @@ export default function TransactionsClient({ rows }: Props) {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:flex-wrap">
         <div className="min-w-0">
-          <p className="t-overline mb-1.5 text-brand">Transactions</p>
           <h1 className="t-h1 text-primary-ink">Transaction History</h1>
           <p className="t-body mt-1.5 text-muted-ink">Unified ledger of every financial transaction with full audit trail.</p>
         </div>

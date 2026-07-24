@@ -14,40 +14,62 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "sonner"
-import { createUser } from "@/app/actions/users"
+import { createUser, setUserRole } from "@/app/actions/users"
 import { Save, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
-interface Props {
-  mode: "create"
+export interface RoleOption {
+  id: string
+  name: string
+  description: string | null
+  isSystem: boolean
+  isSuperAdmin: boolean
 }
 
-export default function UserForm({ mode }: Props) {
+interface Props {
+  mode: "create"
+  roles: RoleOption[]
+  defaultRoleId: string
+}
+
+export default function UserForm({ roles, defaultRoleId }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
-  const [role, setRole] = useState("ADMIN")
+  const [roleId, setRoleId] = useState(defaultRoleId)
   const [password, setPassword] = useState("")
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (password.length < 6) return toast.error("Password must be at least 6 characters")
+    if (!roleId) return toast.error("Please select a role.")
+
+    // createUser takes the legacy routing role value; derive it from the chosen
+    // RBAC role (SUPER_ADMIN for super-admin roles, ADMIN otherwise).
+    const selectedRole = roles.find((r) => r.id === roleId)
+    const routingRole = selectedRole?.isSuperAdmin ? "SUPER_ADMIN" : "ADMIN"
+
     const formData = new FormData()
     formData.set("name", name)
     formData.set("email", email)
     formData.set("phone", phone)
-    formData.set("role", role)
+    formData.set("role", routingRole)
     formData.set("password", password)
     startTransition(async () => {
       const res = await createUser(formData)
-      if (res.ok) {
-        toast.success("User created")
-        router.push("/dashboard/users")
-      } else {
-        toast.error("Failed", { description: res.error })
+      if (!res.ok) { toast.error("Failed", { description: res.error }); return }
+      // Assign the chosen RBAC role now that the user exists.
+      if (res.userId) {
+        const roleRes = await setUserRole(res.userId, roleId)
+        if (!roleRes.ok) {
+          toast.error("User created, but role assignment failed", { description: roleRes.error })
+          return
+        }
       }
+      toast.success("User created")
+      router.push("/dashboard/users")
     })
   }
 
@@ -111,15 +133,24 @@ export default function UserForm({ mode }: Props) {
             </div>
             <div className="space-y-2">
               <Label>Role *</Label>
-              <Select value={role} onValueChange={(v) => { if (v) setRole(v) }}>
+              <Select value={roleId} onValueChange={(v) => { if (v) setRoleId(v) }}>
                 <SelectTrigger className="bg-white dark:bg-slate-950">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ADMIN">Admin</SelectItem>
-                  <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                  {roles.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}{r.isSuperAdmin ? " (full access)" : ""}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              {(() => {
+                const sel = roles.find((r) => r.id === roleId)
+                return sel?.description ? (
+                  <p className="text-[11px] text-slate-400">{sel.description}</p>
+                ) : null
+              })()}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Temporary Password *</Label>

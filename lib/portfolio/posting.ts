@@ -79,8 +79,6 @@ async function applyLineEffects(
  *
  *   `__CASH__`  → replaced by `input.cashAccountId`
  *   `__ASSET__` → replaced by `input.assetAccountId`
- *   `__TDS__`   → resolved to TDS-PAYABLE
- *   `__CGT__`   → resolved to CGT-PAYABLE
  */
 interface CoreInput {
   voucherType: VoucherType
@@ -206,7 +204,7 @@ export async function postInvestmentPurchase(
 
 // ── INVESTMENT: income (dividend / interest / rent / profit share) ──────
 //   Dr  Cash/Bank               [netAmount]
-//   Dr  TDS Payable             [tdsAmount]             (if any)
+//   Dr  TDS Receivable          [tdsAmount]             (if any)
 //       Cr  Income account         [grossAmount]
 export interface InvestmentIncomeInput {
   entryDate: Date
@@ -232,7 +230,7 @@ export async function postInvestmentIncome(
     { accountCode: "__CASH__", debit: gross - tds, credit: 0, memo: "Net income received" },
   ]
   if (tds > 0) {
-    specs.push({ accountCode: TAX_CODES.TDS_PAYABLE, debit: tds, credit: 0, memo: "TDS deducted at source" })
+    specs.push({ accountCode: TAX_CODES.TDS_RECEIVABLE, debit: tds, credit: 0, memo: "TDS deducted at source" })
   }
   specs.push({
     accountCode: incomeCodeForType(input.incomeType),

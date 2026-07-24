@@ -59,7 +59,7 @@ export default function IncomeForm({ investment, bankAccounts }: Props) {
   const preview = useMemo(() => {
     if (!autoGenerateVoucher || gross <= 0) return []
     const lines = [{ account: bankName, debit: netAmount, credit: 0 }]
-    if (tdsAmount > 0) lines.push({ account: "TDS Payable", debit: tdsAmount, credit: 0 })
+    if (tdsAmount > 0) lines.push({ account: "TDS Receivable", debit: tdsAmount, credit: 0 })
     lines.push({ account: incomeAccountName, debit: 0, credit: gross })
     return lines
   }, [autoGenerateVoucher, gross, netAmount, tdsAmount, bankName, incomeAccountName])

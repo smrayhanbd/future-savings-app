@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { FilePlus2, Banknote, Percent, CalendarClock, TrendingUp, Users, Plus, Trash2, AlertCircle } from "lucide-react"
+import { isNextRedirect } from "@/lib/nextRedirect"
 
 export interface ProductOption {
   id: string
@@ -115,9 +116,16 @@ export default function LoanApplyForm({ memberId, products }: { memberId: string
 
     try {
       await applyMemberLoan(memberId, formData)
+      // applyMemberLoan ends with redirect() → the lines below are normally
+      // unreachable, but kept for clarity/type safety.
       toast.success("Application submitted", { description: "Your loan application is pending review." })
       router.push("/portal/loans")
     } catch (err: unknown) {
+      // The action ends with redirect(), which throws NEXT_REDIRECT — that is
+      // the success path (page navigates to /portal/loans), not an error.
+      // Re-throw so Next handles navigation; only toast genuine errors
+      // (validation throws, etc.).
+      if (isNextRedirect(err)) throw err
       const msg = err instanceof Error ? err.message : "Something went wrong."
       toast.error("Application failed", { description: msg })
       setLoading(false)

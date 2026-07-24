@@ -117,7 +117,6 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        overline="Somiti MS"
         title="Dashboard Overview"
         subtitle="Welcome back! Here is what is happening in your foundation today."
         actions={

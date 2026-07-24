@@ -93,7 +93,6 @@ export default function MeetingsClient({
   return (
     <div className="space-y-8">
       <PageHeader
-        overline="Operations"
         title="Meeting Management"
         subtitle="Declare meetings, notify members, and record attendance."
       />

@@ -132,13 +132,23 @@ const TXN_SYSTEM_ACCOUNTS = [
     nature: 'DEBIT',
     description: 'Amounts receivable from project customers (e.g. plot buyers).',
   },
+  // Assets — tax receivable (nature DEBIT). Tax already deducted and
+  // deposited to NBR by the payer on our behalf; a claim to adjust against
+  // future income-tax liability, NOT something we owe.
+  {
+    accountCode: 'TDS-RECEIVABLE',
+    accountName: 'TDS Receivable',
+    accountType: 'ASSET',
+    nature: 'DEBIT',
+    description: 'Tax deducted at source on investment income — claimable against future income-tax liability.',
+  },
   // Liabilities — tax payables (nature CREDIT).
   {
     accountCode: 'TDS-PAYABLE',
     accountName: 'TDS Payable',
     accountType: 'LIABILITY',
     nature: 'CREDIT',
-    description: 'Tax deducted at source on investment income, owed to NBR.',
+    description: 'Tax / VAT collected from project customers, owed to NBR.',
   },
   {
     accountCode: 'CGT-PAYABLE',

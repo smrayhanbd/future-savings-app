@@ -4,10 +4,11 @@ import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import bcrypt from "bcryptjs"
-import { Prisma } from "@prisma/client"
+import { Prisma, Gender, MaritalStatus, BloodGroup } from "@prisma/client"
 import { generateSchedule, expectedCloseFromSchedule, type InterestType, type RepaymentFreq } from "@/lib/loanSchedule"
 import { uploadImage } from "@/lib/cloudinary"
 import { spawnTask } from "@/lib/tasks/spawn"
+import { createAdminNotification } from "@/app/actions/notifications"
 
 export interface PortalNotificationItem {
   id: string
@@ -85,6 +86,14 @@ export async function submitWithdrawalRequest(memberId: string, formData: FormDa
     createdByLabel: "MEMBER_REQUEST_SYSTEM",
   }).catch(() => undefined)
 
+  // Notify admins of the new withdrawal request. Best-effort, non-throwing.
+  await createAdminNotification({
+    type: "MEMBER_REQUEST",
+    title: "New withdrawal request",
+    message: `A member requested a ${method ?? ""} withdrawal of ৳ ${amount.toLocaleString()}.${notes ? ` Notes: ${notes}` : ""}`,
+    link: "/dashboard/transaction-approvals?tab=member",
+  })
+
   revalidatePath("/portal/savings")
   redirect("/portal/savings")
 }
@@ -122,16 +131,24 @@ export async function submitClosingRequest(memberId: string, formData: FormData)
     checklist: ["Verify outstanding balances", "Settle outstanding dues", "Process account closure", "Notify member of outcome"],
   }).catch(() => undefined)
 
+  // Notify admins of the new account-closing request. Best-effort, non-throwing.
+  await createAdminNotification({
+    type: "MEMBER_REQUEST",
+    title: "New account-closure request",
+    message: `A member requested account closure.${reason ? ` Reason: ${reason}` : ""}`,
+    link: "/dashboard/transaction-approvals?tab=member",
+  })
+
   revalidatePath("/portal/settings")
   redirect("/portal/settings")
 }
 
 export async function submitProfileUpdateRequest(memberId: string, formData: FormData) {
   const payload: Record<string, string> = {}
-  
+
   // Compare current data with submitted data to build a payload of changes
   const fields = ["firstName", "lastName", "phone", "email", "fatherName", "motherName", "spouseName", "occupation", "profession"]
-  
+
   fields.forEach(field => {
     const value = formData.get(field) as string
     if (value) {
@@ -151,8 +168,182 @@ export async function submitProfileUpdateRequest(memberId: string, formData: For
     },
   })
 
+  // Notify admins of the new profile-update request. Best-effort, non-throwing.
+  await createAdminNotification({
+    type: "PROFILE_REQUEST",
+    title: "New profile update request",
+    message: `A member requested changes to their profile (${Object.keys(payload).join(", ")}).`,
+    link: "/dashboard/profile-approvals",
+  })
+
   revalidatePath("/portal/profile")
   return { success: "Profile update request submitted to admin!" }
+}
+
+// =====================================================================
+// FULL PROFILE UPDATE REQUEST (member portal edit page)
+// Mirrors the admin MemberForm field contract: personal, contact,
+// identity, bank, current/permanent addresses, and nominees.
+// Files are uploaded to Cloudinary at submit time and stored as URLs in
+// the pending payload so the JSON column stays serializable. On admin
+// approval, `approveProfileUpdateRequest` replays the payload against the
+// member record using the same write logic as `updateMember`.
+// =====================================================================
+function formDataString(formData: FormData, key: string): string {
+  const v = formData.get(key)
+  return v == null ? "" : String(v)
+}
+
+export async function submitFullProfileUpdateRequest(memberId: string, formData: FormData) {
+  // --- Personal ---
+  const firstName = formDataString(formData, "firstName").trim()
+  const lastName = formDataString(formData, "lastName").trim()
+  if (!firstName || !lastName) {
+    return { error: "First name and last name are required." }
+  }
+
+  const personal = {
+    firstName,
+    lastName,
+    fatherName: formDataString(formData, "fatherName").trim() || null,
+    motherName: formDataString(formData, "motherName").trim() || null,
+    spouseName: formDataString(formData, "spouseName").trim() || null,
+    dateOfBirth: formDataString(formData, "dob").trim() || null,
+    gender: formDataString(formData, "gender").trim() || null, // uppercase enum
+    maritalStatus: formDataString(formData, "maritalStatus").trim() || null,
+    marriageDate: formDataString(formData, "marriageDate").trim() || null,
+    religion: formDataString(formData, "religion").trim() || null,
+    nationality: formDataString(formData, "nationality").trim() || null,
+    bloodGroup: formDataString(formData, "bloodGroup").trim() || null, // A_POSITIVE etc.
+    profession: formDataString(formData, "profession").trim() || null,
+  }
+
+  // --- Contact & identity ---
+  const phone = formDataString(formData, "phone").trim()
+  if (!phone) return { error: "Phone number is required." }
+
+  const contact = {
+    phone,
+    email: formDataString(formData, "email").trim() || null,
+    emergencyPhone: formDataString(formData, "emergencyPhone").trim() || null,
+    emergencyContactName: formDataString(formData, "emergencyContactName").trim() || null,
+    idType: formDataString(formData, "idType").trim() || null,
+    idNumber: formDataString(formData, "idNumber").trim() || null,
+  }
+
+  // --- Bank ---
+  const bank = {
+    accountName: formDataString(formData, "accountName").trim() || null,
+    accountNumber: formDataString(formData, "accountNumber").trim() || null,
+    bankName: formDataString(formData, "bankName").trim() || null,
+    branch: formDataString(formData, "branch").trim() || null,
+    routingNumber: formDataString(formData, "routingNumber").trim() || null,
+  }
+
+  // --- Addresses ---
+  const currentAddress = {
+    addressType: "CURRENT",
+    village: formDataString(formData, "c_village").trim() || null,
+    postOffice: formDataString(formData, "c_postOffice").trim() || null,
+    district: formDataString(formData, "c_district").trim() || null,
+    postalCode: formDataString(formData, "c_postalCode").trim() || null,
+  }
+  const permanentAddress = {
+    addressType: "PERMANENT",
+    village: formDataString(formData, "p_village").trim() || null,
+    postOffice: formDataString(formData, "p_postOffice").trim() || null,
+    district: formDataString(formData, "p_district").trim() || null,
+    postalCode: formDataString(formData, "p_postalCode").trim() || null,
+  }
+
+  // --- Nominees (nom_*_* indexed) ---
+  const nominees: Array<{
+    name: string; relation: string; share: number; phone: string | null
+    idType: string | null; idNumber: string | null
+    photoUrl: string | null; idDocumentUrl: string | null; dbId?: string
+  }> = []
+  let i = 0
+  while (true) {
+    const name = formDataString(formData, `nom_${i}_name`)
+    if (!name) break
+    const relation = formDataString(formData, `nom_${i}_relation`) || "Unknown"
+    const shareRaw = formDataString(formData, `nom_${i}_share`)
+    const dbId = formDataString(formData, `nom_${i}_dbId`) || undefined
+
+    const photoFile = formData.get(`nom_${i}_photo`) as File | null
+    const photoUrl = photoFile && photoFile.size > 0
+      ? (await uploadImage(photoFile).catch(() => null))
+      : null
+
+    const idDocFile = formData.get(`nom_${i}_idDoc`) as File | null
+    const idDocumentUrl = idDocFile && idDocFile.size > 0
+      ? (await uploadImage(idDocFile).catch(() => null))
+      : null
+
+    nominees.push({
+      name: name.trim(),
+      relation,
+      share: shareRaw ? parseFloat(shareRaw) : 0,
+      phone: formDataString(formData, `nom_${i}_phone`).trim() || null,
+      idType: formDataString(formData, `nom_${i}_idType`).trim() || null,
+      idNumber: formDataString(formData, `nom_${i}_idNumber`).trim() || null,
+      photoUrl,
+      idDocumentUrl,
+      ...(dbId ? { dbId } : {}),
+    })
+    i++
+  }
+
+  // Validate nominee shares total 100% if any present.
+  if (nominees.length > 0) {
+    const total = nominees.reduce((acc, n) => acc + (Number.isFinite(n.share) ? n.share : 0), 0)
+    if (Math.round(total) !== 100) {
+      return { error: `Total nominee shares must equal 100%. Currently at ${total}%.` }
+    }
+  }
+
+  // --- Files (member photo, ID document) ---
+  const memberPhotoFile = formData.get("memberPhoto") as File | null
+  const memberPhotoUrl = memberPhotoFile && memberPhotoFile.size > 0
+    ? (await uploadImage(memberPhotoFile).catch(() => null))
+    : null
+
+  const idDocFile = formData.get("idDocument") as File | null
+  const idDocumentUrl = idDocFile && idDocFile.size > 0
+    ? (await uploadImage(idDocFile).catch(() => null))
+    : null
+
+  const payload = {
+    personal,
+    contact,
+    bank,
+    currentAddress,
+    permanentAddress,
+    nominees,
+    ...(memberPhotoUrl ? { memberPhotoUrl } : {}),
+    ...(idDocumentUrl ? { idDocumentUrl } : {}),
+  }
+
+  await prisma.profileUpdateRequest.create({
+    data: {
+      memberId,
+      payload: payload as Prisma.InputJsonValue,
+      status: "PENDING",
+    },
+  })
+
+  // Notify admins of the new full profile-update request. Best-effort.
+  await createAdminNotification({
+    type: "PROFILE_REQUEST",
+    title: "New profile update request",
+    message: `A member submitted a full profile update for approval (personal details, contact, bank, address, nominees).`,
+    link: "/dashboard/profile-approvals",
+  })
+
+  revalidatePath("/portal/profile")
+  revalidatePath("/portal/requests")
+  revalidatePath("/dashboard/profile-approvals")
+  return { success: "Profile update request submitted to admin for approval!" }
 }
 
 // =====================================================================
@@ -222,7 +413,7 @@ export async function applyMemberLoan(memberId: string, formData: FormData) {
     }
   }
 
-  await prisma.loan.create({
+  const loan = await prisma.loan.create({
     data: {
       loanNo,
       memberId,
@@ -270,6 +461,25 @@ export async function applyMemberLoan(memberId: string, formData: FormData) {
     },
   })
 
+  // Task auto-spawn: review the member's loan application. Non-blocking.
+  await spawnTask({
+    title: `Review loan application: ${loanNo}`,
+    description: `A member applied for a loan of ৳ ${principal.toLocaleString()} (${installments} installments @ ${rate}%). Review and approve or reject.`,
+    priority: "HIGH",
+    dueInDays: 2,
+    loanId: loan.id,
+    relatedMemberId: memberId,
+    createdByLabel: "LOAN_SYSTEM",
+  }).catch(() => undefined)
+
+  // Notify admins of the new loan application. Best-effort, non-throwing.
+  await createAdminNotification({
+    type: "LOAN_REQUEST",
+    title: "New loan application",
+    message: `Loan ${loanNo}: a member applied for ৳ ${principal.toLocaleString()} over ${installments} installments at ${rate}%.`,
+    link: "/dashboard/loans",
+  })
+
   revalidatePath("/portal/loans")
   revalidatePath("/portal/requests")
   redirect("/portal/loans")
@@ -294,6 +504,14 @@ export async function submitProfilePhotoRequest(memberId: string, file: File) {
       payload: { photoUrl } as Prisma.InputJsonValue,
       status: "PENDING",
     },
+  })
+
+  // Notify admins of the new photo-update request. Best-effort.
+  await createAdminNotification({
+    type: "PROFILE_REQUEST",
+    title: "New profile photo request",
+    message: `A member submitted a new profile photo for approval.`,
+    link: "/dashboard/profile-approvals",
   })
 
   revalidatePath("/portal/profile")
@@ -446,10 +664,17 @@ export async function getMemberPendingRequestCount(memberId: string): Promise<nu
 
 // =====================================================================
 // ADMIN COMPANION: Approve / reject a ProfileUpdateRequest.
-// Applies every whitelisted field in the payload to the member, including
-// photoUrl (so the member photo-upload flow is end-to-end functional).
-// These are intended to be wired into the admin approvals UI; they are
-// safe, guarded, and idempotent.
+//
+// Two payload shapes are supported:
+//  1. Legacy flat string map (from the old modal) — e.g.
+//     { firstName, phone, photoUrl, … }. Whitelisted via PROFILE_PAYLOAD_FIELDS.
+//  2. Full structured payload (from the portal edit page) —
+//     { personal, contact, bank, currentAddress, permanentAddress,
+//       nominees, memberPhotoUrl?, idDocumentUrl? } — replayed against
+//     the member record using the same write logic as `updateMember`.
+//
+// Safe, guarded, and idempotent: re-running on an already-processed
+// request is blocked by the status check.
 // =====================================================================
 const PROFILE_PAYLOAD_FIELDS: Record<string, string> = {
   firstName: "firstName",
@@ -464,6 +689,165 @@ const PROFILE_PAYLOAD_FIELDS: Record<string, string> = {
   photoUrl: "photoUrl",
 }
 
+// Helpers to safely coerce JSON payload values into the Prisma types
+// `updateMember` expects. Enums arrive uppercase; dates arrive as
+// "YYYY-MM-DD" strings.
+function strOrNull(v: unknown): string | null {
+  return typeof v === "string" && v.trim() ? v.trim() : null
+}
+function enumOrNull<T extends string>(v: unknown, valid: readonly T[]): T | null {
+  const s = typeof v === "string" ? v.trim().toUpperCase() : ""
+  return (valid as readonly string[]).includes(s) ? (s as T) : null
+}
+function dateOrNull(v: unknown): Date | null {
+  const s = typeof v === "string" ? v.trim() : ""
+  if (!s) return null
+  const d = new Date(s)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+// Apply the structured (full) payload — mirrors `updateMember` writes.
+// The payload comes from a Prisma `Json` column, so it is loosely typed as
+// `Record<string, unknown>`; each field is coerced via the str/enum/date helpers above.
+type StructuredPayload = Record<string, unknown> & {
+  personal?: Record<string, unknown>
+  contact?: Record<string, unknown>
+  bank?: Record<string, unknown>
+  currentAddress?: Record<string, unknown>
+  permanentAddress?: Record<string, unknown>
+  nominees?: unknown[]
+  memberPhotoUrl?: unknown
+  idDocumentUrl?: unknown
+}
+
+async function applyStructuredProfileUpdate(
+  tx: Prisma.TransactionClient,
+  memberId: string,
+  payload: StructuredPayload
+) {
+  const { personal, contact, bank, currentAddress, permanentAddress, nominees } = payload
+
+  // Fetch existing member so we can preserve untouched fields and resolve idType.
+  const existing = await tx.member.findUnique({ where: { id: memberId } })
+  if (!existing) throw new Error("Member not found.")
+
+  const firstName = strOrNull(personal?.firstName) ?? existing.firstName
+  const lastName = strOrNull(personal?.lastName) ?? existing.lastName
+  const fullName = `${firstName} ${lastName}`.trim()
+
+  // Identity: map idType/idNumber to the matching column.
+  const idType = strOrNull(contact?.idType)
+  const idNumber = strOrNull(contact?.idNumber)
+  const nidNumber = idType === "National ID" ? idNumber : null
+  const passportNumber = idType === "Passport" ? idNumber : null
+  const birthCertificateNo = idType === "Birth Certificate" ? idNumber : null
+
+  await tx.member.update({
+    where: { id: memberId },
+    data: {
+      firstName,
+      lastName,
+      fullName,
+      fatherName: personal?.fatherName !== undefined ? strOrNull(personal.fatherName) : undefined,
+      motherName: personal?.motherName !== undefined ? strOrNull(personal.motherName) : undefined,
+      spouseName: personal?.spouseName !== undefined ? strOrNull(personal.spouseName) : undefined,
+      dateOfBirth: personal?.dateOfBirth !== undefined ? dateOrNull(personal.dateOfBirth) : undefined,
+      gender: personal?.gender !== undefined ? enumOrNull(personal.gender, Object.values(Gender) as readonly Gender[]) ?? undefined : undefined,
+      religion: personal?.religion !== undefined ? strOrNull(personal.religion) ?? null : undefined,
+      nationality: personal?.nationality !== undefined ? strOrNull(personal.nationality) ?? "Bangladeshi" : undefined,
+      bloodGroup: personal?.bloodGroup !== undefined
+        ? enumOrNull(personal.bloodGroup, Object.values(BloodGroup) as readonly BloodGroup[]) ?? undefined
+        : undefined,
+      profession: personal?.profession !== undefined ? strOrNull(personal.profession) ?? null : undefined,
+      maritalStatus: personal?.maritalStatus !== undefined ? enumOrNull(personal.maritalStatus, Object.values(MaritalStatus) as readonly MaritalStatus[]) ?? undefined : undefined,
+      marriageDate: personal?.marriageDate !== undefined ? dateOrNull(personal.marriageDate) : undefined,
+      phone: strOrNull(contact?.phone) ?? existing.phone,
+      email: contact?.email !== undefined ? strOrNull(contact.email) : undefined,
+      emergencyPhone: contact?.emergencyPhone !== undefined ? strOrNull(contact.emergencyPhone) : undefined,
+      emergencyContactName: contact?.emergencyContactName !== undefined ? strOrNull(contact.emergencyContactName) : undefined,
+      nidNumber: nidNumber !== null ? nidNumber : undefined,
+      passportNumber: passportNumber !== null ? passportNumber : undefined,
+      birthCertificateNo: birthCertificateNo !== null ? birthCertificateNo : undefined,
+      accountName: bank?.accountName !== undefined ? strOrNull(bank.accountName) : undefined,
+      accountNumber: bank?.accountNumber !== undefined ? strOrNull(bank.accountNumber) : undefined,
+      bankName: bank?.bankName !== undefined ? strOrNull(bank.bankName) : undefined,
+      branch: bank?.branch !== undefined ? strOrNull(bank.branch) : undefined,
+      routingNumber: bank?.routingNumber !== undefined ? strOrNull(bank.routingNumber) : undefined,
+      ...(typeof payload.memberPhotoUrl === "string" && payload.memberPhotoUrl
+        ? { photoUrl: payload.memberPhotoUrl }
+        : {}),
+    },
+  })
+
+  // Replace addresses (only when the edit included address data).
+  if (currentAddress || permanentAddress) {
+    await tx.memberAddress.deleteMany({ where: { memberId } })
+    if (currentAddress && (currentAddress.village || currentAddress.district)) {
+      await tx.memberAddress.create({
+        data: {
+          memberId,
+          addressType: "CURRENT",
+          village: strOrNull(currentAddress.village),
+          postOffice: strOrNull(currentAddress.postOffice),
+          district: strOrNull(currentAddress.district),
+          postalCode: strOrNull(currentAddress.postalCode),
+        },
+      })
+    }
+    if (permanentAddress && (permanentAddress.village || permanentAddress.district)) {
+      await tx.memberAddress.create({
+        data: {
+          memberId,
+          addressType: "PERMANENT",
+          village: strOrNull(permanentAddress.village),
+          postOffice: strOrNull(permanentAddress.postOffice),
+          district: strOrNull(permanentAddress.district),
+          postalCode: strOrNull(permanentAddress.postalCode),
+        },
+      })
+    }
+  }
+
+  // Replace ID document if a new URL was uploaded.
+  if (typeof payload.idDocumentUrl === "string" && payload.idDocumentUrl && idType) {
+    await tx.memberDocument.deleteMany({ where: { memberId, documentType: idType } })
+    await tx.memberDocument.create({
+      data: {
+        memberId,
+        documentType: idType,
+        name: "Member ID Document",
+        fileName: "id-document",
+        fileUrl: payload.idDocumentUrl,
+      },
+    })
+  }
+
+  // Replace nominees if the payload included a nominee array.
+  if (Array.isArray(nominees)) {
+    const existingNominees = await tx.memberNominee.findMany({ where: { memberId } })
+    await tx.memberNominee.deleteMany({ where: { memberId } })
+    for (const raw of nominees) {
+      const n = (raw || {}) as Record<string, unknown>
+      const dbId = typeof n.dbId === "string" ? n.dbId : undefined
+      const existingNom = dbId ? existingNominees.find((x) => x.id === dbId) : undefined
+      await tx.memberNominee.create({
+        data: {
+          memberId,
+          name: strOrNull(n.name) ?? "Unknown",
+          relation: strOrNull(n.relation) ?? "Unknown",
+          sharePercentage: Number.isFinite(n.share) ? Number(n.share) : 0,
+          phone: strOrNull(n.phone),
+          idType: strOrNull(n.idType),
+          nidNumber: strOrNull(n.idNumber),
+          // Preserve previously-uploaded file URLs if the member didn't supply new ones.
+          photoUrl: typeof n.photoUrl === "string" && n.photoUrl ? n.photoUrl : existingNom?.photoUrl ?? null,
+          idDocumentUrl: typeof n.idDocumentUrl === "string" && n.idDocumentUrl ? n.idDocumentUrl : existingNom?.idDocumentUrl ?? null,
+        },
+      })
+    }
+  }
+}
+
 export async function approveProfileUpdateRequest(
   requestId: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -474,25 +858,34 @@ export async function approveProfileUpdateRequest(
       return { ok: false, error: "This request has already been processed." }
 
     const payload = (req.payload || {}) as Record<string, unknown>
-    const data: Record<string, unknown> = {}
-    for (const [key, memberField] of Object.entries(PROFILE_PAYLOAD_FIELDS)) {
-      const v = payload[key]
-      if (typeof v === "string" && v.trim()) data[memberField] = v.trim()
-    }
+    const isStructured = Boolean(
+      payload && (payload.personal || payload.contact || payload.bank || payload.nominees)
+    )
 
-    // Recompute fullName if the name parts changed.
-    if (data.firstName || data.lastName) {
-      const member = await prisma.member.findUnique({ where: { id: req.memberId } })
-      if (member) {
-        const fn = (data.firstName as string) || member.firstName
-        const ln = (data.lastName as string) || member.lastName
-        data.fullName = `${fn} ${ln}`.trim()
+    if (isStructured) {
+      await prisma.$transaction((tx) =>
+        applyStructuredProfileUpdate(tx, req.memberId, payload as StructuredPayload)
+      )
+    } else {
+      // Legacy flat payload: whitelist-map onto member fields.
+      const data: Record<string, unknown> = {}
+      for (const [key, memberField] of Object.entries(PROFILE_PAYLOAD_FIELDS)) {
+        const v = payload[key]
+        if (typeof v === "string" && v.trim()) data[memberField] = v.trim()
+      }
+      if (data.firstName || data.lastName) {
+        const member = await prisma.member.findUnique({ where: { id: req.memberId } })
+        if (member) {
+          const fn = (data.firstName as string) || member.firstName
+          const ln = (data.lastName as string) || member.lastName
+          data.fullName = `${fn} ${ln}`.trim()
+        }
+      }
+      if (Object.keys(data).length > 0) {
+        await prisma.member.update({ where: { id: req.memberId }, data })
       }
     }
 
-    if (Object.keys(data).length > 0) {
-      await prisma.member.update({ where: { id: req.memberId }, data })
-    }
     await prisma.profileUpdateRequest.update({ where: { id: requestId }, data: { status: "APPROVED" } })
 
     revalidatePath(`/dashboard/members/${req.memberId}`)

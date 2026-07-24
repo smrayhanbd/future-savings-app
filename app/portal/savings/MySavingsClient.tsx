@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { HandCoins, AlertCircle, CheckCircle2, Clock, XCircle } from "lucide-react"
+import { isNextRedirect } from "@/lib/nextRedirect"
 
 /** A withdrawal request row — subset of the Savings model rendered here.
  *  Server components pass these through `plain()` so Decimal/Date are already
@@ -42,9 +43,15 @@ export default function MySavingsClient({ memberId, currentBalance, requests }: 
 
     try {
       await submitWithdrawalRequest(memberId, formData)
+      // submitWithdrawalRequest ends with redirect() → the lines below are
+      // unreachable in the normal flow, but kept for type safety.
       toast.success("Request Submitted", { description: "Your withdrawal request is pending approval." })
       setOpen(false)
-    } catch (err) {
+    } catch (err: unknown) {
+      // The action ends with redirect(), which throws NEXT_REDIRECT — that is
+      // the success path (page navigates to /portal/savings), not an error.
+      // Re-throw so Next handles navigation; only toast genuine errors.
+      if (isNextRedirect(err)) throw err
       toast.error("Failed", { description: err instanceof Error ? err.message : "Failed" })
       setLoading(false)
     }

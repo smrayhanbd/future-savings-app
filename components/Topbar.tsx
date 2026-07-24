@@ -1,11 +1,13 @@
 "use client"
 
+import { useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import { useTheme } from "next-themes"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Menu, Moon, Sun, Bell, Search, User, Settings, LogOut, AlertCircle, ChevronDown, Building2 } from "lucide-react"
+import { Menu, Moon, Sun, Bell, Search, User, Settings, LogOut, AlertCircle, ChevronDown, Building2, CreditCard, UserCog } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,18 +17,47 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useMounted } from "@/lib/useMounted"
 import LanguageToggle from "@/components/somiti/LanguageToggle"
+import { markNotificationRead } from "@/app/actions/notifications"
 
 /** A topbar notification row — the subset of the Notification model we render. */
 export interface TopbarNotification {
   id: string
   title: string
   message: string
+  type?: string
+  link?: string | null
+}
+
+// Pick an icon + tone per notification type so member-driven alerts stand out.
+function notifVisual(type?: string) {
+  switch (type) {
+    case "MEMBER_REQUEST":
+      return { Icon: CreditCard, wrap: "bg-rose-500/10", ink: "text-rose-500" }
+    case "LOAN_REQUEST":
+      return { Icon: CreditCard, wrap: "bg-indigo-500/10", ink: "text-indigo-500" }
+    case "PROFILE_REQUEST":
+      return { Icon: UserCog, wrap: "bg-sky-500/10", ink: "text-sky-500" }
+    default:
+      return { Icon: AlertCircle, wrap: "bg-warning-soft", ink: "text-warning" }
+  }
 }
 
 export default function Topbar({ onMenuClick, notifications = [] }: { onMenuClick: () => void, notifications?: TopbarNotification[] }) {
   const mounted = useMounted()
   const { data: session } = useSession()
   const { theme, setTheme } = useTheme()
+  const router = useRouter()
+  const [, startTransition] = useTransition()
+
+  // Click a notification: persist read-state, then navigate to its link.
+  // The bell refreshes on the next navigation (the layout is force-dynamic),
+  // so the read item will no longer appear once we land on the target page.
+  const handleNotifClick = (notif: TopbarNotification) => {
+    if (!notif.link) return
+    startTransition(() => {
+      markNotificationRead(notif.id).finally(() => router.push(notif.link!))
+    })
+  }
 
   return (
     <header className="glass z-40 relative flex h-16 shrink-0 items-center justify-between gap-3 px-4 sm:px-6">
@@ -106,19 +137,36 @@ export default function Topbar({ onMenuClick, notifications = [] }: { onMenuClic
               {notifications.length === 0 ? (
                 <p className="t-body py-8 text-center text-muted-ink">No new notifications.</p>
               ) : (
-                notifications.map((notif) => (
-                  <div key={notif.id} className="flex items-start gap-3 border-b border-[var(--border-base)] p-3 transition-colors last:border-0 hover:bg-subtle">
-                    <div className="mt-0.5 rounded-full bg-warning-soft p-1.5">
-                      <AlertCircle className="h-4 w-4 text-warning" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="t-subheading text-primary-ink">{notif.title}</p>
-                      <p className="t-caption mt-0.5 text-muted-ink">{notif.message}</p>
-                    </div>
-                  </div>
-                ))
+                notifications.map((notif) => {
+                  const { Icon, wrap, ink } = notifVisual(notif.type)
+                  const clickable = !!notif.link
+                  return (
+                    <button
+                      key={notif.id}
+                      type="button"
+                      disabled={!clickable}
+                      onClick={() => handleNotifClick(notif)}
+                      className="flex w-full items-start gap-3 border-b border-[var(--border-base)] p-3 text-left transition-colors last:border-0 enabled:hover:bg-subtle disabled:cursor-default"
+                    >
+                      <span className={`mt-0.5 shrink-0 rounded-full p-1.5 ${wrap}`}>
+                        <Icon className={`h-4 w-4 ${ink}`} />
+                      </span>
+                      <span className="flex-1">
+                        <span className="t-subheading block text-primary-ink">{notif.title}</span>
+                        <span className="t-caption mt-0.5 block text-muted-ink">{notif.message}</span>
+                      </span>
+                    </button>
+                  )
+                })
               )}
             </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="t-body justify-center text-muted-ink focus:text-primary-ink"
+              onClick={() => router.push("/dashboard/notifications")}
+            >
+              View all notifications
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 

@@ -96,7 +96,6 @@ export default function ProjectsClient({ rows }: { rows: Row[] }) {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:flex-wrap">
         <div className="min-w-0">
-          <p className="t-overline mb-1.5 text-brand">Operations</p>
           <h1 className="t-h1 text-primary-ink">Project Management</h1>
           <p className="t-body mt-1.5 text-muted-ink">Manage active ventures and operations — budget, expenses, revenue & profit.</p>
         </div>

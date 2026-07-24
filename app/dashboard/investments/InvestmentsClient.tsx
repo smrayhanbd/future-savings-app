@@ -117,7 +117,6 @@ export default function InvestmentsClient({ rows, types }: Props) {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:flex-wrap">
         <div className="min-w-0">
-          <p className="t-overline mb-1.5 text-brand">Portfolio</p>
           <h1 className="t-h1 text-primary-ink">Investment Management</h1>
           <p className="t-body mt-1.5 text-muted-ink">
             Track where Somiti funds are invested — shares, FDR, land, property, businesses & more.

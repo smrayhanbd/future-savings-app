@@ -27,6 +27,7 @@ import {
 } from "@/lib/portfolio/types"
 import { deleteInvestmentDraft, unlinkInvestmentProject } from "@/app/actions/investments"
 import { LinkProjectToInvestment, CreateLinkedProjectButton } from "@/components/portfolio/LinkDialogs"
+import InvestmentDistributeTab from "@/components/distribution/InvestmentDistributeTab"
 
 interface DetailProps {
   investment: {
@@ -144,6 +145,7 @@ export default function InvestmentDetailClient(props: DetailProps) {
             <TabsList className="mb-4 flex h-auto flex-wrap gap-1 bg-transparent p-0">
               {[
                 ["overview", "Overview"], ["income", `Income (${props.incomes.length})`],
+                ["distribute", "Distribute"],
                 ["valuation", `Valuations (${props.valuations.length})`], ["exits", `Exits (${props.exits.length})`],
                 ["vouchers", `Vouchers (${props.vouchers.length})`], ["documents", `Documents (${inv.documents.length})`],
                 ["activity", "Activity Log"],
@@ -215,6 +217,17 @@ export default function InvestmentDetailClient(props: DetailProps) {
                   </TableBody>
                 </Table>
               </SectionCard>
+            </TabsContent>
+
+            {/* Distribute income to members */}
+            <TabsContent value="distribute" className="mt-0">
+              <InvestmentDistributeTab
+                investmentId={inv.id}
+                investmentNo={inv.investmentNo}
+                name={inv.name}
+                investmentDate={inv.investmentDate}
+                totalIncome={props.totalIncome}
+              />
             </TabsContent>
 
             {/* Valuation History */}

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Lock, AlertTriangle, ShieldCheck, Eye, EyeOff } from "lucide-react"
+import { isNextRedirect } from "@/lib/nextRedirect"
 
 export default function SettingsClient({ memberId, hasPendingClose }: { memberId: string, hasPendingClose: boolean }) {
   const [pwdLoading, setPwdLoading] = useState(false)
@@ -19,7 +20,12 @@ export default function SettingsClient({ memberId, hasPendingClose }: { memberId
 
   const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const formData = new FormData(e.currentTarget)
+    // Capture the form element before any `await`. React nulls out
+    // `e.currentTarget` once event propagation finishes (i.e. before an
+    // awaited promise resolves), so referencing it after the await throws
+    // a TypeError that previously surfaced as a spurious error toast.
+    const form = e.currentTarget
+    const formData = new FormData(form)
     const newPwd = formData.get("newPassword") as string
     const confirmPwd = formData.get("confirmPassword") as string
 
@@ -39,7 +45,7 @@ export default function SettingsClient({ memberId, hasPendingClose }: { memberId
         toast.error("Error", { description: result.error })
       } else if (result?.success) {
         toast.success("Success", { description: result.success })
-        e.currentTarget.reset()
+        form.reset()
       }
     } catch {
       toast.error("Error", { description: "Something went wrong." })
@@ -52,7 +58,8 @@ export default function SettingsClient({ memberId, hasPendingClose }: { memberId
     if (!confirm("Are you absolutely sure you want to request account closure? This action cannot be undone.")) return
 
     setCloseLoading(true)
-    const formData = new FormData(e.currentTarget)
+    const form = e.currentTarget
+    const formData = new FormData(form)
 
     try {
       const result = await submitClosingRequest(memberId, formData)
@@ -60,7 +67,12 @@ export default function SettingsClient({ memberId, hasPendingClose }: { memberId
         toast.error("Error", { description: result.error })
         setCloseLoading(false)
       }
-    } catch {
+    } catch (err: unknown) {
+      // The action ends with redirect(), which throws NEXT_REDIRECT — that is
+      // the success path (the page navigates to /portal/settings), not an
+      // error. Re-throw it so Next handles the navigation instead of showing
+      // a spurious "Something went wrong" toast.
+      if (isNextRedirect(err)) throw err
       toast.error("Error", { description: "Something went wrong." })
       setCloseLoading(false)
     }

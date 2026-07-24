@@ -19,7 +19,6 @@ import SectionCard from "@/components/somiti/SectionCard"
 import StatCard from "@/components/somiti/StatCard"
 import StatusBadge from "@/components/somiti/StatusBadge"
 import Money from "@/components/somiti/Money"
-import ProfileEditDialog from "./ProfileEditDialog"
 import PhotoUploadDialog from "./PhotoUploadDialog"
 import type { ScoreView } from "@/lib/trustScore"
 import {
@@ -197,7 +196,12 @@ export default function ProfileClient({
             <TrustScoreRing score={trustScore} risk={member.riskLevel} />
             <div className="flex flex-wrap items-center justify-center gap-2">
               <PhotoUploadDialog memberId={member.id} />
-              <ProfileEditDialog member={member} />
+              <Link
+                href="/portal/profile/edit"
+                className="inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 border border-[var(--border-base)] bg-[var(--control-bg)] text-secondary-ink hover:border-brand hover:text-primary-ink px-3 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Edit Profile
+              </Link>
               <Link
                 href="/portal/savings"
                 className="inline-flex h-10 items-center gap-1.5 rounded-[10px] border border-[var(--border-base)] bg-[var(--control-bg)] px-3 text-sm font-medium text-secondary-ink transition-colors hover:border-brand hover:text-primary-ink focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -283,11 +287,11 @@ export default function ProfileClient({
         <div className="space-y-6">
           <SectionCard title={t("bankDetails")} icon={<Banknote />} accent="gold">
             <div className="space-y-5">
-              <InfoRow vertical icon={UserIcon} label={t("accountName")} value={fmtVal(member.accountName)} />
-              <InfoRow vertical icon={CreditCard} label={t("accountNumber")} value={fmtVal(member.accountNumber)} mono />
-              <InfoRow vertical icon={Building} label={t("bankName")} value={fmtVal(member.bankName)} />
-              <InfoRow vertical icon={MapPin} label={t("branch")} value={fmtVal(member.branch)} />
-              <InfoRow vertical icon={Hash} label={t("routingNumber")} value={fmtVal(member.routingNumber)} mono />
+              <InfoRow icon={UserIcon} label={t("accountName")} value={fmtVal(member.accountName)} />
+              <InfoRow icon={CreditCard} label={t("accountNumber")} value={fmtVal(member.accountNumber)} mono />
+              <InfoRow icon={Building} label={t("bankName")} value={fmtVal(member.bankName)} />
+              <InfoRow icon={MapPin} label={t("branch")} value={fmtVal(member.branch)} />
+              <InfoRow icon={Hash} label={t("routingNumber")} value={fmtVal(member.routingNumber)} mono />
             </div>
           </SectionCard>
 
@@ -333,24 +337,6 @@ export default function ProfileClient({
       </div>
 
       {/* ────────────────────────────────────────────────────────────────
-          ACTIVITY TIMELINE (full width)
-         ──────────────────────────────────────────────────────────────── */}
-      <SectionCard title={t("activityTimeline")} icon={<Activity />} accent="violet" bodyClassName="p-0">
-        {activity.length === 0 ? (
-          <div className="px-6 py-10 text-center">
-            <Activity className="mx-auto mb-2 h-8 w-8 text-faint-ink" />
-            <p className="t-body text-muted-ink">No recent activity to show.</p>
-          </div>
-        ) : (
-          <ol className="divide-y divide-[var(--border-base)]">
-            {activity.slice(0, 8).map((item) => (
-              <TimelineItem key={item.id} item={item} />
-            ))}
-          </ol>
-        )}
-      </SectionCard>
-
-      {/* ────────────────────────────────────────────────────────────────
           NOMINEES (full width)
          ──────────────────────────────────────────────────────────────── */}
       <SectionCard title={t("nominees")} icon={<Users />} accent="blue" bodyClassName="p-0">
@@ -365,6 +351,24 @@ export default function ProfileClient({
               <NomineeCard key={nom.id} nominee={nom} />
             ))}
           </div>
+        )}
+      </SectionCard>
+
+      {/* ────────────────────────────────────────────────────────────────
+          ACTIVITY TIMELINE (full width)
+         ──────────────────────────────────────────────────────────────── */}
+      <SectionCard title={t("activityTimeline")} icon={<Activity />} accent="violet" bodyClassName="p-0">
+        {activity.length === 0 ? (
+          <div className="px-6 py-10 text-center">
+            <Activity className="mx-auto mb-2 h-8 w-8 text-faint-ink" />
+            <p className="t-body text-muted-ink">No recent activity to show.</p>
+          </div>
+        ) : (
+          <ol className="divide-y divide-[var(--border-base)]">
+            {activity.slice(0, 8).map((item) => (
+              <TimelineItem key={item.id} item={item} />
+            ))}
+          </ol>
         )}
       </SectionCard>
     </div>

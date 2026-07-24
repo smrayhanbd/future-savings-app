@@ -13,7 +13,7 @@ import {
 import { toast } from "sonner"
 import {
   ArrowLeft, Edit3, Plus, TrendingUp, TrendingDown, Coins, BookOpen,
-  Briefcase, FileText, History, LogOut, Trash2, Link2, ExternalLink, ScrollText, Target, ListChecks, Scale,
+  Briefcase, FileText, History, LogOut, Trash2, Link2, ExternalLink, ScrollText, Target, ListChecks, Scale, PieChart,
 } from "lucide-react"
 
 import PageHeader from "@/components/somiti/PageHeader"
@@ -462,6 +462,7 @@ export default function ProjectDetailClient(props: DetailProps) {
       <div className="flex flex-wrap gap-2">
         <Link href={`/dashboard/projects/${p.id}/expenses/create`}><Button variant="outline"><TrendingDown className="mr-2 h-4 w-4" /> Record Expense</Button></Link>
         <Link href={`/dashboard/projects/${p.id}/revenue/create`}><Button variant="outline"><Coins className="mr-2 h-4 w-4" /> Record Revenue</Button></Link>
+        <Link href={`/dashboard/distributions/new?projectId=${p.id}`}><Button variant="outline"><PieChart className="mr-2 h-4 w-4" /> Distribute Profit</Button></Link>
         <Link href={`/dashboard/tasks?project=${p.id}`}><Button variant="outline"><ListChecks className="mr-2 h-4 w-4" /> Add Task</Button></Link>
       </div>
     </div>

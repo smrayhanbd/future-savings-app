@@ -77,14 +77,79 @@ export function isSuperAdmin(user: { role: string } | null | undefined): boolean
   return !!user && user.role === ROLE.SUPER_ADMIN
 }
 
-/** True if the user holds the given permission grant. SUPER_ADMIN always true. */
+// ── MIGRATION BRIDGE: legacy flat keys → new 4-level hierarchy ───────────
+// During the RBAC migration, the OLD flat PERMISSIONS keys are mapped to the
+// NEW "::"-separated keys. A call to hasPermission(K) is now answered by the
+// new resolver checking ALL mapped new keys (a legacy key like
+// TRANSACTION_APPROVE maps to several page-specific approve_* actions, so we
+// grant if ANY is held — matching the old coarse behavior). Legacy flat
+// UserPermission grants are ALSO still honored, so nothing breaks before
+// roles are fully assigned.
+const LEGACY_KEY_MAP: Record<PermissionKey, string[]> = {
+  MEETING_ATTENDANCE_MARK: ["Operations & Management::Meeting Management::::mark_attendance"],
+  MEETING_MINUTES_UPLOAD: ["Operations & Management::Meeting Management::::upload_minutes"],
+  TRANSACTION_CREATE: [
+    "Transactions::Deposit Entry::::create_deposit",
+    "Transactions::Withdrawal Entry::::create_withdrawal",
+    "Transactions::Apply Charges::::create_charge",
+    "Transactions::Distribute Income::::create_distribution",
+  ],
+  TRANSACTION_SUBMIT: ["Transactions::Admin Submitted::::approve"],
+  TRANSACTION_APPROVE: [
+    "Transactions::Deposit Entry::::approve_deposit",
+    "Transactions::Withdrawal Entry::::approve_withdrawal",
+    "Transactions::Apply Charges::::approve_charge",
+    "Transactions::Admin Submitted::::approve",
+    "Transactions::Member Requests::::approve",
+  ],
+  TRANSACTION_REVERSE: [
+    "Transactions::Deposit Entry::::reverse_deposit",
+    "Transactions::Withdrawal Entry::::reverse_withdrawal",
+    "Transactions::Apply Charges::::reverse_charge",
+    "Transactions::Distribute Income::::reverse_distribution",
+  ],
+  USER_MANAGE: ["System & Settings::User Control::::manage_permissions"],
+  TASK_CREATE: ["Operations & Management::All Tasks::::create_task"],
+  TASK_VIEW_ALL: ["Operations & Management::All Tasks"],
+  TASK_ASSIGN: ["Operations & Management::All Tasks::::assign_task"],
+  TASK_APPROVE: ["Operations & Management::All Tasks::::approve_task"],
+  TASK_DELETE: ["Operations & Management::All Tasks::::delete_task"],
+  TASK_MANAGE_RECURRING: ["Operations & Management::All Tasks::::edit_task"],
+  COMMITTEE_MANAGE: ["Operations & Management::Committees"],
+  INVESTMENT_MANAGE: ["Operations & Management::Investment Management"],
+  INVESTMENT_VIEW: ["Operations & Management::Investment Management"],
+  PROJECT_MANAGE: ["Operations & Management::Project Management"],
+  PROJECT_VIEW: ["Operations & Management::Project Management"],
+}
+
+/**
+ * True if the user holds the given permission grant. SUPER_ADMIN always true.
+ *
+ * MIGRATION: checks BOTH the new RBAC resolver (via the mapped hierarchy key)
+ * AND the legacy flat UserPermission table, so grants made under either system
+ * are honored. Once all grants are migrated to roles/overrides, the legacy
+ * fallback can be removed.
+ */
 export async function hasPermission(userId: string, key: PermissionKey, user?: { role: string } | null): Promise<boolean> {
   if (isSuperAdmin(user)) return true
-  const row = await prisma.userPermission.findUnique({
+
+  // 1. Legacy flat grant (direct UserPermission row).
+  const legacyRow = await prisma.userPermission.findUnique({
     where: { userId_permission: { userId, permission: key } },
     select: { id: true },
   })
-  return !!row
+  if (legacyRow) return true
+
+  // 2. New RBAC resolver via the mapped hierarchy key(s).
+  const newKeys = LEGACY_KEY_MAP[key]
+  if (newKeys && newKeys.length > 0) {
+    const { getUserPermissions } = await import("@/lib/permissions/resolver")
+    const { permissionGranted } = await import("@/lib/permissions/resolver")
+    const set = await getUserPermissions(userId)
+    if (newKeys.some((k) => permissionGranted(set, k))) return true
+  }
+
+  return false
 }
 
 /** SUPER_ADMIN only — throws if the caller is not a super admin. */

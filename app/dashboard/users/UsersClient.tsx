@@ -102,7 +102,6 @@ export default function UsersClient({ users, canManage, currentUserId }: Props) 
   return (
     <div className="space-y-8">
       <PageHeader
-        overline="System & Settings"
         title="User Control"
         subtitle="Manage admin & staff users, roles, permissions and login status."
         actions={

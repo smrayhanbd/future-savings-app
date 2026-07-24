@@ -78,7 +78,6 @@ export default async function LoansHubPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        overline="Finance & Accounting"
         title="Loan Management"
         subtitle="Manage loan products, applications, disbursements and repayments."
         actions={
