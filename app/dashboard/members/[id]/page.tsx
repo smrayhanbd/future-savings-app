@@ -128,7 +128,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
           <div className="flex gap-2">
             <KycToggleButton memberId={member.id} kycVerified={member.kycVerified} />
             <StatusToggleButton memberId={member.id} status={member.status} />
-            <Button variant="outline" size="sm" className="rounded-xl shadow-sm hover:shadow-md transition-all bg-slate-50 dark:bg-slate-900"
+            <Button variant="outline" size="sm" nativeButton={false} className="rounded-xl shadow-sm hover:shadow-md transition-all bg-slate-50 dark:bg-slate-900"
               render={<Link href={`/api/members/${member.id}/print-form`} target="_blank" rel="noopener noreferrer" />}
             >
               <Printer className="mr-2 h-4 w-4" /> Print
